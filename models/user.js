@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema({
     lng:Number
   },
   interests:[String],
-  image:Number,
+  image:String,
   fcmtoken: String,
   code: {
     type: Number,
