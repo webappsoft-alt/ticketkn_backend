@@ -8,7 +8,6 @@ const {
   passwordApiBodyValidate,
   generateIdToken,
   emailApiBodyValidate,
-  phoneApiBodyValidate,
 } = require("../models/user");
 const express = require("express");
 const { sendEmail } = require("../controllers/emailservice");
