@@ -15,8 +15,8 @@ exports.sendEmail = async (email, code) => {
      const mailOptions = {
           from: 'danishgoheer17@gmail.com',
           to: email, // Replace with the recipient's email address
-          subject: 'Gym app Verification',
-          text: 'Your Gym app verification code is ' + code,
+          subject: 'EventHub app Verification',
+          text: 'Your EventHub app verification code is ' + code,
      };
 
      // Send the email

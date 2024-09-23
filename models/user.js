@@ -23,15 +23,13 @@ const userSchema = new mongoose.Schema({
     minlength: 3,
     maxlength: 1024,
   },
-  age:Number,
-  weight:Number,
-  height:Number,
-  image:Number,
-  gender: {
-    type: String,
-    default: 'male',
-    enum: ['male', 'female']
+  location:{
+    address:String,
+    lat:Number,
+    lng:Number
   },
+  interests:[String],
+  image:Number,
   fcmtoken: String,
   code: {
     type: Number,
@@ -73,11 +71,7 @@ function validateUser(user) {
     name: Joi.string().min(2).max(50).required(),
     password: Joi.string().min(5).max(255).required(),
     email: Joi.string().min(5).max(255).email(),
-    fcmtoken: Joi.string().min(0).max(1024).optional(),
-    age: Joi.number().min(0).max(1024).required(),
-    weight: Joi.number().min(0).max(1024).required(),
-    height: Joi.number().min(0).max(1024).required(),
-    gender: Joi.string().valid('male', 'female').allow(null).required()
+    fcmtoken: Joi.string().min(0).max(1024).optional()
   };
 
   const schema = Joi.object({

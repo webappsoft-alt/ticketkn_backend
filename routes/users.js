@@ -196,7 +196,7 @@ router.post("/signup", async (req, res) => {
         .status(400)
         .send({ success: false, message: error.details[0].message });
 
-    const { name, password, email, fcmtoken,age,weight,gender,height } = req.body;
+    const { name, password, email, fcmtoken } = req.body;
 
     const lowerCaseEmail = String(email).trim().toLocaleLowerCase();
 
@@ -224,7 +224,7 @@ router.post("/signup", async (req, res) => {
       name,
       email: lowerCaseEmail,
       fcmtoken,
-      type: "customer",age,weight,gender,height
+      type: "customer"
     });
 
     await newUser.save();
@@ -292,13 +292,13 @@ router.post("/check-email", async (req, res) => {
 
 router.put("/update-user", auth, async (req, res) => {
   const {
-    name,image,age,weight,gender,height 
+    name,image,interests,location
   } = req.body;
 
   // Create an object to store the fields to be updated
   const updateFields = Object.fromEntries(
     Object.entries({
-      name,image,age,weight,gender,height 
+      name,image,interests,location
     }).filter(([key, value]) => value !== undefined)
   );
 
