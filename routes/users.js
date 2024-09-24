@@ -190,17 +190,14 @@ router.post("/verify-otp/registration", async (req, res) => {
 
 router.post("/signup/:type", async (req, res) => {
   try {
+    const { error } = validate(req.body);
+    if (error) return res.status(400).send({ success: false, message: error.details[0].message });
+
     const { type } = req.params;
 
     const validTypes = ['customer','owner'];
 
-    if (validTypes.includes(type)) return res.status(400).send({ success: false, message: error.details[0].message });
-
-    const { error } = validate(req.body);
-    if (error)
-      return res
-        .status(400)
-        .send({ success: false, message: error.details[0].message });
+    if (!validTypes.includes(type)) return res.status(400).send({ success: false, message: "Invalid type" });
 
     const { name, password, email, fcmtoken } = req.body;
 
@@ -245,6 +242,7 @@ router.post("/signup/:type", async (req, res) => {
       user: newUser,
     });
   } catch (error) {
+    console.log(error)
     return res.status(500).json({ message: "Internal server error" });
   }
 });
