@@ -174,7 +174,7 @@ exports.filterPosts = async (req, res) => {
     const { lat, lng } = req.body;
 
     if (!lat || !lng) {
-      return res.status(404).send({ message: 'Latitude and Longitude are required' });
+      return res.status(404).send({ message: 'Latitude and Longitude are required',posts:[] });
     }
 
     const radiusInMiles = 20;
