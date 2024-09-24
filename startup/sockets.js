@@ -75,9 +75,9 @@ module.exports = function (server) {
         
         const otherUser = await User.findById(recipientId).select("messageCount fcmtoken")
 
-        const messageCount=Number(otherUser.messageCount)+1;
-        otherUser.messageCount=messageCount;
-        await otherUser.save()
+        // const messageCount=Number(otherUser.messageCount)+1;
+        // otherUser.messageCount=messageCount;
+        // await otherUser.save()
         
         await sendNotification({
           user : senderId,
@@ -119,11 +119,11 @@ module.exports = function (server) {
 
           if (userid.toString() === senderId) continue;
 
-          const otherUser = await User.findById(userid).select("messageCount")
+          // const otherUser = await User.findById(userid).select("messageCount")
           
-          const messageCount=Number(otherUser.messageCount)+1;
-          otherUser.messageCount=messageCount;
-          await otherUser.save()
+          // const messageCount=Number(otherUser.messageCount)+1;
+          // otherUser.messageCount=messageCount;
+          // await otherUser.save()
   
         //   await sendNotification({
         //     user : senderId,
@@ -181,14 +181,14 @@ const conversationAllseen = async (senderId, conversationId) => {
         {$addToSet:{seen:senderId}}
       );
 
-      const user=await User.findById(senderId).select("messageCount")
+      // const user=await User.findById(senderId).select("messageCount")
 
-      if (message.modifiedCount>0) {
-        const messageCount=Number(user.messageCount)-Number(message.modifiedCount);
-        user.messageCount=messageCount>0?messageCount:0;
+      // if (message.modifiedCount>0) {
+      //   const messageCount=Number(user.messageCount)-Number(message.modifiedCount);
+      //   user.messageCount=messageCount>0?messageCount:0;
 
-        await user.save()
-      }
+      //   await user.save()
+      // }
     
   } catch (error) {
   }
@@ -207,14 +207,14 @@ const allSeen = async (senderId, recipientId) => {
         {$addToSet:{seen:senderId}}
       );
 
-      const user=await User.findById(senderId).select("messageCount")
+      // const user=await User.findById(senderId).select("messageCount")
 
-      if (message.modifiedCount>0) {
-        const messageCount=Number(user.messageCount)-Number(message.modifiedCount);
-        user.messageCount=messageCount>0?messageCount:0;
+      // if (message.modifiedCount>0) {
+      //   const messageCount=Number(user.messageCount)-Number(message.modifiedCount);
+      //   user.messageCount=messageCount>0?messageCount:0;
 
-        await user.save()
-      }
+      //   await user.save()
+      // }
     }
   } catch (error) {
   }

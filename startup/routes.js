@@ -6,7 +6,7 @@ const uploadImages = require('../routes/uploadImages');
 const postRoutes = require('../routes/postRoutes');
 // const programRoutes = require('../routes/programRoutes');
 // const foodRoutes = require('../routes/foodRoutes');
-// const messageRoutes = require('../routes/messageRoutes');
+const messageRoutes = require('../routes/messageRoutes');
 // const notificationRoute = require('../routes/notificationRoute');
 // const ratingRoutes = require('../routes/ratingRoutes');
 const authMiddleware = require('../middleware/auth');
@@ -20,7 +20,7 @@ module.exports = function (app) {
   app.use('/api/event', authMiddleware, postRoutes);
   // app.use('/api/program', authMiddleware,programRoutes);
   // app.use('/api/food', authMiddleware,foodRoutes);
-  // app.use('/api/msg',authMiddleware, messageRoutes);
+  app.use('/api/msg',authMiddleware, messageRoutes);
   // app.use('/api/notification',authMiddleware, notificationRoute);
   // app.use('/api/rating',authMiddleware, ratingRoutes);
   // app.use('/api/support', supportRoute);

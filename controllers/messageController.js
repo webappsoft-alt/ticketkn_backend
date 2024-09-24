@@ -57,12 +57,12 @@ exports.getUserConversations = async (req, res) => {
 
     const pageSize = 10;
 
-    const user = await User.findById(userId).select("messageCount")
+    // const user = await User.findById(userId).select("messageCount")
 
     // Find conversations where the user is a participant
     const conversations = await Conversation.find(query).sort({ _id: -1 }).select('-messageId').populate("participants").populate("event").limit(pageSize).lean()
 
-    let seen=0
+    // let seen=0
 
       for (let conversation of conversations) {
         const messages = await Message.find({ conversationId: conversation?._id }).sort({ _id: -1 }).limit(1);
@@ -75,15 +75,15 @@ exports.getUserConversations = async (req, res) => {
         if (messages.length > 0) {
           conversation.lastMsg = messages[0]
           conversation.unseen = unseenMessages.length
-          seen=seen+unseenMessages.length
+          // seen=seen+unseenMessages.length
         }else{
           conversation.lastMsg = null
           conversation.unseen = 0
-          seen=seen
+          // seen=seen
         }
       }
-      user.messageCount=seen
-      await user.save()
+      // user.messageCount=seen
+      // await user.save()
   
     // Respond with a success status and the list of conversations
     res.status(200).json({ success: true, conversations });
@@ -178,14 +178,14 @@ const conversationAllseen = async (senderId, conversationId) => {
         { conversationId: conversationId, seen:{$nin:[senderId]} },
         {$addToSet:{seen:senderId}}
       );
-      const user=await User.findById(senderId).select("messageCount")
+      // const user=await User.findById(senderId).select("messageCount")
 
-      if (message.modifiedCount>0) {
-        const messageCount=Number(user.messageCount)-Number(message.modifiedCount);
-        user.messageCount=messageCount>0?messageCount:0;
+      // if (message.modifiedCount>0) {
+      //   const messageCount=Number(user.messageCount)-Number(message.modifiedCount);
+      //   user.messageCount=messageCount>0?messageCount:0;
 
-        await user.save()
-      }
+      //   await user.save()
+      // }
 
   } catch (error) {
   }
@@ -203,14 +203,14 @@ const msgSeen = async (senderId, recipientId) => {
         { conversationId: conversation._id, seen:{$nin:[senderId]} },
         {$addToSet:{seen:senderId}}
       );
-      const user=await User.findById(senderId).select("messageCount")
+      // const user=await User.findById(senderId).select("messageCount")
 
-      if (message.modifiedCount>0) {
-        const messageCount=Number(user.messageCount)-Number(message.modifiedCount);
-        user.messageCount=messageCount>0?messageCount:0;
+      // if (message.modifiedCount>0) {
+      //   const messageCount=Number(user.messageCount)-Number(message.modifiedCount);
+      //   user.messageCount=messageCount>0?messageCount:0;
 
-        await user.save()
-      }
+      //   await user.save()
+      // }
     }
   } catch (error) {
   }
