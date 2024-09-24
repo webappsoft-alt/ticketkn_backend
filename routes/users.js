@@ -188,8 +188,14 @@ router.post("/verify-otp/registration", async (req, res) => {
   }
 });
 
-router.post("/signup", async (req, res) => {
+router.post("/signup/:type", async (req, res) => {
   try {
+    const { type } = req.params;
+
+    const validTypes = ['customer','owner'];
+
+    if (validTypes.includes(type)) return res.status(400).send({ success: false, message: error.details[0].message });
+
     const { error } = validate(req.body);
     if (error)
       return res
@@ -224,7 +230,7 @@ router.post("/signup", async (req, res) => {
       name,
       email: lowerCaseEmail,
       fcmtoken,
-      type: "customer"
+      type: type
     });
 
     await newUser.save();
