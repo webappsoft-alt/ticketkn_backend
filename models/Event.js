@@ -21,11 +21,7 @@ const postSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
   images: [String],
   name: String,
-  event_type: {
-    type: String,
-    default: 'wedding',
-    enum: ['concert', 'wedding','birthday']
-  },
+  event_type: String,
   start_Date: Date,
   start_Time: Date,
   address:String,
