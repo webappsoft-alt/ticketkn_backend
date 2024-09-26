@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema({
   interests:[String],
   image:String,
   fcmtoken: String,
+  cus_id:String,
   code: {
     type: Number,
     minlength: 0,

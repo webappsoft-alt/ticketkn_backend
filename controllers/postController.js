@@ -1,5 +1,6 @@
 const Post = require('../models/Event');
 const like = require('../models/like');
+const Purchase = require('../models/Purchase');
 
 exports.createPost = async (req, res) => {
   try {
@@ -40,7 +41,7 @@ exports.createPost = async (req, res) => {
     })
 
     await post.save();
-    res.status(201).json({ success: true, message: 'Post created successfully', post });
+    res.status(201).json({ success: true, message: 'Event created successfully', post });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Internal server error' });
@@ -97,9 +98,9 @@ exports.editPost = async (req, res) => {
       new: true
     });
 
-    if (!post) return res.status(404).send({ success: false, message: 'The Post with the given ID was not found.' });
+    if (!post) return res.status(404).send({ success: false, message: 'The Event with the given ID was not found.' });
 
-    res.send({ success: true, message: 'Post updated successfully', post:singlePost });
+    res.send({ success: true, message: 'Event updated successfully', post:singlePost });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Internal server error' });
@@ -122,7 +123,7 @@ exports.getMyPosts = async (req, res) => {
   query.status='active'
 
 
-  const users = await Post.find(query).populate("user").populate("likes").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  const users = await Post.find(query).populate("user").populate("likes").populate("purchase_by").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0
     posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
@@ -196,7 +197,8 @@ exports.filterPosts = async (req, res) => {
 
     for (const post of users) {
       post.TotalLikes = post?.likes?.length || 0
-      post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
+      post.likes = userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
+      post.purchase_by = userId? Array.isArray(post.purchase_by) && post.purchase_by.some(like => like.toString() === userId.toString()):false;
     }
     
     const totalCount = await Post.find({...query,
@@ -219,6 +221,7 @@ exports.filterPosts = async (req, res) => {
   for (const post of users) {
     post.TotalLikes = post?.likes?.length || 0
     post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
+    post.purchase_by = userId? Array.isArray(post.purchase_by) && post.purchase_by.some(like => like.toString() === userId.toString()):false;
   }
   
   const totalCount = await Post.find(query);
@@ -235,10 +238,10 @@ exports.deletePostById = async (req, res) => {
     const deletedPost = await Post.findOneAndUpdate({ _id: postId },{status:'deleted'},{new:true});
 
     if (!deletedPost) {
-      return res.status(404).json({ message: 'Post not found or user does not have permission to delete it' });
+      return res.status(404).json({ message: 'Event not found or user does not have permission to delete it' });
     }
 
-    res.status(200).json({ message: 'Post deleted successfully', post: deletedPost });
+    res.status(200).json({ message: 'Event deleted successfully', post: deletedPost });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
@@ -269,7 +272,7 @@ exports.likePost = async (req, res) => {
     ).populate("user")
 
     if (!updatedPost) {
-      return res.status(404).json({ message: 'Post not found' });
+      return res.status(404).json({ message: 'Event not found' });
     }
 
     await likePost.save()
@@ -288,7 +291,7 @@ const dislike = async (postId, res, userId) => {
     const deletedLike = await like.findOneAndDelete({ event: postId,user: userId, });
 
     if (!deletedLike) {
-      return res.status(404).json({ message: 'Post not found' });
+      return res.status(404).json({ message: 'Event not found' });
     }
 
     const updatedPost = await Post.findByIdAndUpdate(
@@ -298,7 +301,7 @@ const dislike = async (postId, res, userId) => {
     );
 
     if (!updatedPost) {
-      return res.status(404).json({ message: 'Post not found' });
+      return res.status(404).json({ message: 'Event not found' });
     }
 
     res.status(200).json({ message: 'Like deleted successfully', post: updatedPost });
@@ -332,11 +335,11 @@ exports.getMyFavPosts = async (req, res) => {
         ]
       }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
-      const totalCount = await like.find(query);
-      const totalPages = Math.ceil(totalCount.length / pageSize);
+      const totalCount = await like.countDocuments(query);
+      const totalPages = Math.ceil(totalCount / pageSize);
     
 
-    const jobs = likedJobs.map((like) => like.post);
+    const jobs = likedJobs.map((like) => like.event);
     if (jobs.length > 0) {
       const UpdateFav = jobs.map(order => {
         return {
@@ -346,12 +349,47 @@ exports.getMyFavPosts = async (req, res) => {
       });
       res.status(200).json({ success: true, posts: UpdateFav,count: { totalPage: totalPages, currentPageSize: jobs.length }  });
     } else {
-      res.status(200).json({ success: false, message: 'No more favorite posts found',posts:[] ,count: { totalPage: totalPages, currentPageSize: jobs.length } });
+      res.status(200).json({ success: false, message: 'No more favorite Events found',posts:[] ,count: { totalPage: totalPages, currentPageSize: jobs.length } });
     }
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
+exports.purchaseTicket = async (req, res) => {
+  const userId = req.user._id;
+  const eventId=req.params.id;
 
+  try {
+
+    const post = new Purchase({
+      user: userId,
+      event:eventId
+    })
+
+    const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : userId } },{new:true})
+
+    if (!event) return res.status(404).json({ message: 'Event not found.' });
+    
+    await post.save();
+    res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.getPurchaseTicket = async (req, res) => {
+  try {
+    const postId = req.params.userId;
+    const userId = req.params.eventId;
+
+    const event = await Purchase.findOne({ user: userId,event:postId }).populate("user").populate("event");
+
+    if (!event) return res.status(404).json({ message: 'Event not found.' });
+    
+    res.status(200).json({ success:true, post: event });
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
