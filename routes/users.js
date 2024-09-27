@@ -16,6 +16,7 @@ const { generateCode } = require("../controllers/generateCode");
 const router = express.Router();
 const { TempUser } = require("../models/TempUser");
 const admin = require("../middleware/admin");
+const Event = require("../models/Event");
 
 router.get("/me", auth, async (req, res) => {
   const user = await User.findById(req.user._id).select("-password").populate("interests").lean();
@@ -375,4 +376,71 @@ router.get('/admin/:type/:id',[auth,admin], async (req, res) => {
   res.send({ success: true, users: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 });
 
+
+router.get('/dashboard',[auth,admin], async (req, res) => {
+  const totalUsers = await User.countDocuments({type:"customer"});
+
+   // Get users registered yesterday
+   const today = new Date();
+   const yesterday = new Date(today);
+   yesterday.setDate(today.getDate() - 1);
+   const yesterdayUsers = await User.countDocuments({
+    createdAt: { $gte: yesterday, $lt: today },
+       type:"customer"
+   });
+   // Get the number of users until yesterday
+   const totalUsersYesterday = totalUsers - yesterdayUsers;
+   // Calculate growth percentage
+   let growth = 0;
+   if (totalUsersYesterday > 0) {
+       growth = ((totalUsers - totalUsersYesterday) / totalUsersYesterday) * 100;
+   }
+
+  const totalownerUsers = await User.countDocuments({type:"owner"});
+
+   const yesterdayownerUsers = await User.countDocuments({
+    createdAt: { $gte: yesterday, $lt: today },
+       type:"owner"
+   });
+   // Get the number of users until yesterday
+   const totalownerUsersYesterday = totalownerUsers - yesterdayownerUsers;
+   // Calculate growth percentage
+   let growthowner = 0;
+   if (totalownerUsersYesterday > 0) {
+      growthowner = ((totalownerUsers - totalownerUsersYesterday) / totalownerUsersYesterday) * 100;
+   }
+
+
+   const totalOrder = await Event.countDocuments({status:"active"});
+
+   const yesterdayOrder = await Order.countDocuments({
+    createdAt: { $gte: yesterday, $lt: today },
+    status:"active"
+   });
+   // Get the number of users until yesterday
+   const totalOrderYesterday = totalOrder - yesterdayOrder;
+   // Calculate growth percentage
+   let growthOrder = 0;
+   if (totalOrderYesterday > 0) {
+      growthOrder = ((totalOrder - totalOrderYesterday) / totalOrderYesterday) * 100;
+   }
+
+  res.send({ success: true, 
+    rentee:{
+      totalUsers,
+      growth: growth.toFixed(2),
+      status: growth >= 0 ? 'positive' : 'negative'
+    },
+    owner:{
+      totalUsers:totalownerUsers,
+      growth: growthowner.toFixed(2),
+      status: growthowner >= 0 ? 'positive' : 'negative'
+    },
+    events:{
+      totalEvents:totalOrder,
+      growth: growthOrder.toFixed(2),
+      status: growthOrder >= 0 ? 'positive' : 'negative'
+    },
+   });
+});
 module.exports = router;
