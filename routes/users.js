@@ -413,7 +413,7 @@ router.get('/dashboard',[auth,admin], async (req, res) => {
 
    const totalOrder = await Event.countDocuments({status:"active"});
 
-   const yesterdayOrder = await Order.countDocuments({
+   const yesterdayOrder = await Event.countDocuments({
     createdAt: { $gte: yesterday, $lt: today },
     status:"active"
    });
