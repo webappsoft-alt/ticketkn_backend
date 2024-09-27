@@ -18,7 +18,8 @@ exports.createPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
-      location
+      location,
+      category
      } = req.body;
     const userId = req.user._id;
 
@@ -37,7 +38,8 @@ exports.createPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
-      location
+      location,
+      category
     })
 
     await post.save();
@@ -66,7 +68,8 @@ exports.editPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
-      location 
+      location,
+      category
     } = req.body;
     const postId = req.params.id;
 
@@ -86,7 +89,8 @@ exports.editPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
-      location 
+      location,
+      category
     }).filter(([key, value]) => value !== undefined)
   );
 
@@ -121,13 +125,40 @@ exports.getMyPosts = async (req, res) => {
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   let query = {};
   query.status='active'
+  query.user=userId
 
 
-  const users = await Post.find(query).populate("user").populate("likes").populate("purchase_by").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  const users = await Post.find(query).populate("user").populate("likes").populate("purchase_by").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0
     posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
   }
+  
+  const totalCount = await Post.find(query);
+  const totalPages = Math.ceil(totalCount.length / pageSize);
+  
+  res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
+};
+
+exports.getAdminPost = async (req, res) => {
+  const lastId = parseInt(req.params.id)||1;
+
+  // Check if lastId is a valid number
+  if (isNaN(lastId) || lastId < 0) {
+    return res.status(400).json({ error: 'Invalid last_id' });
+  }
+
+  const pageSize = 10;
+  
+  const skip = Math.max(0, (lastId - 1)) * pageSize;
+  let query = {};
+  query.status='active'
+  if (req.params.type!=='all') {
+    query.category = req.params.type; 
+  }
+
+
+  const users = await Post.find(query).populate("user").populate("purchase_by").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   
   const totalCount = await Post.find(query);
   const totalPages = Math.ceil(totalCount.length / pageSize);
@@ -170,6 +201,9 @@ exports.filterPosts = async (req, res) => {
   if (req.body.otherId) {
     query.user = req.body.otherId; 
   }
+  if (req.body.category) {
+    query.category = req.body.category; 
+  }
 
   if (req.body.address) {
     const { lat, lng } = req.body;
@@ -193,7 +227,7 @@ exports.filterPosts = async (req, res) => {
         }
       }
     })
-    .populate("user").populate("likes").skip(skip).limit(pageSize).lean();
+    .populate("user").populate("likes").populate("category").skip(skip).limit(pageSize).lean();
 
     for (const post of users) {
       post.TotalLikes = post?.likes?.length || 0
@@ -217,7 +251,7 @@ exports.filterPosts = async (req, res) => {
     res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
   }else{
 
-  const users = await Post.find(query).populate("user").populate("likes").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  const users = await Post.find(query).populate("user").populate("likes").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   for (const post of users) {
     post.TotalLikes = post?.likes?.length || 0
     post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
@@ -332,6 +366,7 @@ exports.getMyFavPosts = async (req, res) => {
         path: 'event',
         populate: [
           { path: 'user', model: 'user' },
+          { path: 'category', model: 'Category' },
         ]
       }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
@@ -383,7 +418,13 @@ exports.getPurchaseTicket = async (req, res) => {
     const postId = req.params.userId;
     const userId = req.params.eventId;
 
-    const event = await Purchase.findOne({ user: userId,event:postId }).populate("user").populate("event");
+    const event = await Purchase.findOne({ user: userId,event:postId }).populate("user").populate({
+      path: 'event',
+      populate: [
+        { path: 'user', model: 'user' },
+        { path: 'category', model: 'Category' },
+      ]
+    });
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
     

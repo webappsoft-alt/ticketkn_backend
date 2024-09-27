@@ -4,7 +4,7 @@ const auth = require('../routes/auth');
 const users = require('../routes/users');
 const uploadImages = require('../routes/uploadImages');
 const postRoutes = require('../routes/postRoutes');
-// const programRoutes = require('../routes/programRoutes');
+const categoryRoute = require('../routes/categoryRoute');
 // const foodRoutes = require('../routes/foodRoutes');
 const messageRoutes = require('../routes/messageRoutes');
 // const notificationRoute = require('../routes/notificationRoute');
@@ -17,6 +17,7 @@ module.exports = function (app) {
   app.use('/api/auth', auth);
   app.use('/api/users', users);
   app.use('/api/image', uploadImages);
+  app.use('/api/category', categoryRoute);
   app.use('/api/event', authMiddleware, postRoutes);
   // app.use('/api/program', authMiddleware,programRoutes);
   // app.use('/api/food', authMiddleware,foodRoutes);

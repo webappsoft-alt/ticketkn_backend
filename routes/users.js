@@ -15,9 +15,10 @@ const passwordauth = require("../middleware/passwordauth");
 const { generateCode } = require("../controllers/generateCode");
 const router = express.Router();
 const { TempUser } = require("../models/TempUser");
+const admin = require("../middleware/admin");
 
 router.get("/me", auth, async (req, res) => {
-  const user = await User.findById(req.user._id).select("-password").lean();
+  const user = await User.findById(req.user._id).select("-password").populate("interests").lean();
   res.send({ success: true, user: user });
 });
 
@@ -346,6 +347,32 @@ router.delete("/", auth, async (req, res) => {
       });
 
   res.send({ success: true, message: "User deleted successfully", user });
+});
+
+router.get('/admin/:type/:id',[auth,admin], async (req, res) => {
+  const lastId = parseInt(req.params.id)||1;
+
+  // Check if lastId is a valid number
+  if (isNaN(lastId) || lastId < 0) {
+    return res.status(400).json({ error: 'Invalid last_id' });
+  }
+
+  let query={}
+
+  if (req.params.type!=='all') {
+    query.type=req.params.type;
+  }
+
+  const pageSize = 10;
+
+  const skip = Math.max(0, (lastId - 1)) * pageSize;
+
+  const users = await User.find(query).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+
+  const totalCount = await User.countDocuments(query);
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  res.send({ success: true, users: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 });
 
 module.exports = router;

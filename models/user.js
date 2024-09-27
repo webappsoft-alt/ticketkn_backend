@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema({
     lat:Number,
     lng:Number
   },
-  interests:[String],
+  interests:[{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
   image:String,
   fcmtoken: String,
   cus_id:String,
