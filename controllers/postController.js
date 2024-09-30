@@ -104,7 +104,7 @@ exports.editPost = async (req, res) => {
 
     if (!post) return res.status(404).send({ success: false, message: 'The Event with the given ID was not found.' });
 
-    res.send({ success: true, message: 'Event updated successfully', post:singlePost });
+    res.send({ success: true, message: 'Event updated successfully', post:post });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Internal server error' });
