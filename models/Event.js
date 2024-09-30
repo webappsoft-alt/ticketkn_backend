@@ -11,6 +11,10 @@ const ticketPlanObj={
     type: Number,
     default: 0,
   },
+  totalTicket:{
+    type: Number,
+    default: 0,
+  },
   offers:[{
     id:String,
     title:String,

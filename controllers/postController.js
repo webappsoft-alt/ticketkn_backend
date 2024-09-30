@@ -187,19 +187,11 @@ exports.filterPosts = async (req, res) => {
   }
 
   if (req.body.today=="true"||req.body.today==true) {
-    // Get today's date at midnight
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); 
+    // Get the current date and time (now)
+    const now = new Date();
     
-    // Get the date 3 days from now
-    const threeDaysFromNow = new Date(today);
-    threeDaysFromNow.setDate(today.getDate() + 3);
-   
-    // Set query to find events starting in the next 2-3 days
-    query.start_Date = {
-      $gte: today,
-      $lt: threeDaysFromNow
-    };
+    // Only retrieve upcoming events (those with start_Date in the future)
+    query.start_Date = { $gte: now };
   }
 
   if (req.body.otherId) {
@@ -400,10 +392,19 @@ exports.purchaseTicket = async (req, res) => {
   const eventId=req.params.id;
 
   try {
+    const {totalPrice,tickets}=req.body;
+
+    const findEvent = await Post.findById(eventId).lean()
+
+    if (Number(findEvent.purchase_by.length+Number(tickets))>findEvent.join_people) {
+      return res.status(404).json({ message: "Event's tickets are fully sold" });
+    }
 
     const post = new Purchase({
       user: userId,
-      event:eventId
+      event:eventId,
+      tickets:tickets,
+      totalPrice:totalPrice
     })
 
     const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : userId } },{new:true})

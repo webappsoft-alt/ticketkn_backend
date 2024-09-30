@@ -17,6 +17,7 @@ const router = express.Router();
 const { TempUser } = require("../models/TempUser");
 const admin = require("../middleware/admin");
 const Event = require("../models/Event");
+const Purchase = require("../models/Purchase");
 
 router.get("/me", auth, async (req, res) => {
   const user = await User.findById(req.user._id).select("-password").populate("interests").lean();
@@ -440,6 +441,96 @@ router.get('/dashboard',[auth,admin], async (req, res) => {
       totalEvents:totalOrder,
       growth: growthOrder.toFixed(2),
       status: growthOrder >= 0 ? 'positive' : 'negative'
+    },
+   });
+});
+
+router.get('/owner-dashboard',auth, async (req, res) => {
+  const userId=req.user._id
+  const totalActiveEvents = await Event.countDocuments({user:userId,status:"active"});
+
+  const events = await Event.find({user:userId,status:"active"}).select("status")
+
+  const totalEvents=events.map(item=>item._id)
+
+   // Get users registered yesterday
+   const today = new Date();
+   const yesterday = new Date(today);
+   yesterday.setDate(today.getDate() - 1);
+
+   const yesterdayActiveEvents = await Event.countDocuments({
+    createdAt: { $gte: yesterday, $lt: today },
+    user:userId,status:"active"
+   });
+
+   const totalActiveEventsYesterday = totalActiveEvents - yesterdayActiveEvents;
+   // Calculate growth percentage
+   let growth = 0;
+   if (totalActiveEventsYesterday > 0) {
+       growth = ((totalActiveEvents - totalActiveEventsYesterday) / totalActiveEventsYesterday) * 100;
+   }
+
+
+
+  const totalPurchases = await Purchase.find({event:{$in:totalEvents}}).select("totalPrice");
+
+   const yesterdayPurchases = await Purchase.find({
+    createdAt: { $gte: yesterday, $lt: today },
+    event:{$in:totalEvents}
+   }).select("totalPrice")
+   // Get the number of users until yesterday
+   const totalPurchasesYesterday = totalPurchases.length - yesterdayPurchases.length;
+   // Calculate growth percentage
+   let growthowner = 0;
+   if (totalPurchasesYesterday > 0) {
+      growthowner = ((totalPurchases.length - totalPurchasesYesterday) / totalPurchasesYesterday) * 100;
+   }
+
+   const toalEarnings=totalPurchases.reduce((a,b)=>a+Number(b.totalPrice),0)
+   // Get the number of users until yesterday
+   const totalEarningsYesterday = toalEarnings - yesterdayPurchases.reduce((a,b)=>a+Number(b.totalPrice),0);
+   // Calculate growth percentage
+   let growthEarnings = 0;
+   if (totalPurchasesYesterday > 0) {
+     growthEarnings = ((toalEarnings - totalEarningsYesterday) / totalEarningsYesterday) * 100;
+   }
+
+
+   const totalUpcomingEvents = await Event.countDocuments({user:userId,status:"active"});
+
+   const yesterdayUpcomingEvents = await Event.countDocuments({
+    createdAt: { $gte: yesterday, $lt: today },
+    user:userId,status:"active"
+   });
+
+   const totalUpcomingEventsYesterday = totalUpcomingEvents - yesterdayUpcomingEvents;
+   // Calculate growth percentage
+   let growthUpcoming = 0;
+   if (totalUpcomingEventsYesterday > 0) {
+    growthUpcoming = ((totalUpcomingEvents - totalUpcomingEventsYesterday) / totalUpcomingEventsYesterday) * 100;
+   }
+
+  res.send({ success: true, 
+    events:{
+      total:totalActiveEvents,
+      growth: growth.toFixed(2),
+      status: growth >= 0 ? 'positive' : 'negative'
+    },
+    purchase:{
+      total:totalPurchases,
+      growth: growthowner.toFixed(2),
+      status: growthowner >= 0 ? 'positive' : 'negative'
+    },
+    earnings:{
+      total:toalEarnings,
+      growth: growthEarnings.toFixed(2),
+      status: growthEarnings >= 0 ? 'positive' : 'negative'
+    },
+
+    upcomingevents:{
+      total:totalUpcomingEvents,
+      growth: growthUpcoming.toFixed(2),
+      status: growthUpcoming >= 0 ? 'positive' : 'negative'
     },
    });
 });
