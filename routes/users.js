@@ -73,7 +73,7 @@ router.put("/update-password", passwordauth, async (req, res) => {
       .status(400)
       .send({ success: false, message: error.details[0].message });
 
-  const { password } = req.body;
+  const { password,code } = req.body;
 
   const user = await User.findById(req.user._id);
 
@@ -84,6 +84,8 @@ router.put("/update-password", passwordauth, async (req, res) => {
         success: false,
         message: "The User with the given ID was not found.",
       });
+
+  if (Number(user.code) !== Number(code)) return res.status(400).send({ success: false, message: "Incorrect code." });
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
@@ -176,7 +178,7 @@ router.post("/verify-otp/registration", async (req, res) => {
       email: lowerCaseEmail,
     });
 
-    if (!verificationRecord || verificationRecord.code !== code) {
+    if (!verificationRecord || Number(verificationRecord.code) !== Number(code)) {
       return res
         .status(400)
         .json({ success: false, message: "Incorrect verification code" });
@@ -210,10 +212,11 @@ router.post("/signup/:type", async (req, res) => {
       email: lowerCaseEmail,
     });
 
-    if (!verificationRecord)
+    if (!verificationRecord || Number(verificationRecord.code) !== Number(code)) {
       return res
         .status(400)
-        .json({ success: false, message: "Verification is not completed" });
+        .json({ success: false, message: "Incorrect verification code" });
+    }
 
     const user = await User.findOne({ email: lowerCaseEmail });
 

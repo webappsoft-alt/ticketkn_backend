@@ -72,7 +72,8 @@ function validateUser(user) {
     name: Joi.string().min(2).max(50).required(),
     password: Joi.string().min(5).max(255).required(),
     email: Joi.string().min(5).max(255).email(),
-    fcmtoken: Joi.string().min(0).max(1024).optional()
+    fcmtoken: Joi.string().min(0).max(1024).optional(),
+    code: Joi.string().min(0).max(1024).optional()
   };
 
   const schema = Joi.object({
@@ -85,6 +86,7 @@ function passwordApiBodyValidate(body) {
   const schema = Joi.object({
     password: Joi.string().min(5).max(255).required(),
     token: Joi.string().min(5).max(255).required(),
+    code: Joi.string().min(0).max(1024).optional()
   })
 
   return schema.validate(body);
