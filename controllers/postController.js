@@ -140,6 +140,30 @@ exports.getMyPosts = async (req, res) => {
   res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 };
 
+
+exports.latestEvent = async (req, res) => {
+  const userId = req?.user?._id||""
+  
+  let query = {};
+  query.status='active'
+  query.user=userId
+
+  // Get the current date and time (now)
+  const now = new Date();
+    
+  // Only retrieve upcoming events (those with start_Date in the future)
+  query.start_Date = { $gte: now };
+
+
+  const users = await Post.find(query).populate("user").populate("purchase_by").populate("category").sort({ start_Date: 1 }).limit(1).lean();
+  for (let posts of users) {
+    posts.TotalLikes = posts?.likes?.length || 0
+    posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
+  }
+    
+  res.send({ success: true, posts: users});
+};
+
 exports.getAdminPost = async (req, res) => {
   const lastId = parseInt(req.params.id)||1;
 

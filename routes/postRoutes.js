@@ -10,6 +10,7 @@ router.get('/admin/:type/:id',authMiddleware, postController.getAdminPost);
 router.post('/filter',optionalAuth, postController.filterPosts);
 router.put('/purchase/:id',authMiddleware, postController.purchaseTicket);
 router.get('/ticket/:userId/:eventId',optionalAuth, postController.getPurchaseTicket);
+router.get('/me/latest',authMiddleware, postController.latestEvent);
 router.get('/me/:id/:search?',authMiddleware, postController.getMyPosts);
 router.put('/edit/:id',authMiddleware, postController.editPost);
 router.delete('/:id', authMiddleware,postController.deletePostById);

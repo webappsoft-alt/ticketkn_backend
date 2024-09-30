@@ -114,7 +114,7 @@ router.put("/change-password", auth, async (req, res) => {
   if (!validPassword)
     return res
       .status(400)
-      .send({ success: false, message: "Invalid password" });
+      .send({ success: false, message: "Your old password is incorrect." });
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(newPassword, salt);
