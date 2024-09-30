@@ -187,15 +187,19 @@ exports.filterPosts = async (req, res) => {
   }
 
   if (req.body.today=="true"||req.body.today==true) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); 
-  
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  query.createdAt= {
-    $gte: today,
-    $lt: tomorrow
-  }
+    // Get today's date at midnight
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+    
+    // Get the date 3 days from now
+    const threeDaysFromNow = new Date(today);
+    threeDaysFromNow.setDate(today.getDate() + 3);
+   
+    // Set query to find events starting in the next 2-3 days
+    query.start_Date = {
+      $gte: today,
+      $lt: threeDaysFromNow
+    };
   }
 
   if (req.body.otherId) {
