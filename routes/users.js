@@ -204,7 +204,7 @@ router.post("/signup/:type", async (req, res) => {
 
     if (!validTypes.includes(type)) return res.status(400).send({ success: false, message: "Invalid type" });
 
-    const { name, password, email, fcmtoken } = req.body;
+    const { name, password, email, fcmtoken,code } = req.body;
 
     const lowerCaseEmail = String(email).trim().toLocaleLowerCase();
 
