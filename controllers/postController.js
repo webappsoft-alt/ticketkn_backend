@@ -39,7 +39,8 @@ exports.createPost = async (req, res) => {
       ticket_plans,
       refund_policy,
       location,
-      category
+      category,
+      tickets_sale:[{ type:"general", totalTicket:0},{type: 'vip',totalTicket:0},{type:'vvip',totalTicket:0}]
     })
 
     await post.save();
