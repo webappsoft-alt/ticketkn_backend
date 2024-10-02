@@ -1,5 +1,18 @@
 const mongoose = require('mongoose');
 
+const ticketObj={
+  type:{
+    type: String,
+    default: 'general',
+    enum: ['general', 'vip','vvip']
+  },
+  totalTicket:{
+    type: Number,
+    default: 0,
+  }
+}
+
+
 const joinUserSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -14,6 +27,7 @@ const joinUserSchema = new mongoose.Schema({
     type:Number,
     default:0
   },
+  tickets_type_sale:[ticketObj],
   totalPrice: {
     type:Number,
     default:0

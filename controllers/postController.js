@@ -416,7 +416,7 @@ exports.purchaseTicket = async (req, res) => {
   const eventId=req.params.id;
 
   try {
-    const {totalPrice,tickets}=req.body;
+    const {totalPrice,tickets,tickets_sale,tickets_type_sale}=req.body;
 
     const findEvent = await Post.findById(eventId).lean()
 
@@ -428,10 +428,11 @@ exports.purchaseTicket = async (req, res) => {
       user: userId,
       event:eventId,
       tickets:tickets,
-      totalPrice:totalPrice
+      totalPrice:totalPrice,
+      tickets_type_sale:tickets_type_sale
     })
 
-    const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets) },{new:true})
+    const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale },{new:true})
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
     

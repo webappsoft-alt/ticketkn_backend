@@ -21,6 +21,18 @@ const ticketPlanObj={
   }]
 }
 
+const ticketObj={
+  type:{
+    type: String,
+    default: 'general',
+    enum: ['general', 'vip','vvip']
+  },
+  totalTicket:{
+    type: Number,
+    default: 0,
+  }
+}
+
 const postSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
   images: [String],
@@ -41,6 +53,7 @@ const postSchema = new mongoose.Schema({
     type:Number,
     default:0
   },
+  tickets_sale:[ticketObj],
   ticket_plans: [ticketPlanObj],
   refund_policy:String,
   category:{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
