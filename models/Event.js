@@ -37,11 +37,15 @@ const postSchema = new mongoose.Schema({
     type:Number,
     default:0
   },
+  total_tickets_sale: {
+    type:Number,
+    default:0
+  },
   ticket_plans: [ticketPlanObj],
   refund_policy:String,
   category:{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Like' }], // Reference to likes
-  purchase_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'user' }], // Reference to likes
+  purchase_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Purchase' }], // Reference to likes
   createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
   location: {
     type: { type: String, enum: ['Point'], default: 'Point' },
