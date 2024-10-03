@@ -339,7 +339,7 @@ exports.likePost = async (req, res) => {
     }
     const likePost = new like({
       user: userId,
-      post: postId
+      event: postId
     });
 
 
@@ -551,7 +551,7 @@ exports.eventsPurchases = async (req, res) => {
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   query.event = event;
-  
+
   try {
     const likedJobs = await Purchase.find(query).populate("user").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
