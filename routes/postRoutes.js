@@ -6,6 +6,7 @@ const authMiddleware = require('../middleware/auth');
 
 router.post('/create', authMiddleware,postController.createPost);
 router.get('/fav/me/:id?',authMiddleware, postController.getMyFavPosts);
+router.get('/purchases/:eventId/:id', authMiddleware, postController.eventsPurchases);
 router.get('/purchase/all/:id', authMiddleware, postController.getPurchase);
 router.get('/admin/:type/:id',authMiddleware, postController.getAdminPost);
 router.post('/filter',optionalAuth, postController.filterPosts);

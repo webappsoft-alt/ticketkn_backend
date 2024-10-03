@@ -129,7 +129,13 @@ exports.getMyPosts = async (req, res) => {
   query.user=userId
 
 
-  const users = await Post.find(query).populate("user").populate("likes").populate("purchase_by").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  const users = await Post.find(query).populate("user").populate("likes").populate({
+    path: 'purchase_by',
+    options: { limit: 3 }, // Limit to 3 users
+    populate: [
+      { path: 'user', model: 'user' },
+    ]
+  }).populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0
     posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
@@ -156,7 +162,13 @@ exports.latestEvent = async (req, res) => {
   query.start_Date = { $gte: now };
 
 
-  const users = await Post.find(query).populate("user").populate("purchase_by").populate("category").sort({ start_Date: 1 }).limit(1).lean();
+  const users = await Post.find(query).populate("user").populate({
+    path: 'purchase_by',
+    options: { limit: 3 }, // Limit to 3 users
+    populate: [
+      { path: 'user', model: 'user' },
+    ]
+  }).populate("category").sort({ start_Date: 1 }).limit(1).lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0
     posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
@@ -183,7 +195,13 @@ exports.getAdminPost = async (req, res) => {
   }
 
 
-  const users = await Post.find(query).populate("user").populate("purchase_by").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  const users = await Post.find(query).populate("user").populate({
+    path: 'purchase_by',
+    options: { limit: 3 }, // Limit to 3 users
+    populate: [
+      { path: 'user', model: 'user' },
+    ]
+  }).populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   
   const totalCount = await Post.find(query);
   const totalPages = Math.ceil(totalCount.length / pageSize);
@@ -272,11 +290,16 @@ exports.filterPosts = async (req, res) => {
     res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
   }else{
 
-  const users = await Post.find(query).populate("user").populate("likes").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  const users = await Post.find(query).populate({
+    path: 'purchase_by',
+    options: { limit: 3 }, // Limit to 3 users
+    populate: [
+      { path: 'user', model: 'user' },
+    ]
+  }).populate("user").populate("likes").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   for (const post of users) {
     post.TotalLikes = post?.likes?.length || 0
     post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
-    post.purchase_by = userId? Array.isArray(post.purchase_by) && post.purchase_by.some(like => like.toString() === userId.toString()):false;
   }
   
   const totalCount = await Post.find(query);
@@ -388,6 +411,7 @@ exports.getMyFavPosts = async (req, res) => {
         populate: [
           { path: 'user', model: 'user' },
           { path: 'category', model: 'Category' },
+          { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
         ]
       }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
@@ -488,6 +512,7 @@ exports.getPurchase = async (req, res) => {
         { path: 'user', model: 'user' },
         { path: 'category', model: 'Category' },
         { path: 'likes', model: 'Like' },
+        { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
       ]
     }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
@@ -507,6 +532,35 @@ exports.getPurchase = async (req, res) => {
       res.status(200).json({ success: true, posts: UpdateFav,count: { totalPage: totalPages, currentPageSize: jobs.length }  });
     } else {
       res.status(200).json({ success: false, message: 'No more purchase events found',posts:[] ,count: { totalPage: totalPages, currentPageSize: jobs.length } });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+exports.eventsPurchases = async (req, res) => {
+  const event = req.params.eventId
+  const lastId = parseInt(req.params.id)||1;
+
+    // Check if lastId is a valid number
+  if (isNaN(lastId) || lastId < 0) {
+    return res.status(400).json({ error: 'Invalid last_id' });
+  }
+  let query={};
+
+  const pageSize = 10;
+  
+  const skip = Math.max(0, (lastId - 1)) * pageSize;
+  query.event = event;
+  
+  try {
+    const likedJobs = await Purchase.find(query).populate("user").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+
+      const totalCount = await Purchase.countDocuments(query);
+      const totalPages = Math.ceil(totalCount / pageSize);
+    if (likedJobs.length > 0) {
+      res.status(200).json({ success: true, purchases: likedJobs,count: { totalPage: totalPages, currentPageSize: likedJobs.length }  });
+    } else {
+      res.status(200).json({ success: false, message: 'No more purchase purchases found',purchases:[] ,count: { totalPage: totalPages, currentPageSize: likedJobs.length } });
     }
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });
