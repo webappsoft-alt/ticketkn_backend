@@ -470,10 +470,10 @@ exports.purchaseTicket = async (req, res) => {
 
 exports.getPurchaseTicket = async (req, res) => {
   try {
-    const postId = req.params.userId;
-    const userId = req.params.eventId;
+    const userId = req.params.userId;
+    const eventId = req.params.eventId;
 
-    const event = await Purchase.findOne({ user: userId,event:postId }).populate("user").populate({
+    const event = await Purchase.findOne({ user: userId,event:eventId }).populate("user").populate({
       path: 'event',
       populate: [
         { path: 'user', model: 'user' },
