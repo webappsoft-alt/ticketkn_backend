@@ -520,18 +520,14 @@ exports.getPurchase = async (req, res) => {
       const totalPages = Math.ceil(totalCount / pageSize);
     
 
-    const jobs = likedJobs.map((like) => like.event);
-    if (jobs.length > 0) {
-      const UpdateFav = jobs.map(order => {
-        return {
-          ...order, 
-          TotalLikes : order?.likes?.length || 0,
-          likes:userId? Array.isArray(order.likes) && order.likes.some(like => like.user.toString() === userId.toString()):false
-        };
-      });
-      res.status(200).json({ success: true, posts: UpdateFav,count: { totalPage: totalPages, currentPageSize: jobs.length }  });
+    if (likedJobs.length > 0) {
+      for (let purchase of likedJobs) {
+        purchase.event.TotalLikes=purchase.event.likes?.length
+        purchase.event.likes=userId? Array.isArray(purchase.event.likes) && purchase.event.likes.some(like => like.user.toString() === userId.toString()):false
+      }
+      res.status(200).json({ success: true, posts: likedJobs,count: { totalPage: totalPages, currentPageSize: likedJobs.length }  });
     } else {
-      res.status(200).json({ success: false, message: 'No more purchase events found',posts:[] ,count: { totalPage: totalPages, currentPageSize: jobs.length } });
+      res.status(200).json({ success: false, message: 'No more purchase events found',posts:[] ,count: { totalPage: totalPages, currentPageSize: likedJobs.length } });
     }
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });
