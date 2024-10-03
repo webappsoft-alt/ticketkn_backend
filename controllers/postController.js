@@ -465,3 +465,50 @@ exports.getPurchaseTicket = async (req, res) => {
   }
 };
 
+
+
+exports.getPurchase = async (req, res) => {
+  const userId = req.user._id
+  const lastId = parseInt(req.params.id)||1;
+
+    // Check if lastId is a valid number
+  if (isNaN(lastId) || lastId < 0) {
+    return res.status(400).json({ error: 'Invalid last_id' });
+  }
+  let query={};
+
+  const pageSize = 10;
+  
+  const skip = Math.max(0, (lastId - 1)) * pageSize;
+  query.user = userId;
+  try {
+    const likedJobs = await Purchase.find(query).populate({
+      path: 'event',
+      populate: [
+        { path: 'user', model: 'user' },
+        { path: 'category', model: 'Category' },
+        { path: 'likes', model: 'Like' },
+      ]
+    }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+
+      const totalCount = await Purchase.countDocuments(query);
+      const totalPages = Math.ceil(totalCount / pageSize);
+    
+
+    const jobs = likedJobs.map((like) => like.event);
+    if (jobs.length > 0) {
+      const UpdateFav = jobs.map(order => {
+        return {
+          ...order, 
+          TotalLikes : order?.likes?.length || 0,
+          likes:userId? Array.isArray(order.likes) && order.likes.some(like => like.user.toString() === userId.toString()):false
+        };
+      });
+      res.status(200).json({ success: true, posts: UpdateFav,count: { totalPage: totalPages, currentPageSize: jobs.length }  });
+    } else {
+      res.status(200).json({ success: false, message: 'No more purchase events found',posts:[] ,count: { totalPage: totalPages, currentPageSize: jobs.length } });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
