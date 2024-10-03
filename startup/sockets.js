@@ -73,7 +73,7 @@ module.exports = function (server) {
         io.to(senderId).emit('send-message', savedMessage);
         io.to(recipientId).emit('send-message', savedMessage);
         
-        const otherUser = await User.findById(recipientId).select("messageCount fcmtoken")
+        const otherUser = await User.findById(recipientId).select("fcmtoken")
 
         // const messageCount=Number(otherUser.messageCount)+1;
         // otherUser.messageCount=messageCount;
@@ -85,7 +85,7 @@ module.exports = function (server) {
           description :  `@${name} sent you a message: ${messageText}`,
           type :'message',
           title :"New Message",
-          fcm_token :otherUser?.fcmtoken,
+          fcmtoken :otherUser?.fcmtoken,
       })
 
       } catch (error) {
