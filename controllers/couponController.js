@@ -1,4 +1,5 @@
 const Coupon = require('../models/Coupon');
+const Event = require('../models/Event');
 
 exports.create = async (req, res) => {
   try {
@@ -9,6 +10,9 @@ exports.create = async (req, res) => {
       events, title,code,expirey_date,discount
     });
     await category.save();
+    for (let event of events) {
+      await Event.findByIdAndUpdate(event,{coupon:true},{new:true})
+    }
 
     res.status(201).json({ success: true, message: 'Coupon created successfully', category });
   } catch (error) {
@@ -40,15 +44,33 @@ exports.editCategories = async (req, res) => {
       });
   }
 
-    const service = await Coupon.findOneAndUpdate(
-      { _id: serviceId },
-      updateFields,
-      { new: true }
-    );
+  if (events) { 
+    const coupon=await Coupon.findById(serviceId).lean()
 
-    if (service == null) {
+    if (coupon == null) {
       return res.status(404).json({ message: 'Coupon not found' });
     }
+    
+    for (let event of coupon.events) {
+      await Event.findByIdAndUpdate(event,{coupon:false},{new:true})
+    }
+  }
+  
+  const service = await Coupon.findOneAndUpdate(
+    { _id: serviceId },
+    updateFields,
+    { new: true }
+  );
+  
+  if (service == null) {
+    return res.status(404).json({ message: 'Coupon not found' });
+  }
+
+  if (events) {     
+    for (let event of events) {
+      await Event.findByIdAndUpdate(event,{coupon:true},{new:true})
+    }
+  }
 
     res.status(200).json({ message: `Coupon updated successfully`, Coupon: service });
 
@@ -88,6 +110,10 @@ exports.deleteCoupons = async (req, res) => {
 
     if (service == null) {
       return res.status(404).json({ message: 'Coupon not found' });
+    }
+
+    for (let event of service.events) {
+      await Event.findByIdAndUpdate(event,{coupon:false},{new:true})
     }
 
     res.status(200).json({ message: `Coupon deleted successfully`, Coupon: service });
