@@ -1,3 +1,4 @@
+const { default: axios } = require('axios');
 const Post = require('../models/Event');
 const like = require('../models/like');
 const Purchase = require('../models/Purchase');
@@ -463,6 +464,46 @@ exports.purchaseTicket = async (req, res) => {
     
     await post.save();
     res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+exports.paymentDone = async (req, res) => {
+
+  try {
+    const body={ 
+      "live": "0",
+      "timestamp": "20240726190607",
+      "refnum": "123123123123",
+      "jadnumber": "101310573865",
+      "amount": "277.99",
+      "cardnumber": "4111111111111111",
+      "cardexpmonth": "09",
+      "cardexpyear": "2045",
+      "cardcvv": "123",
+      "cardfirstname": "Naee1m",
+      "cardlastname": "Junejo",
+      "address": "wqewds ",
+      "city": "sdssa",
+      "state": "KNK",
+      "postalcode": "123123",
+      "country": "KN",
+      "email": "alrandw@gmail.com",
+      "phone": "222344"
+    }
+     const clientId="0FGR7.1720815360"
+     const apiSecret="6EF4CAFCD82E689DECA28EDFDE15ADB35D12BF5982B182E468758A9F8DD072DF"
+
+     const response=await axios.get(`https://jad.cash/HAPI/token?apikey=${clientId}&secret=${apiSecret}&grant_type=credentials`)
+     const result=await axios.post("https://jad.cash/HAPI/cardpayment",{
+      token:response.data.data.token,
+      paydata:body
+     },{
+      headers:{
+        "Content-Type":"application/json"
+      }
+     })
+      res.status(201).json({ success: true, message: 'Ticket purchase successfully', response:result.data });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }

@@ -11,6 +11,7 @@ router.get('/purchase/all/:id', authMiddleware, postController.getPurchase);
 router.get('/admin/:type/:id',authMiddleware, postController.getAdminPost);
 router.post('/filter',optionalAuth, postController.filterPosts);
 router.put('/purchase/:id',authMiddleware, postController.purchaseTicket);
+router.post('/payment', postController.paymentDone);
 router.get('/ticket/:userId/:eventId',optionalAuth, postController.getPurchaseTicket);
 router.get('/me/latest',authMiddleware, postController.latestEvent);
 router.get('/me/:id/:search?',authMiddleware, postController.getMyPosts);

@@ -56,6 +56,10 @@ const postSchema = new mongoose.Schema({
   tickets_sale:[ticketObj],
   ticket_plans: [ticketPlanObj],
   refund_policy:String,
+  coupon:{
+    type:Boolean,
+    default:false
+  },
   category:{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Like' }], // Reference to likes
   purchase_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Purchase' }], // Reference to likes
