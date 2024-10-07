@@ -10,6 +10,7 @@ router.get('/purchases/:eventId/:id', authMiddleware, postController.eventsPurch
 router.get('/purchase/all/:id', authMiddleware, postController.getPurchase);
 router.get('/admin/:type/:id',authMiddleware, postController.getAdminPost);
 router.post('/filter',optionalAuth, postController.filterPosts);
+router.get('/no-coupon',optionalAuth, postController.noCouponEvent);
 router.put('/purchase/:id',authMiddleware, postController.purchaseTicket);
 router.post('/payment', postController.paymentDone);
 router.get('/ticket/:userId/:eventId',optionalAuth, postController.getPurchaseTicket);

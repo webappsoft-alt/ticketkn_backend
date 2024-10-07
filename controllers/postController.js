@@ -210,6 +210,28 @@ exports.getAdminPost = async (req, res) => {
   res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 };
 
+exports.noCouponEvent = async (req, res) => {
+  const userId = req?.user?._id||""
+  let query = {};
+   // Get the current date and time (now)
+   const now = new Date();
+    
+   // Only retrieve upcoming events (those with start_Date in the future)
+   query.start_Date = { $gte: now };
+   query.coupon= null;
+   query.user= userId;
+
+  const users = await Post.find(query).populate("user").populate({
+    path: 'purchase_by',
+    options: { limit: 3 }, // Limit to 3 users
+    populate: [
+      { path: 'user', model: 'user' },
+    ]
+  }).populate("category").sort({ _id: -1 }).limit(15).lean();
+    
+  res.send({ success: true, posts: users});
+};
+
 exports.filterPosts = async (req, res) => {
   const lastId = parseInt(req.body.last_id)||1;
   const userId = req?.user?._id||""

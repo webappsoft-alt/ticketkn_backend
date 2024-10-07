@@ -11,7 +11,7 @@ exports.create = async (req, res) => {
     });
     await category.save();
     for (let event of events) {
-      await Event.findByIdAndUpdate(event,{coupon:true,coupon_expirey_date:expirey_date},{new:true})
+      await Event.findByIdAndUpdate(event,{coupon:category._id},{new:true})
     }
 
     res.status(201).json({ success: true, message: 'Coupon created successfully', category });
@@ -44,17 +44,6 @@ exports.editCategories = async (req, res) => {
       });
   }
 
-  if (events) { 
-    const coupon=await Coupon.findById(serviceId).lean()
-
-    if (coupon == null) {
-      return res.status(404).json({ message: 'Coupon not found' });
-    }
-    
-    for (let event of coupon.events) {
-      await Event.findByIdAndUpdate(event,{coupon:false,coupon_expirey_date:coupon.expirey_date},{new:true})
-    }
-  }
   
   const service = await Coupon.findOneAndUpdate(
     { _id: serviceId },
@@ -66,13 +55,7 @@ exports.editCategories = async (req, res) => {
     return res.status(404).json({ message: 'Coupon not found' });
   }
 
-  if (events) {     
-    for (let event of events) {
-      await Event.findByIdAndUpdate(event,{coupon:true,coupon_expirey_date:service.expirey_date},{new:true})
-    }
-  }
-
-    res.status(200).json({ message: `Coupon updated successfully`, Coupon: service });
+  res.status(200).json({ message: `Coupon updated successfully`, Coupon: service });
 
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });
@@ -110,10 +93,6 @@ exports.deleteCoupons = async (req, res) => {
 
     if (service == null) {
       return res.status(404).json({ message: 'Coupon not found' });
-    }
-
-    for (let event of service.events) {
-      await Event.findByIdAndUpdate(event,{coupon:false},{new:true})
     }
 
     res.status(200).json({ message: `Coupon deleted successfully`, Coupon: service });
