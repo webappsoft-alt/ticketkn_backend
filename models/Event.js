@@ -60,6 +60,7 @@ const postSchema = new mongoose.Schema({
     type:Boolean,
     default:false
   },
+  coupon_expirey_date: Date, // Timestamp for post creation
   category:{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Like' }], // Reference to likes
   purchase_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Purchase' }], // Reference to likes

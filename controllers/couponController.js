@@ -11,7 +11,7 @@ exports.create = async (req, res) => {
     });
     await category.save();
     for (let event of events) {
-      await Event.findByIdAndUpdate(event,{coupon:true},{new:true})
+      await Event.findByIdAndUpdate(event,{coupon:true,coupon_expirey_date:expirey_date},{new:true})
     }
 
     res.status(201).json({ success: true, message: 'Coupon created successfully', category });
@@ -52,7 +52,7 @@ exports.editCategories = async (req, res) => {
     }
     
     for (let event of coupon.events) {
-      await Event.findByIdAndUpdate(event,{coupon:false},{new:true})
+      await Event.findByIdAndUpdate(event,{coupon:false,coupon_expirey_date:coupon.expirey_date},{new:true})
     }
   }
   
@@ -68,7 +68,7 @@ exports.editCategories = async (req, res) => {
 
   if (events) {     
     for (let event of events) {
-      await Event.findByIdAndUpdate(event,{coupon:true},{new:true})
+      await Event.findByIdAndUpdate(event,{coupon:true,coupon_expirey_date:service.expirey_date},{new:true})
     }
   }
 
