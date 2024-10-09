@@ -290,7 +290,7 @@ exports.filterPosts = async (req, res) => {
         }
       }
     })
-    .populate("user").populate("likes").populate("category").skip(skip).limit(pageSize).lean();
+    .populate("user").populate("likes").populate("coupon").populate("category").skip(skip).limit(pageSize).lean();
 
     for (const post of users) {
       post.TotalLikes = post?.likes?.length || 0
