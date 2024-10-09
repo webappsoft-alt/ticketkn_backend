@@ -136,7 +136,7 @@ exports.getMyPosts = async (req, res) => {
     populate: [
       { path: 'user', model: 'user' },
     ]
-  }).populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  }).populate("coupon").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0
     posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
@@ -169,7 +169,7 @@ exports.latestEvent = async (req, res) => {
     populate: [
       { path: 'user', model: 'user' },
     ]
-  }).populate("category").sort({ start_Date: 1 }).limit(1).lean();
+  }).populate("category").populate("coupon").sort({ start_Date: 1 }).limit(1).lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0
     posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
@@ -202,7 +202,7 @@ exports.getAdminPost = async (req, res) => {
     populate: [
       { path: 'user', model: 'user' },
     ]
-  }).populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  }).populate("category").populate("coupon").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   
   const totalCount = await Post.find(query);
   const totalPages = Math.ceil(totalCount.length / pageSize);
@@ -320,7 +320,7 @@ exports.filterPosts = async (req, res) => {
     populate: [
       { path: 'user', model: 'user' },
     ]
-  }).populate("user").populate("likes").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  }).populate("user").populate("likes").populate("coupon").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
   for (const post of users) {
     post.TotalLikes = post?.likes?.length || 0
     post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
@@ -435,6 +435,7 @@ exports.getMyFavPosts = async (req, res) => {
         populate: [
           { path: 'user', model: 'user' },
           { path: 'category', model: 'Category' },
+          { path: 'coupon', model: 'Coupon' },
           { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
         ]
       }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
@@ -542,6 +543,7 @@ exports.getPurchaseTicket = async (req, res) => {
       populate: [
         { path: 'user', model: 'user' },
         { path: 'category', model: 'Category' },
+        { path: 'coupon', model: 'Coupon' },
       ]
     });
 
@@ -576,6 +578,7 @@ exports.getPurchase = async (req, res) => {
         { path: 'user', model: 'user' },
         { path: 'category', model: 'Category' },
         { path: 'likes', model: 'Like' },
+        { path: 'coupon', model: 'Coupon' },
         { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
       ]
     }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
