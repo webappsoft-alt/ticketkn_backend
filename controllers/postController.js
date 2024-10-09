@@ -218,6 +218,7 @@ exports.noCouponEvent = async (req, res) => {
     
    // Only retrieve upcoming events (those with start_Date in the future)
    query.start_Date = { $gte: now };
+   query.status= "active";
    query.coupon= null;
    query.user= userId;
 

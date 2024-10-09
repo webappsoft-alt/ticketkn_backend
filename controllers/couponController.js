@@ -11,7 +11,7 @@ exports.create = async (req, res) => {
     });
     await category.save();
     for (let event of events) {
-      await Event.findByIdAndUpdate(event,{coupon:category._id},{new:true})
+      await Event.findOneAndUpdate({_id:event,user:userId,},{coupon:category._id},{new:true})
     }
 
     res.status(201).json({ success: true, message: 'Coupon created successfully', category });
@@ -24,13 +24,13 @@ exports.editCategories = async (req, res) => {
   try {
     const serviceId = req.params.id;
 
-    const { events, title,code,expirey_date,discount } = req.body;
+    const { title,code,expirey_date,discount } = req.body;
 
 
     // Create an object to store the fields to be updated
   const updateFields = Object.fromEntries(
     Object.entries({
-      events, title,code,expirey_date,discount 
+      title,code,expirey_date,discount 
     }).filter(([key, value]) => value !== undefined)
   );
 
@@ -84,16 +84,49 @@ exports.getMyCoupons = async (req, res) => {
   }
 };
 
+exports.checkValidatityCoupon = async (req, res) => {
+  let query = {};
+  const {code,event}=req.body
+
+  const currentDate = new Date();
+ 
+  query.code = code
+  query.events = {$in:event}
+  query.expirey_date= { $gt: currentDate }
+
+  try {
+    const categories = await Coupon.findOne(query).lean();
+
+    if (categories) {
+      res.status(200).json({ success: true, coupone: categories,message: 'Coupon is valid' });
+    } else {
+      res.status(200).json({ success: false, message: 'Coupon is not valid'  });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 exports.deleteCoupons = async (req, res) => {
   try {
     const serviceId = req.params.id;
     const userId=req.user._id
 
-    const service = await Coupon.findOneAndDelete({ _id: serviceId,user:userId });
+    const service = await Coupon.findOneAndDelete({ _id: serviceId,user:userId })
 
     if (service == null) {
       return res.status(404).json({ message: 'Coupon not found' });
     }
+
+    // Remove coupon reference from associated events
+    const updatePromises = service.events.map(eventId =>
+      Event.updateOne(
+        { _id: eventId },
+        { $unset: { coupon: "" } } // Use $unset to remove the field
+      )
+    );
+
+    await Promise.all(updatePromises); // Wait for all updates to complete
 
     res.status(200).json({ message: `Coupon deleted successfully`, Coupon: service });
 

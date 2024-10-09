@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const logger = require('./startup/logger'); // Adjust the path as needed
+const nodeCron = require("node-cron");
+const { CheckCoupons } = require('./controllers/CheckCoupons');
 
 
 const admin = require("firebase-admin");
@@ -40,5 +42,12 @@ const port = process.env.PORT || 3000;
 const server = app.listen(port, () => logger.info(`Listening on port  ${port}...`));
 
 require('./startup/sockets')(server, app);
+
+const job = nodeCron.schedule('*/30 * * * *', CheckCoupons);
+
+// const job = nodeCron.schedule('*/30 * * * * *', CheckCoupons);
+
+job.start()
+
 
 module.exports = server;
