@@ -606,6 +606,7 @@ exports.getPurchaseTicket = async (req, res) => {
         { path: 'user', model: 'user' },
         { path: 'category', model: 'Category' },
         { path: 'coupon', model: 'Coupon' },
+        { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
       ]
     });
 
