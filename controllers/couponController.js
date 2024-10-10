@@ -98,7 +98,7 @@ exports.checkValidatityCoupon = async (req, res) => {
   query.expirey_date= { $gt: currentDate }
 
   try {
-    const categories = await Coupon.findOneAndUpdate(query,{$addToSet:{used_by:userId}}).lean();
+    const categories = await Coupon.findOne(query).lean();
 
     if (categories) {
       res.status(200).json({ success: true, coupone: categories,message: 'Coupon is valid' });
