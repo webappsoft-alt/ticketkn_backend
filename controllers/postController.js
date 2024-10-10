@@ -5,6 +5,7 @@ const Purchase = require('../models/Purchase');
 const { sendNotification } = require('./notificationCreateService');
 const { User } = require('../models/user');
 const admin = require("firebase-admin");
+const Coupon = require('../models/Coupon');
 
 exports.createPost = async (req, res) => {
   try {
@@ -508,7 +509,7 @@ exports.purchaseTicket = async (req, res) => {
   const eventId=req.params.id;
 
   try {
-    const {totalPrice,tickets,tickets_sale,tickets_type_sale}=req.body;
+    const {totalPrice,tickets,tickets_sale,tickets_type_sale,couponId}=req.body;
 
     const findEvent = await Post.findById(eventId).lean()
 
@@ -527,6 +528,8 @@ exports.purchaseTicket = async (req, res) => {
     const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale },{new:true}).populate("user").lean()
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
+
+    await Coupon.findByIdAndUpdate(couponId,{$addToSet:{used_by:userId}}).lean();
 
     await sendNotification({
       user : userId,
