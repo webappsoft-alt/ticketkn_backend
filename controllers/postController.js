@@ -529,7 +529,10 @@ exports.purchaseTicket = async (req, res) => {
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
 
-    await Coupon.findByIdAndUpdate(couponId,{$addToSet:{used_by:userId}}).lean();
+    if (couponId) {
+      await Coupon.findByIdAndUpdate(couponId,{$addToSet:{used_by:userId}}).lean();
+    }
+
 
     await sendNotification({
       user : userId,
