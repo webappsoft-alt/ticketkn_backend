@@ -7,14 +7,7 @@ exports.getApplicationDetails = async (req, res) => {
   }
   query.to_id = req.user._id
   try {
-    const notifications = await Notification.find(query).populate("user").populate("event")
-    .populate({
-      path: "request",
-      populate: [
-        { path: "user", model: "user" },
-        { path: "event", model: "Event" }
-      ],
-    }).sort({ _id: -1 }).limit(15).lean();
+    const notifications = await Notification.find(query).populate("user").populate("event").populate("purchase").sort({ _id: -1 }).limit(15).lean();
 
     await Notification.updateMany(
       { to_id: req.user._id, seen: false },

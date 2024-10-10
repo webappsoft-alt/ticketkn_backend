@@ -23,11 +23,16 @@ const userSchema = new mongoose.Schema({
     minlength: 3,
     maxlength: 1024,
   },
-  location:{
-    address:String,
-    lat:Number,
-    lng:Number
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+    },
+    coordinates: {
+      type: [Number],
+    },
   },
+  address:String,
   interests:[{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
   image:String,
   fcmtoken: String,
@@ -53,6 +58,9 @@ const userSchema = new mongoose.Schema({
     index: true
   },
 });
+
+userSchema.index({ location: '2dsphere' });
+
 
 function generateAuthToken(_id,type) {
   const token = jwt.sign({ _id: _id,type:type }, config.get('jwtPrivateKey'));

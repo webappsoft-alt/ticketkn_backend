@@ -45,8 +45,6 @@ require('./startup/sockets')(server, app);
 
 const job = nodeCron.schedule('*/30 * * * *', CheckCoupons);
 
-// const job = nodeCron.schedule('*/30 * * * * *', CheckCoupons);
-
 job.start()
 
 

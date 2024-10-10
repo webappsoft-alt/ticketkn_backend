@@ -74,10 +74,6 @@ module.exports = function (server) {
         io.to(recipientId).emit('send-message', savedMessage);
         
         const otherUser = await User.findById(recipientId).select("fcmtoken")
-
-        // const messageCount=Number(otherUser.messageCount)+1;
-        // otherUser.messageCount=messageCount;
-        // await otherUser.save()
         
         await sendNotification({
           user : senderId,

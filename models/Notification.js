@@ -14,15 +14,15 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     default: 'message',
-    enum: ['message',"rating","request","support"]
+    enum: ['message',"purchase"]
   },
   event: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Event'
   },
-  request: {
+  purchase: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'JoinUser'
+    ref: 'Purchase'
   },
   description: {
     type: String,

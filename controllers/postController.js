@@ -2,6 +2,9 @@ const { default: axios } = require('axios');
 const Post = require('../models/Event');
 const like = require('../models/like');
 const Purchase = require('../models/Purchase');
+const { sendNotification } = require('./notificationCreateService');
+const { User } = require('../models/user');
+const admin = require("firebase-admin");
 
 exports.createPost = async (req, res) => {
   try {
@@ -43,6 +46,45 @@ exports.createPost = async (req, res) => {
       category,
       tickets_sale:[{ type:"general", totalTicket:0},{type: 'vip',totalTicket:0},{type:'vvip',totalTicket:0}]
     })
+
+    const latitude = parseFloat(location.coordinates[1]);
+    const longitude = parseFloat(location.coordinates[0]);
+    const radiusInMeters = 200000; // 30 miles in meters
+  
+
+    const users=await User.find({type:"customer",status:"online",category:category,
+      location: {
+        $geoWithin: {
+          $centerSphere: [[longitude, latitude], radiusInMeters / 6371000],
+        },
+      },
+    }).select("fcmtoken").lean();
+
+
+    const fcmTokens = [...new Set(users.map(item => item.fcmtoken).filter(item=>item!==undefined||item!==""))];
+
+    // Create an array of message objects for each token
+    const messages = fcmTokens.map(token => ({
+      token: token,
+      notification: {
+          title: 'New Event',
+          body: `A new Event "${name}" has been created in your area.`,
+      },
+      android: {
+          notification: {
+              sound: 'default',
+          },
+      },
+      apns: {
+          payload: {
+              aps: {
+                  sound: 'default',
+              },
+          },
+      },
+    }));
+
+     await admin.messaging().sendEach(messages)
 
     await post.save();
     res.status(201).json({ success: true, message: 'Event created successfully', post });
@@ -482,9 +524,20 @@ exports.purchaseTicket = async (req, res) => {
       tickets_type_sale:tickets_type_sale
     })
 
-    const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale },{new:true})
+    const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale },{new:true}).populate("user").lean()
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
+
+    await sendNotification({
+      user : userId,
+      to_id : event.user._id,
+      description :  `Someone has purchased ${tickets} tickets of your ${event.name}`,
+      type :'purchase',
+      title :"New Ticket Purchase",
+      fcmtoken : event.user?.fcmtoken,
+      event:eventId,
+      purchase:post._id
+  })
     
     await post.save();
     res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
@@ -496,12 +549,12 @@ exports.paymentDone = async (req, res) => {
 
   try {
     const body={ 
-      "live": "0",
+      "live": 0,
       "timestamp": "20240726190607",
       "refnum": "123123123123",
       "jadnumber": "101310573865",
       "amount": "277.99",
-      "cardnumber": "4111111111111111",
+      "cardnumber": "4444111122223333",
       "cardexpmonth": "09",
       "cardexpyear": "2045",
       "cardcvv": "123",
@@ -513,7 +566,7 @@ exports.paymentDone = async (req, res) => {
       "postalcode": "123123",
       "country": "KN",
       "email": "alrandw@gmail.com",
-      "phone": "222344"
+      "phone": ""
     }
      const clientId="0FGR7.1720815360"
      const apiSecret="6EF4CAFCD82E689DECA28EDFDE15ADB35D12BF5982B182E468758A9F8DD072DF"
@@ -527,7 +580,7 @@ exports.paymentDone = async (req, res) => {
         "Content-Type":"application/json"
       }
      })
-      res.status(201).json({ success: true, message: 'Ticket purchase successfully', response:result.data });
+      res.status(201).json({ success: true, response:result.data });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
