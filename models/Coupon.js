@@ -14,6 +14,10 @@ const productSchema = new mongoose.Schema({
   title: String,
   code: String,
   expirey_date: Date, // Timestamp for post creation
+  used_by: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+  }],
   discount: {
     type:Number,
     default:0

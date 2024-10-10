@@ -86,16 +86,19 @@ exports.getMyCoupons = async (req, res) => {
 
 exports.checkValidatityCoupon = async (req, res) => {
   let query = {};
+  const userId=req.user._id
+
   const {code,event}=req.body
 
   const currentDate = new Date();
  
   query.code = code
   query.events = {$in:event}
+  query.used_by = {$nin:userId}
   query.expirey_date= { $gt: currentDate }
 
   try {
-    const categories = await Coupon.findOne(query).lean();
+    const categories = await Coupon.findOneAndUpdate(query,{$addToSet:{used_by:userId}}).lean();
 
     if (categories) {
       res.status(200).json({ success: true, coupone: categories,message: 'Coupon is valid' });
