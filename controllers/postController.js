@@ -63,30 +63,33 @@ exports.createPost = async (req, res) => {
 
 
     const fcmTokens = [...new Set(users.map(item => item.fcmtoken).filter(item=>item!==undefined||item!==""))];
+    if (fcmTokens.length > 0) {
+      // Create an array of message objects for each token
+      const messages = fcmTokens.map(token => ({
+        token: token,
+        notification: {
+            title: 'New Event',
+            body: `A new Event "${name}" has been created in your area.`,
+        },
+        android: {
+            notification: {
+                sound: 'default',
+            },
+        },
+        apns: {
+            payload: {
+                aps: {
+                    sound: 'default',
+                },
+            },
+        },
+      }));
+      try {
+        await admin.messaging().sendEach(messages)
+      } catch (error) {}
+    }
 
-    // Create an array of message objects for each token
-    const messages = fcmTokens.map(token => ({
-      token: token,
-      notification: {
-          title: 'New Event',
-          body: `A new Event "${name}" has been created in your area.`,
-      },
-      android: {
-          notification: {
-              sound: 'default',
-          },
-      },
-      apns: {
-          payload: {
-              aps: {
-                  sound: 'default',
-              },
-          },
-      },
-    }));
-
-     await admin.messaging().sendEach(messages)
-
+      
     await post.save();
     res.status(201).json({ success: true, message: 'Event created successfully', post });
   } catch (error) {
