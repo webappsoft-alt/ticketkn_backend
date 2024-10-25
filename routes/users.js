@@ -537,4 +537,29 @@ router.get('/owner-dashboard',auth, async (req, res) => {
     },
    });
 });
+
+router.post('/send-notifications', [auth, admin], async (req, res) => {
+
+  const {type}=req.params;
+  const validTypes=["customer", "owner"]
+  if (!validTypes.includes(type)) {
+    return res.status(404).send({ success: false, message: 'User Type is not valid' });
+  }
+  const { title, description } = req.body;
+
+  const users = await User.find({}).lean()
+  for (let user of users) {
+      // await sendNotification({
+      //   userId: req.user._id,
+      //   to_id: user._id,
+      //   description: description,
+      //   title: title,
+      //   fcmToken: user.fcmtoken,
+      // })
+  }
+
+  res.send({ success: true, message: 'notification sent successfully', });
+});
+
+
 module.exports = router;
