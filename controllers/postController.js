@@ -358,7 +358,115 @@ exports.filterPosts = async (req, res) => {
     const totalPages = Math.ceil(totalCount.length / pageSize);
     
     res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
-  }else{
+  }else if (req.body.popular) {
+
+    const users = await Post.find(query).populate({
+      path: 'purchase_by',
+      options: { limit: 3 }, // Limit to 3 users
+      populate: [
+        { path: 'user', model: 'user' },
+      ]
+    }).populate("user").populate("likes").populate("coupon").populate("category").sort({ total_tickets_sale: -1 }).skip(skip).limit(pageSize).lean();
+    for (const post of users) {
+      post.TotalLikes = post?.likes?.length || 0
+      post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
+    }
+    
+    const totalCount = await Post.find(query);
+    const totalPages = Math.ceil(totalCount.length / pageSize);
+    
+   return res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
+
+   
+// const events = await Post.aggregate([
+//   {
+//     $addFields: {
+//       purchaseCount: { $size: "$purchase_by" } // Temporary field to count `purchase_by` length
+//     }
+//   },
+//   {
+//     $sort: { purchaseCount: -1, _id: -1 } // Sort by purchase count descending
+//   },
+//   {
+//     $skip: skip
+//   },
+//   {
+//     $limit: pageSize
+//   },
+//   {
+//     $lookup: {
+//       from: 'purchases', // Assuming `purchase_by` references the `Purchase` collection
+//       localField: 'purchase_by',
+//       foreignField: '_id',
+//       as: 'purchase_by'
+//     }
+//   },
+//   {
+//     $lookup: {
+//       from: 'users',
+//       let: { purchaseUserIds: "$purchase_by.user" },
+//       pipeline: [
+//         { $match: { $expr: { $in: ["$_id", "$$purchaseUserIds"] } } },
+//         { $limit: 3 } // Limit to 3 users per `purchase_by` entry
+//       ],
+//       as: 'purchase_users'
+//     }
+//   },
+//   {
+//     $lookup: {
+//       from: 'users',
+//       localField: 'user',
+//       foreignField: '_id',
+//       as: 'user'
+//     }
+//   },
+//   {
+//     $lookup: {
+//       from: 'likes',
+//       localField: 'likes',
+//       foreignField: '_id',
+//       as: 'likes'
+//     }
+//   },
+//   {
+//     $lookup: {
+//       from: 'coupons',
+//       localField: 'coupon',
+//       foreignField: '_id',
+//       as: 'coupon'
+//     }
+//   },
+//   {
+//     $lookup: {
+//       from: 'categories',
+//       localField: 'category',
+//       foreignField: '_id',
+//       as: 'category'
+//     }
+//   },
+//   {
+//     $addFields: {
+//       "purchase_by.user": { $slice: ["$purchase_users", 3] } // Limit the users in each `purchase_by` entry to 3
+//     }
+//   },
+//   {
+//     $project: {
+//       purchaseCount: 0 // Only exclude `purchaseCount` since it's a temporary field
+//     }
+//   }
+// ]);
+//     // Post-process for total likes and user-specific likes if needed
+//     for (const post of events) {
+//       post.TotalLikes = post.likes ? post.likes.length : 0;
+//       post.likes = userId
+//         ? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString())
+//         : false;
+//     }
+    
+//    return res.send({ success: true, events: events});
+  
+
+} {
 
   const users = await Post.find(query).populate({
     path: 'purchase_by',
