@@ -538,10 +538,10 @@ router.get('/owner-dashboard',auth, async (req, res) => {
    });
 });
 
-router.post('/send-notifications', [auth, admin], async (req, res) => {
+router.post('/send-notifications/:type', [auth, admin], async (req, res) => {
 
   const {type}=req.params;
-  const validTypes=["customer", "owner"]
+  const validTypes=["all","customer", "owner"]
   if (!validTypes.includes(type)) {
     return res.status(404).send({ success: false, message: 'User Type is not valid' });
   }
