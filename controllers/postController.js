@@ -378,6 +378,24 @@ exports.filterPosts = async (req, res) => {
   res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 }};
 
+exports.getDetailsEvent = async (req, res) => {
+  const userId = req?.user?._id||""
+  const postId = req?.params?.id||""
+
+  const post = await Post.findById(postId).populate({
+    path: 'purchase_by',
+    options: { limit: 3 }, // Limit to 3 users
+    populate: [
+      { path: 'user', model: 'user' },
+    ]
+  }).populate("user").populate("likes").populate("coupon").populate("category").lean();
+
+  const TotalLikes = post?.likes?.length || 0
+  const likes = userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
+    
+  res.send({ success: true, post: {...post,TotalLikes,likes} });
+};
+
 
 exports.deletePostById = async (req, res) => {
   try {
