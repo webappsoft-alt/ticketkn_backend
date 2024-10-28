@@ -7,7 +7,7 @@ const postRoutes = require('../routes/postRoutes');
 const categoryRoute = require('../routes/categoryRoute');
 const couponRoute = require('../routes/couponRoute');
 const jadeRoutes = require('../routes/jadePaymentRoutes');
-// const foodRoutes = require('../routes/foodRoutes');
+const resellRoutes = require('../routes/resellRoutes');
 const messageRoutes = require('../routes/messageRoutes');
 const notificationRoute = require('../routes/notificationRoute');
 // const ratingRoutes = require('../routes/ratingRoutes');
@@ -23,7 +23,7 @@ module.exports = function (app) {
   app.use('/api/coupon', couponRoute);
   app.use('/api/event',  postRoutes);
   app.use('/api/jade',  jadeRoutes);
-  // app.use('/api/program', authMiddleware,programRoutes);
+  app.use('/api/resell',resellRoutes);
   // app.use('/api/food', authMiddleware,foodRoutes);
   app.use('/api/msg',authMiddleware, messageRoutes);
   app.use('/api/notification',authMiddleware, notificationRoute);

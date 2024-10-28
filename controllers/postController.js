@@ -726,7 +726,7 @@ exports.getPurchaseTicket = async (req, res) => {
     const userId = req.params.userId;
     const eventId = req.params.eventId;
 
-    const event = await Purchase.findOne({ user: userId,event:eventId }).populate("user").populate({
+    const event = await Purchase.findOne({ user: userId,event:eventId }).populate("ResellTickets").populate("resellpurchases").populate("user").populate({
       path: 'event',
       populate: [
         { path: 'user', model: 'user' },
@@ -737,6 +737,8 @@ exports.getPurchaseTicket = async (req, res) => {
     });
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
+
+    if (event.resellticket >= event.tickets) return res.status(404).json({ message: "You have resell all of your tickets already." });
     
     res.status(200).json({ success:true, post: event });
   } catch (error) {
@@ -770,7 +772,7 @@ exports.getPurchase = async (req, res) => {
         { path: 'coupon', model: 'Coupon' },
         { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
       ]
-    }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+    }).populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
       const totalCount = await Purchase.countDocuments(query);
       const totalPages = Math.ceil(totalCount / pageSize);
@@ -805,7 +807,7 @@ exports.eventsPurchases = async (req, res) => {
   query.event = event;
 
   try {
-    const likedJobs = await Purchase.find(query).populate("user").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+    const likedJobs = await Purchase.find(query).populate("user").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
       const totalCount = await Purchase.countDocuments(query);
       const totalPages = Math.ceil(totalCount / pageSize);

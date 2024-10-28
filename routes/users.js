@@ -18,6 +18,7 @@ const { TempUser } = require("../models/TempUser");
 const admin = require("../middleware/admin");
 const Event = require("../models/Event");
 const Purchase = require("../models/Purchase");
+const { sendNotification } = require("../controllers/notificationCreateService");
 
 router.get("/me", auth, async (req, res) => {
   const user = await User.findById(req.user._id).select("-password").populate("interests").lean();
@@ -547,15 +548,16 @@ router.post('/send-notifications/:type', [auth, admin], async (req, res) => {
   }
   const { title, description } = req.body;
 
-  const users = await User.find({}).lean()
+  const users = await User.find({type:type,status:"online"}).select("fcmtoken").lean()
   for (let user of users) {
-      // await sendNotification({
-      //   userId: req.user._id,
-      //   to_id: user._id,
-      //   description: description,
-      //   title: title,
-      //   fcmToken: user.fcmtoken,
-      // })
+      await sendNotification({
+        userId: req.user._id,
+        to_id: user._id,
+        description: description,
+        title: title,
+        fcmToken: user.fcmtoken,
+        type:"noti"
+      })
   }
 
   res.send({ success: true, message: 'notification sent successfully', });
