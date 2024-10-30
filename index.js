@@ -25,7 +25,7 @@ const config = {
 
 admin.initializeApp({
   credential: admin.credential.cert(config),
-  storageBucket: "gs://demoproject-158d6.appspot.com"
+  storageBucket: "gs://eventshub-330f9.appspot.com"
 });
 
 app.use(cors());
