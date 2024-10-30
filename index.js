@@ -36,7 +36,7 @@ require('./startup/routes')(app);
 require('./startup/db')();
 require('./startup/validation')();
 
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 8080;
 const server = app.listen(port, () => logger.info(`Listening on port  ${port}...`));
 
 require('./startup/sockets')(server, app);
