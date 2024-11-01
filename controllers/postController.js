@@ -23,7 +23,6 @@ exports.createPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
-      location,
       category
      } = req.body;
     const userId = req.user._id;
@@ -43,7 +42,6 @@ exports.createPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
-      location,
       category,
       tickets_sale:[{ type:"general", totalTicket:0},{type: 'vip',totalTicket:0},{type:'vvip',totalTicket:0}]
     })
@@ -192,6 +190,48 @@ exports.getMyPosts = async (req, res) => {
   const totalPages = Math.ceil(totalCount.length / pageSize);
   
   res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
+};
+
+exports.updatePurchasePaymentByAdmin = async (req, res) => {
+  try {
+    const postId = req.params.id;
+
+    const post = await Purchase.findOneAndUpdate({_id:postId}, {paymentDone:true}, {new: true});
+
+    if (!post) return res.status(404).send({ success: false, message: 'The Purchase with the given ID was not found.' });
+
+    res.send({ success: true, message: 'Purchase payed successfully', purchase:post });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.getAdminPurchases = async (req, res) => {
+  const lastId = parseInt(req.params.id)||1;
+  // Check if lastId is a valid number
+  if (isNaN(lastId) || lastId < 0) {
+    return res.status(400).json({ error: 'Invalid last_id' });
+  }
+
+  const pageSize = 10;
+  
+  const skip = Math.max(0, (lastId - 1)) * pageSize;
+  let query = {};
+
+  if (req.body.event!=='all') {
+    query.event=req.body.event;
+  }
+  if (req.body.paymentDone) {
+    query.paymentDone=req.body.paymentDone;
+  }
+
+  const users = await Purchase.find(query).populate("user").populate("event").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  
+  const totalCount = await Purchase.find(query);
+  const totalPages = Math.ceil(totalCount.length / pageSize);
+  
+  res.send({ success: true, purchases: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 };
 
 

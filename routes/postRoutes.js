@@ -3,12 +3,15 @@ const router = express.Router();
 const postController = require('../controllers/postController');
 const optionalAuth = require('../middleware/optionalAuth');
 const authMiddleware = require('../middleware/auth');
+const admin = require('../middleware/admin');
 
 router.post('/create', authMiddleware,postController.createPost);
 router.get('/fav/me/:id?',authMiddleware, postController.getMyFavPosts);
 router.get('/purchases/:eventId/:id', authMiddleware, postController.eventsPurchases);
 router.get('/purchase/all/:id', authMiddleware, postController.getPurchase);
-router.get('/admin/:type/:id',authMiddleware, postController.getAdminPost);
+router.post('/admin/purchases/:id',[authMiddleware,admin], postController.getAdminPurchases);
+router.put('/admin/update-purchases/:id',[authMiddleware,admin], postController.updatePurchasePaymentByAdmin);
+router.get('/admin/:type/:id',[authMiddleware,admin], postController.getAdminPost);
 router.post('/filter',optionalAuth, postController.filterPosts);
 router.get('/detail/:id',optionalAuth, postController.getDetailsEvent);
 router.get('/no-coupon',optionalAuth, postController.noCouponEvent);
