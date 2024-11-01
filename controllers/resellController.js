@@ -248,6 +248,7 @@ exports.purchaseTicket = async (req, res) => {
 
     const purchase = await Purchase.findById(findEvent.purchase_ticketId)
     purchase.resellticket = Number(purchase.resellticket) + Number(tickets)
+    purchase.remainig_ticket = Number(purchase.resellticket) - Number(tickets)
     purchase.resellpurchases = { $addToSet : post._id };
     
     await purchase.save()

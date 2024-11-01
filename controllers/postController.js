@@ -678,7 +678,8 @@ exports.purchaseTicket = async (req, res) => {
       event:eventId,
       tickets:tickets,
       totalPrice:totalPrice,
-      tickets_type_sale:tickets_type_sale
+      tickets_type_sale:tickets_type_sale,
+      remainig_ticket:tickets
     })
 
     const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale },{new:true}).populate("user").lean()
