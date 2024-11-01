@@ -230,6 +230,8 @@ exports.purchaseTicket = async (req, res) => {
 
     const findEvent = await Resell.findById(eventId).populate("user").populate("event").lean()
 
+    if (!findEvent) return res.status(404).json({ message: "Resell tickets not found with that Id" });
+
     if (Number(findEvent.remaining_tickets)==0) return res.status(404).json({ message: "Resell tickets are fully sold" });
 
     if (Number(tickets) > Number(findEvent.remaining_tickets)) return res.status(404).json({ message: "Only "+findEvent.remaining_tickets+" Resell tickets are remaining." });
@@ -282,6 +284,7 @@ exports.purchaseTicket = async (req, res) => {
     await post.save();
     res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
