@@ -45,7 +45,12 @@ router.get('/transactions/:type/:id?', async (req, res) => {
   }
   query.user = userId;
 
-  const transactions=await Transaction.find(query).populate("ticket").sort({ _id: -1 }).limit(10).lean();
+  const transactions=await Transaction.find(query).populate({
+    path: 'ticket',
+    populate: [
+      { path: 'event', model: 'Event' },
+    ]
+  }).sort({ _id: -1 }).limit(10).lean();
 
   if (transactions.length > 0) {
     res.send({ success:true, transactions:transactions });
