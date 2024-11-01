@@ -37,6 +37,10 @@ exports.createPost = async (req, res) => {
     const purchase=await Purchase.findById(purchase_ticketId)
 
     if (!purchase) return res.status(400).json({success: true,message: "Tickets are not found."});
+    
+    const findreselTickets=await Resell.findOne({purchase_ticketId:purchase_ticketId})
+
+    if (findreselTickets) return res.status(400).json({success: true,message: "Ticket are already been uploaded for resell."});
 
     if (Number(tickets) > Number(purchase.tickets)) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
 
