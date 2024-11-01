@@ -238,7 +238,7 @@ exports.purchaseTicket = async (req, res) => {
 
     const post = new Purchase({
       user: userId,
-      event:eventId,
+      event:findEvent.event,
       tickets:tickets,
       totalPrice:findEvent.totalPrice,
       tickets_type_sale:[{
