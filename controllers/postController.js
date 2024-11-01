@@ -677,7 +677,7 @@ exports.purchaseTicket = async (req, res) => {
       user: userId,
       event:eventId,
       tickets:tickets,
-      totalPrice:totalPrice,
+      totalPrice:Number(totalPrice),
       tickets_type_sale:tickets_type_sale,
       remainig_ticket:tickets
     })
