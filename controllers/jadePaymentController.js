@@ -16,7 +16,6 @@ async function getToken() {
     const response = await axios.get(`${tokenUrl}?apikey=${apiKey}&secret=${apiSecret}&grant_type=credentials`);
     return response.data;
   } catch (error) {
-    console.error('Error getting token:', error.response ? error.response.data : error.message);
     throw error;
   }
 }
@@ -37,7 +36,6 @@ async function submitPayment(token, paydata) {
     });
     return response.data;
   } catch (error) {
-    console.error('Error submitting payment:', error.response ? error.response.data : error.message);
     throw error;
   }
 }
