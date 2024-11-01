@@ -6,6 +6,7 @@ const { sendNotification } = require('./notificationCreateService');
 const { User } = require('../models/user');
 const admin = require("firebase-admin");
 const Coupon = require('../models/Coupon');
+const Category = require('../models/Category');
 
 exports.createPost = async (req, res) => {
   try {
@@ -46,18 +47,8 @@ exports.createPost = async (req, res) => {
       tickets_sale:[{ type:"general", totalTicket:0},{type: 'vip',totalTicket:0},{type:'vvip',totalTicket:0}]
     })
 
-    const latitude = parseFloat(location.coordinates[1]);
-    const longitude = parseFloat(location.coordinates[0]);
-    const radiusInMeters = 200000; // 30 miles in meters
-  
-
-    const users=await User.find({type:"customer",status:"online",category:category,
-      location: {
-        $geoWithin: {
-          $centerSphere: [[longitude, latitude], radiusInMeters / 6371000],
-        },
-      },
-    }).select("fcmtoken").lean();
+    const users=await User.find({ type:"customer",status:"online" }).select("fcmtoken").lean();
+    const cat=await Category.findById(category).select("name").lean();
 
 
     const fcmTokens = [...new Set(users.map(item => item.fcmtoken).filter(item=>item!==undefined||item!==""))];
@@ -67,7 +58,7 @@ exports.createPost = async (req, res) => {
         token: token,
         notification: {
             title: 'New Event',
-            body: `A new Event "${name}" has been created in your area.`,
+            body: `A new Event "${name}" has been created in ${cat.name} area.`,
         },
         android: {
             notification: {
@@ -114,8 +105,6 @@ exports.editPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
-      location,
-      category
     } = req.body;
     const postId = req.params.id;
 
@@ -135,8 +124,6 @@ exports.editPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
-      location,
-      category
     }).filter(([key, value]) => value !== undefined)
   );
 
