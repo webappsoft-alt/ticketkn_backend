@@ -16,7 +16,7 @@ async function getToken() {
     const response = await axios.get(`${tokenUrl}?apikey=${apiKey}&secret=${apiSecret}&grant_type=credentials`);
     return response.data;
   } catch (error) {
-    console.error('Error getting token:', error.response ? error.response.data : error.message);
+    // console.error('Error getting token:', error.response ? error.response.data : error.message);
     throw error;
   }
 }
@@ -76,7 +76,9 @@ exports.create = async (req, res) => {
         message: `Missing required fields: ${missingFields.join(', ')}`
       });
     }
+    console.log("data===>",payment)
     const tokenResponse = await getToken();
+    console.log("asdads")
 
     if (tokenResponse.result !== 'Success') {
       throw new Error(`Failed to obtain token: ${JSON.stringify(tokenResponse)}`);
@@ -110,7 +112,6 @@ exports.create = async (req, res) => {
     const paymentResponse = await submitPayment(token, paydata);
     res.status(201).json({ success: true, response: paymentResponse });
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 };
