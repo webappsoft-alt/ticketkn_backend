@@ -108,6 +108,6 @@ exports.create = async (req, res) => {
     const paymentResponse = await submitPayment(token, paydata);
     res.status(201).json({ success: true, response: paymentResponse });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Internal server error', error: error });
   }
 };
