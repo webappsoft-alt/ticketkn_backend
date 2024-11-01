@@ -1,5 +1,7 @@
 const Purchase = require("../models/Purchase");
 const Resell = require("../models/Resell");
+const Transaction = require("../models/Transaction");
+const { User } = require("../models/user");
 const { sendNotification } = require("./notificationCreateService");
 
 
@@ -261,7 +263,20 @@ exports.purchaseTicket = async (req, res) => {
       fcmtoken : findEvent.user?.fcmtoken,
       event:eventId,
       purchase:post._id
-  })
+    })
+
+    const user=await User.findById(findEvent.user._id);
+
+    const transaction = new Transaction({
+      user: findEvent.user._id,
+      ticket:findEvent.purchase_ticketId,
+      total_price:findEvent.totalPrice,
+      type:"deposit",
+    });
+    await transaction.save();
+
+    user.balance=Number(user.balance)+Number(findEvent.totalPrice)
+    await user.save();
     
     await post.save();
     res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
