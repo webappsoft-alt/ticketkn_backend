@@ -280,10 +280,9 @@ exports.purchaseTicket = async (req, res) => {
     await transaction.save();
 
     const balance = Number(user?.balance) || 0;
-const totalPrice = Number(findEvent?.totalPrice) || 0;
+    const totalPrice = Number(findEvent?.totalPrice) || 0;
 
-user.balance = balance + totalPrice;
-console.log(typeof user.balance, user);
+    user.balance = balance + totalPrice;
     await user.save();
     
     await post.save();

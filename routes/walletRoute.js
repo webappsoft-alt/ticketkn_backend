@@ -24,7 +24,10 @@ router.put('/purchase', async (req, res) => {
   });
   await transaction.save();
 
-  user.balance=Number(user.balance)-Number(balance)
+  const userbalance = Number(user?.balance) || 0;
+  const totalPrice = Number(balance) || 0;
+
+  user.balance = userbalance - totalPrice;
   await user.save();
 
   res.send({ success:true, message:"Balance dedduct successfully", });
