@@ -31,7 +31,7 @@ const productSchema = new mongoose.Schema({
     type:Number,
     default:0
   },
-  purchaseTickets:{
+  purchase_ticketId:{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Purchase'
   },

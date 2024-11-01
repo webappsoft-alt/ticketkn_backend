@@ -29,12 +29,12 @@ function validateTicketArray(mainArray, secondaryArray) {
 exports.createPost = async (req, res) => {
   try {
     const {
-      purchaseTickets,
+      purchase_ticketId,
       tickets,
       tickets_type_sale,
     } = req.body;
 
-    const purchase=await Purchase.findById(purchaseTickets)
+    const purchase=await Purchase.findById(purchase_ticketId)
 
     if (!purchase) return res.status(400).json({success: true,message: "Tickets are not found."});
 
@@ -48,7 +48,7 @@ exports.createPost = async (req, res) => {
       user:purchase.user,
       event:purchase.event,
       tickets_type_sale,
-      purchaseTickets,
+      purchase_ticketId,
       remaining_tickets:tickets
     });
 
@@ -111,6 +111,8 @@ exports.getMyResellTickets = async (req, res) => {
   let query={};
 
   const pageSize = 10;
+
+  query.user = userId;
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   try {
@@ -157,7 +159,7 @@ exports.otherResellEvents = async (req, res) => {
   const pageSize = 10;
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
-  query.user = userId;
+  query.user = {$ne:userId};
   query.remaining_tickets={ $gt : 0 }
   try {
     const likedJobs = await Resell.find(query).populate({
@@ -213,7 +215,7 @@ exports.purchaseTicket = async (req, res) => {
       }]
     })
 
-    const purchase = await Purchase.findById(findEvent.purchaseTickets)
+    const purchase = await Purchase.findById(findEvent.purchase_ticketId)
     purchase.resellticket = Number(purchase.resellticket) + Number(tickets)
     purchase.resellpurchases = { $addToSet : post._id };
     
