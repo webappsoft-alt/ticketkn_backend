@@ -240,7 +240,7 @@ exports.purchaseTicket = async (req, res) => {
       user: userId,
       event:findEvent.event,
       tickets:tickets,
-      totalPrice:findEvent.totalPrice,
+      totalPrice:findEvent.tickets_type_sale[0].total_price,
       tickets_type_sale:[{
         type:findEvent.tickets_type_sale[0].type,
         totalTicket:tickets
@@ -280,7 +280,7 @@ exports.purchaseTicket = async (req, res) => {
     await transaction.save();
 
     const balance = Number(user?.balance) || 0;
-    const totalPrice = Number(findEvent?.totalPrice) || 0;
+    const totalPrice = Number(findEvent.tickets_type_sale[0].total_price) || 0;
 
     user.balance = balance + totalPrice;
     await user.save();
