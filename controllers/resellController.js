@@ -40,7 +40,7 @@ exports.createPost = async (req, res) => {
     
     const findreselTickets=await Resell.findOne({purchase_ticketId:purchase_ticketId})
 
-    if (findreselTickets) return res.status(400).json({success: true,message: "Ticket are already been uploaded for resell."});
+    if (findreselTickets) return res.status(400).json({success: true,message: "Ticket are already been uploaded for resell.",resell:findreselTickets});
 
     if (Number(tickets) > Number(purchase.tickets)) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
 
@@ -72,17 +72,20 @@ exports.editResellTickets = async (req, res) => {
   try {
     const { 
       tickets,
-      tickets_type_sale,
       totalPrice,
     } = req.body;
 
     const postId = req.params.id;
 
+    const resell=await Resell.findById(postId)
+
+    if (!resell) return res.status(400).json({success: true,message: "The Resell Ticket with the given ID was not found.",});
+
+
     // Create an object to store the fields to be updated
   let updateFields = Object.fromEntries(
     Object.entries({
       tickets,
-      tickets_type_sale,
       totalPrice
     }).filter(([key, value]) => value !== undefined)
   );
@@ -91,12 +94,33 @@ exports.editResellTickets = async (req, res) => {
   if (Object.keys(updateFields).length === 0) {
     return res.status(400).send({ success: false, message: 'No valid fields provided for update.' });
   }
-    const post = await Resell.findOneAndUpdate({_id:postId}, updateFields, {
-      new: true
-    });
 
-    if (!post) return res.status(404).send({ success: false, message: 'The Resell Ticket with the given ID was not found.' });
+  let updateData={
+    tickets_type_sale:[{
+      ...resell.tickets_type_sale[0],
+    }]
+  }
+  if (tickets) {
 
+    if (Number(tickets) > Number(Number(resell.tickets_type_sale[0].totalTicket) - Number(resell.remaining_tickets))) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
+    
+    updateData={
+      tickets_type_sale:[{
+        ...resell.tickets_type_sale[0],
+        tickets:tickets
+      }]
+    }
+  }
+  if (totalPrice) {
+    updateData={
+      tickets_type_sale:[{
+        ...updateData.tickets_type_sale[0],
+        total_price:totalPrice
+      }]
+    }
+  }
+
+    const post = await Resell.findOneAndUpdate({_id:postId}, updateData, { new: true });
     res.send({ success: true, message: 'Resell Ticket updated successfully', post:post });
   } catch (error) {
     console.error(error);
