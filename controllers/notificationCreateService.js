@@ -55,7 +55,6 @@ exports.sendNotification = async ({
 
              }
      } catch (error) {
-          console.log(error)
      }
 }
 
