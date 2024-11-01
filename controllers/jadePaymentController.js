@@ -12,24 +12,14 @@ const paymentUrl = 'https://jad.cash/HAPI/cardpayment';
 
 // Function to get token
 async function getToken() {
-  const url = `${tokenUrl}?apikey=${apiKey}&secret=${apiSecret}&grant_type=credentials`;
-
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
+    const response = await axios.get(`${tokenUrl}?apikey=${apiKey}&secret=${apiSecret}&grant_type=credentials`);
+    return response.data;
   } catch (error) {
-    console.log('Fetch request failed:', error);
+    console.error('Error getting token:', error.response ? error.response.data : error.message);
+    throw error;
   }
 }
-
 
 // Function to submit payment
 async function submitPayment(token, paydata) {
@@ -86,9 +76,7 @@ exports.create = async (req, res) => {
         message: `Missing required fields: ${missingFields.join(', ')}`
       });
     }
-    console.log("data===>",payment)
     const tokenResponse = await getToken();
-    console.log("asdads")
 
     if (tokenResponse.result !== 'Success') {
       throw new Error(`Failed to obtain token: ${JSON.stringify(tokenResponse)}`);
