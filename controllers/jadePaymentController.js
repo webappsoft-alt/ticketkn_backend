@@ -10,15 +10,43 @@ const apiSecret = 'CD6EC7536CE85FFB2A2342C9904DBC97B50EB337D6868AAE7D92F5D575B27
 const tokenUrl = 'https://jad.cash/HAPI/token';
 const paymentUrl = 'https://jad.cash/HAPI/cardpayment';
 
-// Function to get token
+// // Function to get token
+// async function getToken() {
+//   try {
+//     const response = await axios.get(`${tokenUrl}?apikey=${apiKey}&secret=${apiSecret}&grant_type=credentials`);
+//     return response.data;
+//   } catch (error) {
+//     throw error;
+//   }
+// }
+
 async function getToken() {
+  const url = `${tokenUrl}`;
+  const params = new URLSearchParams({
+    apikey: apiKey,
+    secret: apiSecret,
+    grant_type: 'credentials'
+  });
+
   try {
-    const response = await axios.get(`${tokenUrl}?apikey=${apiKey}&secret=${apiSecret}&grant_type=credentials`);
-    return response.data;
+    const response = await fetch(`${url}?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
   } catch (error) {
     throw error;
   }
 }
+
 
 // Function to submit payment
 async function submitPayment(token, paydata) {
