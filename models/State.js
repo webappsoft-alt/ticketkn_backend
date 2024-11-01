@@ -9,14 +9,11 @@ const ticketObj={
   totalTicket:{
     type: Number,
     default: 0,
-  },
-  total_price:{
-    type: Number,
-    default: 0,
   }
 }
 
-const productSchema = new mongoose.Schema({
+
+const joinUserSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'user',
@@ -26,21 +23,32 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Event',
   },
-  tickets_type_sale:[ticketObj],
-  remaining_tickets: {
+  tickets: {
     type:Number,
     default:0
   },
-  purchaseTickets:{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Purchase'
+  tickets_type_sale:[ticketObj],
+  totalPrice: {
+    type:Number,
+    default:0
   },
-  resellTickets:[{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Purchase'
+  resellticket: {
+    type:Number,
+    default:0
+  },
+  paymentDone:{
+    type:Boolean,
+    default:false
+  },
+  resellpurchases:[{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Purchase',
   }],
+  ResellTickets:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Resell',
+  },
   createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
-
 });
 
-module.exports = mongoose.model('Resell', productSchema);
+module.exports = mongoose.model('Purchase', joinUserSchema);

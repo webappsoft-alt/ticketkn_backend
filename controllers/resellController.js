@@ -32,7 +32,6 @@ exports.createPost = async (req, res) => {
       purchaseTickets,
       tickets,
       tickets_type_sale,
-      totalPrice
     } = req.body;
 
     const purchase=await Purchase.findById(purchaseTickets)
@@ -48,9 +47,7 @@ exports.createPost = async (req, res) => {
     const resell = new Resell({
       user:purchase.user,
       event:purchase.event,
-      tickets,
       tickets_type_sale,
-      totalPrice,
       purchaseTickets,
       remaining_tickets:tickets
     });
@@ -102,7 +99,6 @@ exports.editResellTickets = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
-
 
 exports.getMyResellTickets = async (req, res) => {
   const userId = req.user._id
