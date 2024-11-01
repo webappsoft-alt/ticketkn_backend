@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema({
     minlength: 0,
     maxlength: 4,
   },
+  balance: {
+    type: Number,
+    default:0
+  },
   status: {
     type: String,
     default: 'online',

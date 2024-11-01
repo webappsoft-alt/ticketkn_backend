@@ -48,6 +48,10 @@ const joinUserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Resell',
   },
+  resel_by:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+  },
   createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
 });
 

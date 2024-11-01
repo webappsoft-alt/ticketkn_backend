@@ -38,7 +38,7 @@ exports.createPost = async (req, res) => {
 
     if (!purchase) return res.status(400).json({success: true,message: "Tickets are not found."});
 
-    if (Number(purchase.tickets) > Number(tickets)) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
+    if (Number(tickets) > Number(purchase.tickets)) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
 
     const error = validateTicketArray(purchase.tickets_type_sale, tickets_type_sale)
 
@@ -212,7 +212,8 @@ exports.purchaseTicket = async (req, res) => {
       tickets_type_sale:[{
         type:findEvent.tickets_type_sale[0].type,
         totalTicket:tickets
-      }]
+      }],
+      resel_by:findEvent.user._id
     })
 
     const purchase = await Purchase.findById(findEvent.purchase_ticketId)
