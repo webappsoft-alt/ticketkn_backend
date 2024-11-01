@@ -251,12 +251,13 @@ exports.purchaseTicket = async (req, res) => {
     const purchase = await Purchase.findById(findEvent.purchase_ticketId)
     purchase.resellticket = Number(purchase.resellticket) + Number(tickets)
     purchase.remainig_ticket = Number(purchase.resellticket) - Number(tickets)
-    purchase.resellpurchases = { $addToSet : post._id };
     
     await purchase.save()
 
+    
     await Resell.findByIdAndUpdate(eventId,{remaining_tickets:Number(findEvent.remaining_tickets) - Number(tickets),$addToSet:{resellTickets:post._id}})
-
+    await Purchase.findByIdAndUpdate(findEvent.purchase_ticketId,{ $addToSet :{resellpurchases: post._id } } )
+    
     await sendNotification({
       user : userId,
       to_id : findEvent.user._id,
@@ -268,7 +269,7 @@ exports.purchaseTicket = async (req, res) => {
       purchase:post._id
     })
 
-    const user=await User.findById(findEvent.user._id);
+    const user = await User.findById(findEvent.user._id);
 
     const transaction = new Transaction({
       user: findEvent.user._id,
@@ -278,7 +279,11 @@ exports.purchaseTicket = async (req, res) => {
     });
     await transaction.save();
 
-    user.balance=Number(user.balance)+Number(findEvent.totalPrice)
+    const balance = Number(user?.balance) || 0;
+const totalPrice = Number(findEvent?.totalPrice) || 0;
+
+user.balance = balance + totalPrice;
+console.log(typeof user.balance, user);
     await user.save();
     
     await post.save();
