@@ -673,11 +673,13 @@ exports.purchaseTicket = async (req, res) => {
       return res.status(404).json({ message: "Event's tickets are fully sold" });
     }
 
+    const eightPerc=Number(totalPrice) * 0.08
+
     const post = new Purchase({
       user: userId,
       event:eventId,
       tickets:tickets,
-      totalPrice:Number(totalPrice),
+      totalPrice:Number(totalPrice) - Number(eightPerc),
       tickets_type_sale:tickets_type_sale,
       remainig_ticket:tickets
     })
