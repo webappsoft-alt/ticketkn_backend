@@ -5,7 +5,7 @@ const ticketPlanObj={
   type:{
     type: String,
     default: 'general',
-    enum: ['general', 'vip','vvip']
+    enum: ['general', 'vip','vvip','earlybird']
   },
   price:{
     type: Number,
@@ -25,7 +25,7 @@ const ticketObj={
   type:{
     type: String,
     default: 'general',
-    enum: ['general', 'vip','vvip']
+    enum: ['general', 'vip','vvip','earlybird']
   },
   totalTicket:{
     type: Number,

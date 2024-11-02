@@ -44,7 +44,7 @@ exports.createPost = async (req, res) => {
       ticket_plans,
       refund_policy,
       category,
-      tickets_sale:[{ type:"general", totalTicket:0},{type: 'vip',totalTicket:0},{type:'vvip',totalTicket:0}]
+      tickets_sale:[{ type:"general", totalTicket:0},{type: 'vip',totalTicket:0},{type:'vvip',totalTicket:0},{type:"earlybird",totalTicket:0}]
     })
 
     const users=await User.find({ type:"customer",status:"online" }).select("fcmtoken").lean();
