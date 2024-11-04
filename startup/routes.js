@@ -12,7 +12,7 @@ const messageRoutes = require('../routes/messageRoutes');
 const notificationRoute = require('../routes/notificationRoute');
 const walletRoute = require('../routes/walletRoute');
 const authMiddleware = require('../middleware/auth');
-// const supportRoute = require('../routes/supportRoute');
+const BannerRoute = require('../routes/BannerRoute');
 
 module.exports = function (app) {
   app.use(express.json());
@@ -20,6 +20,7 @@ module.exports = function (app) {
   app.use('/api/users', users);
   app.use('/api/image', uploadImages);
   app.use('/api/category', categoryRoute);
+  app.use('/api/banner', BannerRoute);
   app.use('/api/coupon', couponRoute);
   app.use('/api/event',  postRoutes);
   app.use('/api/jade',  jadeRoutes);
