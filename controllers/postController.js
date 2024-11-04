@@ -761,9 +761,9 @@ exports.updatePurchaseScan = async (req, res) => {
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
 
-    const purchase = await Purchase.findOneAndUpdate({ user: userId,event:eventId },{scanner:true},{new:true})
+    const purchase = await Purchase.findOneAndUpdate({ user: userId,event:eventId,scanner:false },{scanner:true},{new:true})
 
-    if (!purchase) return res.status(404).json({ message: 'Purchase did not found.' });
+    if (!purchase) return res.status(404).json({ message: 'Ticket did not found or has already been scanned.' });
 
     res.status(200).json({ success:true, post: purchase });
   } catch (error) {
@@ -776,7 +776,7 @@ exports.getPurchaseTicket = async (req, res) => {
     const userId = req.params.userId;
     const eventId = req.params.eventId;
 
-    const event = await Purchase.findOne({ user: userId,event:eventId }).populate("ResellTickets").populate("resellpurchases").populate("user").populate({
+    const event = await Purchase.findOne({ user: userId,event:eventId,scanner:false }).populate("ResellTickets").populate("resellpurchases").populate("user").populate({
       path: 'event',
       populate: [
         { path: 'user', model: 'user' },
@@ -786,7 +786,7 @@ exports.getPurchaseTicket = async (req, res) => {
       ]
     });
 
-    if (!event) return res.status(404).json({ message: 'Event not found.' });
+    if (!event) return res.status(404).json({ message: 'Ticket did not found or has already been scanned.' });
 
     if (event.resellticket >= event.tickets) return res.status(404).json({ message: "You have resell all of your tickets already." });
     
