@@ -521,7 +521,7 @@ router.get('/owner-dashboard',auth, async (req, res) => {
       status: growth >= 0 ? 'positive' : 'negative'
     },
     purchase:{
-      total:totalPurchases,
+      total:totalPurchases.length,
       growth: growthowner.toFixed(2),
       status: growthowner >= 0 ? 'positive' : 'negative'
     },
