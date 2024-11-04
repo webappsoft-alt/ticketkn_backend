@@ -758,12 +758,13 @@ exports.updatePurchaseScan = async (req, res) => {
     const ownerUser = req?.user?._id||""
     const userId = req.params.userId;
     const eventId = req.params.eventId;
+    const code = req.params.code;
 
     const event=await Post.findOne({_id:eventId,user:ownerUser})
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
 
-    const purchase = await Purchase.findOneAndUpdate({ user: userId,event:eventId,scanner:false },{scanner:true},{new:true})
+    const purchase = await Purchase.findOneAndUpdate({ user: userId,event:eventId,scanner:false,code:code },{scanner:true},{new:true})
 
     if (!purchase) return res.status(404).json({ message: 'Ticket did not found or has already been scanned.' });
 
@@ -777,8 +778,9 @@ exports.getPurchaseTicket = async (req, res) => {
   try {
     const userId = req.params.userId;
     const eventId = req.params.eventId;
+    const code = req.params.code;
 
-    const event = await Purchase.findOne({ user: userId,event:eventId,scanner:false }).populate("ResellTickets").populate("resellpurchases").populate("user").populate({
+    const event = await Purchase.findOne({ user: userId,event:eventId,scanner:false,code:code }).populate("ResellTickets").populate("resellpurchases").populate("user").populate({
       path: 'event',
       populate: [
         { path: 'user', model: 'user' },
