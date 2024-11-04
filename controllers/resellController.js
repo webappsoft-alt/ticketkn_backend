@@ -237,11 +237,14 @@ exports.purchaseTicket = async (req, res) => {
 
     if (Number(tickets) > Number(findEvent.remaining_tickets)) return res.status(404).json({ message: "Only "+findEvent.remaining_tickets+" Resell tickets are remaining." });
 
+    const twoPer=Number(ticketPrice) * 0.02
+
     const post = new Purchase({
       user: userId,
       event:findEvent.event,
       tickets:tickets,
       totalPrice:Number(ticketPrice),
+      ownerPrice:Number(ticketPrice) - Number(twoPer),
       tickets_type_sale:[{
         type:findEvent.tickets_type_sale[0].type,
         totalTicket:tickets

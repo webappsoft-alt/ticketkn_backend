@@ -32,6 +32,10 @@ const joinUserSchema = new mongoose.Schema({
     type:Number,
     default:0
   },
+  ownerPrice: {
+    type:Number,
+    default:0
+  },
   resellticket: {
     type:Number,
     default:0

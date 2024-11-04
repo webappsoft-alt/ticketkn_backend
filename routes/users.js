@@ -476,12 +476,12 @@ router.get('/owner-dashboard',auth, async (req, res) => {
 
 
 
-  const totalPurchases = await Purchase.find({event:{$in:totalEvents}}).select("totalPrice");
+  const totalPurchases = await Purchase.find({event:{$in:totalEvents}}).select("ownerPrice");
 
    const yesterdayPurchases = await Purchase.find({
     createdAt: { $gte: yesterday, $lt: today },
     event:{$in:totalEvents}
-   }).select("totalPrice")
+   }).select("ownerPrice")
    // Get the number of users until yesterday
    const totalPurchasesYesterday = totalPurchases.length - yesterdayPurchases.length;
    // Calculate growth percentage
@@ -490,9 +490,9 @@ router.get('/owner-dashboard',auth, async (req, res) => {
       growthowner = ((totalPurchases.length - totalPurchasesYesterday) / totalPurchasesYesterday) * 100;
    }
 
-   const toalEarnings=totalPurchases.reduce((a,b)=>a+Number(b.totalPrice),0)
+   const toalEarnings=totalPurchases.reduce((a,b)=>a+Number(b.ownerPrice),0)
    // Get the number of users until yesterday
-   const totalEarningsYesterday = toalEarnings - yesterdayPurchases.reduce((a,b)=>a+Number(b.totalPrice),0);
+   const totalEarningsYesterday = toalEarnings - yesterdayPurchases.reduce((a,b)=>a+Number(b.ownerPrice),0);
    // Calculate growth percentage
    let growthEarnings = 0;
    if (totalPurchasesYesterday > 0) {

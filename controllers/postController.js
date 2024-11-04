@@ -676,11 +676,15 @@ exports.purchaseTicket = async (req, res) => {
 
     const eightPerc=Number(totalPrice) * 0.08
 
+    const totalPriceValue=Number(totalPrice) - Number(eightPerc)
+    const twoPer=Number(totalPriceValue) * 0.02
+
     const post = new Purchase({
       user: userId,
       event:eventId,
       tickets:tickets,
-      totalPrice:Number(totalPrice) - Number(eightPerc),
+      totalPrice:totalPriceValue,
+      ownerPrice:Number(totalPrice) - Number(twoPer),
       tickets_type_sale:tickets_type_sale,
       remainig_ticket:tickets,
       code:ticketCode()
