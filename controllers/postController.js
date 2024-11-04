@@ -897,9 +897,9 @@ exports.getMyPurchases = async (req, res) => {
   const totalEvents=events.map(item=>item._id)
 
   try {
-    const likedJobs = await Purchase.find({event:{$in:totalEvents}}).populate("user").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+    const likedJobs = await Purchase.find({event:{$in:totalEvents},resel_by: { $exists: false }}).populate("user").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
-      const totalCount = await Purchase.countDocuments({event:{$in:totalEvents}});
+      const totalCount = await Purchase.countDocuments({event:{$in:totalEvents},resel_by: { $exists: false }});
       const totalPages = Math.ceil(totalCount / pageSize);
     if (likedJobs.length > 0) {
       res.status(200).json({ success: true, purchases: likedJobs,count: { totalPage: totalPages, currentPageSize: likedJobs.length }  });

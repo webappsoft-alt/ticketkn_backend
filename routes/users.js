@@ -476,11 +476,12 @@ router.get('/owner-dashboard',auth, async (req, res) => {
 
 
 
-  const totalPurchases = await Purchase.find({event:{$in:totalEvents}}).select("ownerPrice");
+  const totalPurchases = await Purchase.find({event:{$in:totalEvents},resel_by: { $exists: false }}).select("ownerPrice");
 
    const yesterdayPurchases = await Purchase.find({
     createdAt: { $gte: yesterday, $lt: today },
-    event:{$in:totalEvents}
+    event:{$in:totalEvents},
+    resel_by: { $exists: false }
    }).select("ownerPrice")
    // Get the number of users until yesterday
    const totalPurchasesYesterday = totalPurchases.length - yesterdayPurchases.length;
