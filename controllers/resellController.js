@@ -226,7 +226,7 @@ exports.purchaseTicket = async (req, res) => {
   const eventId=req.params.id;
 
   try {
-    const {tickets}=req.body;
+    const {tickets,ticketPrice}=req.body;
 
     const findEvent = await Resell.findById(eventId).populate("user").populate("event").lean()
 
@@ -240,7 +240,7 @@ exports.purchaseTicket = async (req, res) => {
       user: userId,
       event:findEvent.event,
       tickets:tickets,
-      totalPrice:findEvent.tickets_type_sale[0].total_price,
+      totalPrice:Number(ticketPrice),
       tickets_type_sale:[{
         type:findEvent.tickets_type_sale[0].type,
         totalTicket:tickets
@@ -274,13 +274,14 @@ exports.purchaseTicket = async (req, res) => {
     const transaction = new Transaction({
       user: findEvent.user._id,
       ticket:findEvent.purchase_ticketId,
-      total_price:findEvent.totalPrice,
+      total_price: Number(ticketPrice),
       type:"deposit",
     });
     await transaction.save();
 
+
     const balance = Number(user?.balance) || 0;
-    const totalPrice = Number(findEvent.tickets_type_sale[0].total_price) || 0;
+    const totalPrice = Number(ticketPrice) || 0;
 
     user.balance = balance + totalPrice;
     await user.save();

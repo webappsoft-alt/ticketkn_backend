@@ -751,6 +751,26 @@ exports.paymentDone = async (req, res) => {
   }
 };
 
+exports.updatePurchaseScan = async (req, res) => {
+  try {
+    const ownerUser = req?.user?._id||""
+    const userId = req.params.userId;
+    const eventId = req.params.eventId;
+
+    const event=await Post.findOne({_id:eventId,user:ownerUser})
+
+    if (!event) return res.status(404).json({ message: 'Event not found.' });
+
+    const purchase = await Purchase.findOneAndUpdate({ user: userId,event:eventId },{scanner:true},{new:true})
+
+    if (!purchase) return res.status(404).json({ message: 'Purchase did not found.' });
+
+    res.status(200).json({ success:true, post: purchase });
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 exports.getPurchaseTicket = async (req, res) => {
   try {
     const userId = req.params.userId;

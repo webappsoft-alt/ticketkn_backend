@@ -17,6 +17,7 @@ router.get('/detail/:id',optionalAuth, postController.getDetailsEvent);
 router.get('/no-coupon',optionalAuth, postController.noCouponEvent);
 router.put('/purchase/:id',authMiddleware, postController.purchaseTicket);
 router.post('/payment', postController.paymentDone);
+router.put('/ticket/scan/:userId/:eventId',authMiddleware, postController.updatePurchaseScan);
 router.get('/ticket/:userId/:eventId',optionalAuth, postController.getPurchaseTicket);
 router.get('/me/latest',authMiddleware, postController.latestEvent);
 router.get('/me/:id/:search?',authMiddleware, postController.getMyPosts);
