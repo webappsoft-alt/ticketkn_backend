@@ -684,7 +684,7 @@ exports.purchaseTicket = async (req, res) => {
       event:eventId,
       tickets:tickets,
       totalPrice:totalPriceValue,
-      ownerPrice:Number(totalPrice) - Number(twoPer),
+      ownerPrice:Number(totalPriceValue) - Number(twoPer),
       tickets_type_sale:tickets_type_sale,
       remainig_ticket:tickets,
       code:ticketCode()
