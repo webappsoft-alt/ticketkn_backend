@@ -874,3 +874,35 @@ exports.eventsPurchases = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.getMyPurchases = async (req, res) => {
+  const userId = req.user._id
+  const lastId = parseInt(req.params.id)||1;
+
+    // Check if lastId is a valid number
+  if (isNaN(lastId) || lastId < 0) {
+    return res.status(400).json({ error: 'Invalid last_id' });
+  }
+
+  const pageSize = 10;
+  
+  const skip = Math.max(0, (lastId - 1)) * pageSize;
+
+  const events = await Event.find({user:userId,status:"active"}).select("status")
+
+  const totalEvents=events.map(item=>item._id)
+
+  try {
+    const likedJobs = await Purchase.find({event:{$in:totalEvents}}).populate("user").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+
+      const totalCount = await Purchase.countDocuments({event:{$in:totalEvents}});
+      const totalPages = Math.ceil(totalCount / pageSize);
+    if (likedJobs.length > 0) {
+      res.status(200).json({ success: true, purchases: likedJobs,count: { totalPage: totalPages, currentPageSize: likedJobs.length }  });
+    } else {
+      res.status(200).json({ success: false, message: 'No more purchase purchases found',purchases:[] ,count: { totalPage: totalPages, currentPageSize: likedJobs.length } });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

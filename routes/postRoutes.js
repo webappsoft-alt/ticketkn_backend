@@ -9,6 +9,7 @@ router.post('/create', authMiddleware,postController.createPost);
 router.get('/fav/me/:id?',authMiddleware, postController.getMyFavPosts);
 router.get('/purchases/:eventId/:id', authMiddleware, postController.eventsPurchases);
 router.get('/purchase/all/:id', authMiddleware, postController.getPurchase);
+router.get('/me/purchase/:id?', authMiddleware, postController.getMyPurchases);
 // router.post('/admin/purchases/:id',[authMiddleware,admin], postController.getAdminPurchases);
 // router.put('/admin/update-purchases/:id',[authMiddleware,admin], postController.updatePurchasePaymentByAdmin);
 router.get('/admin/:type/:id',[authMiddleware,admin], postController.getAdminPost);
