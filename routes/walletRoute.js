@@ -16,7 +16,7 @@ router.put('/purchase', async (req, res) => {
     return res.status(400).send({success:false,message:"You don't have enough balance in your account"});
   }
 
-  const eightPerc=Number(totalPrice) * 0.08
+  const eightPerc=Number(balance) * 0.08
   
   const transaction = new Transaction({
     user: userId,
