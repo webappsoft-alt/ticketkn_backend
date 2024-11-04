@@ -250,6 +250,9 @@ exports.purchaseTicket = async (req, res) => {
       code:ticketCode()
     })
 
+    const twentyPer=Number(ticketPrice) * 0.20
+
+
     const purchase = await Purchase.findById(findEvent.purchase_ticketId)
     purchase.resellticket = Number(purchase.resellticket) + Number(tickets)
     purchase.remainig_ticket = Number(purchase.resellticket) - Number(tickets)
@@ -276,14 +279,14 @@ exports.purchaseTicket = async (req, res) => {
     const transaction = new Transaction({
       user: findEvent.user._id,
       ticket:findEvent.purchase_ticketId,
-      total_price: Number(ticketPrice),
+      total_price: Number(ticketPrice) - Number(twentyPer),
       type:"deposit",
     });
     await transaction.save();
 
 
     const balance = Number(user?.balance) || 0;
-    const totalPrice = Number(ticketPrice) || 0;
+    const totalPrice = Number(ticketPrice) - Number(twentyPer) || 0;
 
     user.balance = balance + totalPrice;
     await user.save();
