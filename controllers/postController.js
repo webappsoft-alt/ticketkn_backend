@@ -892,7 +892,7 @@ exports.getMyPurchases = async (req, res) => {
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
 
-  const events = await Event.find({user:userId,status:"active"}).select("status")
+  const events = await Post.find({user:userId,status:"active"}).select("status")
 
   const totalEvents=events.map(item=>item._id)
 
