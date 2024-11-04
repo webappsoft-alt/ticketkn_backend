@@ -48,6 +48,10 @@ const joinUserSchema = new mongoose.Schema({
     type:Boolean,
     default:false
   },
+  code:{
+    type:Number,
+    default:0
+  },
   resellpurchases:[{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Purchase',

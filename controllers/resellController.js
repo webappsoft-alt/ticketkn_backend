@@ -2,6 +2,7 @@ const Purchase = require("../models/Purchase");
 const Resell = require("../models/Resell");
 const Transaction = require("../models/Transaction");
 const { User } = require("../models/user");
+const { ticketCode } = require("./generateCode");
 const { sendNotification } = require("./notificationCreateService");
 
 
@@ -245,7 +246,8 @@ exports.purchaseTicket = async (req, res) => {
         type:findEvent.tickets_type_sale[0].type,
         totalTicket:tickets
       }],
-      resel_by:findEvent.user._id
+      resel_by:findEvent.user._id,
+      code:ticketCode()
     })
 
     const purchase = await Purchase.findById(findEvent.purchase_ticketId)

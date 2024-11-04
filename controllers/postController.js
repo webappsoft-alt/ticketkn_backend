@@ -7,6 +7,7 @@ const { User } = require('../models/user');
 const admin = require("firebase-admin");
 const Coupon = require('../models/Coupon');
 const Category = require('../models/Category');
+const { ticketCode } = require('./generateCode');
 
 exports.createPost = async (req, res) => {
   try {
@@ -681,7 +682,8 @@ exports.purchaseTicket = async (req, res) => {
       tickets:tickets,
       totalPrice:Number(totalPrice) - Number(eightPerc),
       tickets_type_sale:tickets_type_sale,
-      remainig_ticket:tickets
+      remainig_ticket:tickets,
+      code:ticketCode()
     })
 
     const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale },{new:true}).populate("user").lean()
