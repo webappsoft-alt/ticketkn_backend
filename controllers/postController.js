@@ -768,7 +768,15 @@ exports.updatePurchaseScan = async (req, res) => {
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
 
-    const purchase = await Purchase.findOneAndUpdate({ user: userId,event:eventId,scanner:false,code:code },{scanner:true},{new:true})
+    const purchase = await Purchase.findOneAndUpdate({ user: userId,event:eventId,scanner:false,code:code },{scanner:true},{new:true}).populate("ResellTickets").populate("resellpurchases").populate("user").populate({
+      path: 'event',
+      populate: [
+        { path: 'user', model: 'user' },
+        { path: 'category', model: 'Category' },
+        { path: 'coupon', model: 'Coupon' },
+        { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
+      ]
+    });
 
     if (!purchase) return res.status(404).json({ message: 'Ticket did not found or has already been scanned.' });
 
