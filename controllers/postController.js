@@ -873,7 +873,15 @@ exports.eventsPurchases = async (req, res) => {
   query.event = event;
 
   try {
-    const likedJobs = await Purchase.find(query).populate("user").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+    const likedJobs = await Purchase.find(query).populate({
+      path: 'event',
+      populate: [
+        { path: 'user', model: 'user' },
+        { path: 'category', model: 'Category' },
+        { path: 'coupon', model: 'Coupon' },
+        { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
+      ]
+    }).populate("user").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
       const totalCount = await Purchase.countDocuments(query);
       const totalPages = Math.ceil(totalCount / pageSize);
@@ -905,7 +913,15 @@ exports.getMyPurchases = async (req, res) => {
   const totalEvents=events.map(item=>item._id)
 
   try {
-    const likedJobs = await Purchase.find({event:{$in:totalEvents},resel_by: { $exists: false }}).populate("user").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+    const likedJobs = await Purchase.find({event:{$in:totalEvents},resel_by: { $exists: false }}).populate({
+      path: 'event',
+      populate: [
+        { path: 'user', model: 'user' },
+        { path: 'category', model: 'Category' },
+        { path: 'coupon', model: 'Coupon' },
+        { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
+      ]
+    }).populate("user").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
       const totalCount = await Purchase.countDocuments({event:{$in:totalEvents},resel_by: { $exists: false }});
       const totalPages = Math.ceil(totalCount / pageSize);
