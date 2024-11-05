@@ -245,6 +245,7 @@ exports.purchaseTicket = async (req, res) => {
       tickets:tickets,
       totalPrice:Number(ticketPrice),
       ownerPrice:Number(ticketPrice) - Number(twoPer),
+      remainig_ticket:tickets,
       tickets_type_sale:[{
         type:findEvent.tickets_type_sale[0].type,
         totalTicket:tickets
