@@ -243,7 +243,7 @@ exports.latestEvent = async (req, res) => {
     populate: [
       { path: 'user', model: 'user' },
     ]
-  }).populate("category").populate("coupon").sort({ start_Date: 1 }).limit(1).lean();
+  }).populate("category").populate("coupon").sort({ start_Date: 1 }).limit(2).lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0
     posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
