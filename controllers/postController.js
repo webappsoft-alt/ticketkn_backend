@@ -871,6 +871,9 @@ exports.eventsPurchases = async (req, res) => {
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   query.event = event;
+  if (req.params.status!=="all") {
+    query.scanner = Boolean(req.params.status)
+  }
 
   try {
     const likedJobs = await Purchase.find(query).populate({
