@@ -62,7 +62,7 @@ exports.createPost = async (req, res) => {
       type
     });
     
-    await Purchase.updateOne(
+    await Purchase.findOneAndUpdate(
       { _id: purchase_ticketId },
       { $pull: { "tickets_type_sale.code": code },ResellTickets:resell._id }
     );
