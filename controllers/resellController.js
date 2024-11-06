@@ -41,6 +41,12 @@ exports.createPost = async (req, res) => {
     const purchase=await Purchase.findOne({_id:purchase_ticketId,"tickets_type_sale.code": { $in: code } })
 
     if (!purchase) return res.status(400).json({success: true,message: "Tickets are not found."});
+
+
+    await Purchase.updateOne(
+      { _id: purchase_ticketId },
+      { $pull: { "tickets_type_sale.code": code },ResellTickets:resell._id }
+    );
     
     // const findreselTickets=await Resell.findOne({purchase_ticketId:purchase_ticketId})
 
@@ -59,10 +65,6 @@ exports.createPost = async (req, res) => {
       price,
       type
     });
-
-    purchase.ResellTickets=resell._id
-    
-    await purchase.save();
 
     await resell.save();
     res.status(200).json({success: true,message: "Resell tickets created successfully",resell});
