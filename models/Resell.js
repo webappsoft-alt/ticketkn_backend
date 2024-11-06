@@ -10,7 +10,6 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Event',
   },
-  code:Number,
   price: {
     type:Number,
     default:0

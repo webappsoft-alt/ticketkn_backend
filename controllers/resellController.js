@@ -55,7 +55,6 @@ exports.createPost = async (req, res) => {
     const resell = new Resell({
       user:purchase.user,
       event:purchase.event,
-      code,
       purchase_ticketId,
       price,
       type
