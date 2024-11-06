@@ -43,19 +43,15 @@ exports.createPost = async (req, res) => {
     if (!purchase) return res.status(400).json({success: true,message: "Tickets are not found."});
 
 
-    await Purchase.updateOne(
-      { _id: purchase_ticketId },
-      { $pull: { "tickets_type_sale.code": code },ResellTickets:resell._id }
-    );
     
     // const findreselTickets=await Resell.findOne({purchase_ticketId:purchase_ticketId})
-
+    
     // if (findreselTickets) return res.status(400).json({success: true,message: "Ticket are already been uploaded for resell.",resell:findreselTickets});
-
+    
     // if (Number(tickets) > Number(purchase.tickets)) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
-
+    
     // const error = validateTicketArray([purchase.tickets_type_sale], tickets_type_sale)
-
+    
     // if (error !== "") return res.status(400).json({success: true,message: error});
     
     const resell = new Resell({
@@ -65,10 +61,15 @@ exports.createPost = async (req, res) => {
       price,
       type
     });
-
+    
+    await Purchase.updateOne(
+      { _id: purchase_ticketId },
+      { $pull: { "tickets_type_sale.code": code },ResellTickets:resell._id }
+    );
     await resell.save();
     res.status(200).json({success: true,message: "Resell tickets created successfully",resell});
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
