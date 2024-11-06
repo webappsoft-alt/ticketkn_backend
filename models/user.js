@@ -6,8 +6,7 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
-    minlength: 2,
+    minlength: 0,
     maxlength: 1024,
   },
   email: {
@@ -55,6 +54,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'customer',
     enum: ['customer',"owner",'admin']
+  },
+  login_type: {
+    type: String,
+    default: 'email',
+    enum: ['email', 'social-login']
   },
   createdAt: {
     type: Date,

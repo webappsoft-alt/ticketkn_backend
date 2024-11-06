@@ -41,7 +41,6 @@ async function getToken() {
     }
 
     const data = await response.json();
-    console.log("data=======>>>>",data)
     return data;
   } catch (error) {
     throw error;
@@ -72,37 +71,37 @@ async function submitPayment(token, paydata) {
 exports.create = async (req, res) => {
   try {
     // Get token
-    const userId = req.user._id
-    const user = await User.findOne({ _id: userId })
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found!' })
-    }
-    const { paymentData } = req.body;
+    // const userId = req.user._id
+    // const user = await User.findOne({ _id: userId })
+    // if (!user) {
+    //   return res.status(404).json({ success: false, message: 'User not found!' })
+    // }
+    const { payment } = req.body;
 
-    if (!paymentData) {
-      return res.status(404).json({ success: false, message: 'Payment Data is required' })
-    }
-    // Decrypt the paymentData
-    const bytes = CryptoJS.AES.decrypt(paymentData, config.get('cryptoPrivateKey'));
-    const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
-    if (!decryptedData) {
-      return res.status(404).json({ success: false, message: 'Payment Data is required' })
-    }
-    const payment = JSON.parse(decryptedData)
-    const requiredFields = [
-      'amount', 'cardnumber', 'cardexpmonth', 'cardexpyear', 'cardcvv',
-      'cardfirstname', 'cardlastname', 'address', 'city', 'state',
-      'postalcode', 'country', 'email', 'phone'
-    ];
+    // if (!paymentData) {
+    //   return res.status(404).json({ success: false, message: 'Payment Data is required' })
+    // }
+    // // Decrypt the paymentData
+    // const bytes = CryptoJS.AES.decrypt(paymentData, config.get('cryptoPrivateKey'));
+    // const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+    // if (!decryptedData) {
+    //   return res.status(404).json({ success: false, message: 'Payment Data is required' })
+    // }
+    // const payment = JSON.parse(decryptedData)
+    // const requiredFields = [
+    //   'amount', 'cardnumber', 'cardexpmonth', 'cardexpyear', 'cardcvv',
+    //   'cardfirstname', 'cardlastname', 'address', 'city', 'state',
+    //   'postalcode', 'country', 'email', 'phone'
+    // ];
 
-    const missingFields = requiredFields.filter(field => !payment[field]);
+    // const missingFields = requiredFields.filter(field => !payment[field]);
 
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Missing required fields: ${missingFields.join(', ')}`
-      });
-    }
+    // if (missingFields.length > 0) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: `Missing required fields: ${missingFields.join(', ')}`
+    //   });
+    // }
     const tokenResponse = await getToken();
 
     if (tokenResponse.result !== 'Success') {
