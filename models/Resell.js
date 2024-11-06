@@ -1,21 +1,5 @@
 const mongoose = require('mongoose');
 
-const ticketObj={
-  type:{
-    type: String,
-    default: 'general',
-    enum:['general', 'vip','vvip','earlybird']
-  },
-  totalTicket:{
-    type: Number,
-    default: 0,
-  },
-  total_price:{
-    type: Number,
-    default: 0,
-  }
-}
-
 const productSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -26,19 +10,24 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Event',
   },
-  tickets_type_sale:[ticketObj],
-  remaining_tickets: {
+  code:Number,
+  price: {
     type:Number,
     default:0
+  },
+  type:{
+    type: String,
+    default: 'general',
+    enum: ['general', 'vip','vvip','earlybird']
   },
   purchase_ticketId:{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Purchase'
   },
-  resellTickets:[{
+  resellTickets:{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Purchase'
-  }],
+  },
   createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
 
 });

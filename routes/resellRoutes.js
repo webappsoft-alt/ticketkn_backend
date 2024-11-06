@@ -5,7 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
 
 router.post('/create', authMiddleware,resellController.createPost);
-router.put('/edit/:id', authMiddleware,resellController.editResellTickets);
+// router.put('/edit/:id', authMiddleware,resellController.editResellTickets);
 router.get('/me/all/:id', authMiddleware,resellController.getMyResellTickets);
 router.get('/all/:id', optionalAuth,resellController.otherResellEvents);
 router.put('/purchase/:id', authMiddleware,resellController.purchaseTicket);

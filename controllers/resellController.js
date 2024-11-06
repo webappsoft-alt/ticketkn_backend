@@ -33,30 +33,32 @@ exports.createPost = async (req, res) => {
   try {
     const {
       purchase_ticketId,
-      tickets,
-      tickets_type_sale,
+      code,
+      price,
+      type
     } = req.body;
 
     const purchase=await Purchase.findById(purchase_ticketId)
 
     if (!purchase) return res.status(400).json({success: true,message: "Tickets are not found."});
     
-    const findreselTickets=await Resell.findOne({purchase_ticketId:purchase_ticketId})
+    // const findreselTickets=await Resell.findOne({purchase_ticketId:purchase_ticketId})
 
-    if (findreselTickets) return res.status(400).json({success: true,message: "Ticket are already been uploaded for resell.",resell:findreselTickets});
+    // if (findreselTickets) return res.status(400).json({success: true,message: "Ticket are already been uploaded for resell.",resell:findreselTickets});
 
-    if (Number(tickets) > Number(purchase.tickets)) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
+    // if (Number(tickets) > Number(purchase.tickets)) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
 
-    const error = validateTicketArray([purchase.tickets_type_sale], tickets_type_sale)
+    // const error = validateTicketArray([purchase.tickets_type_sale], tickets_type_sale)
 
-    if (error !== "") return res.status(400).json({success: true,message: error});
+    // if (error !== "") return res.status(400).json({success: true,message: error});
     
     const resell = new Resell({
       user:purchase.user,
       event:purchase.event,
-      tickets_type_sale,
+      code,
       purchase_ticketId,
-      remaining_tickets:tickets
+      price,
+      type
     });
 
     purchase.ResellTickets=resell._id
@@ -191,7 +193,8 @@ exports.otherResellEvents = async (req, res) => {
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   query.user = {$ne:userId};
-  query.remaining_tickets={ $gt : 0 }
+  query.resellTickets={ $exists: false  }
+
   try {
     const likedJobs = await Resell.find(query).populate({
       path: 'event',
@@ -227,54 +230,38 @@ exports.purchaseTicket = async (req, res) => {
   const eventId=req.params.id;
 
   try {
-    const {tickets,ticketPrice}=req.body;
-
-    const findEvent = await Resell.findById(eventId).populate("user").populate("event").lean()
+    const findEvent = await Resell.findById(eventId).populate("user").lean()
 
     if (!findEvent) return res.status(404).json({ message: "Resell tickets not found with that Id" });
-
-    if (Number(findEvent.remaining_tickets)==0) return res.status(404).json({ message: "Resell tickets are fully sold" });
-
-    if (Number(tickets) > Number(findEvent.remaining_tickets)) return res.status(404).json({ message: "Only "+findEvent.remaining_tickets+" Resell tickets are remaining." });
-
-    const twoPer=Number(ticketPrice) * 0.02
-
-    let codeArray=[]
-
-    for (let index = 0; index < Number(tickets); index++) {
-      codeArray.push(ticketCode())
-    }
-
 
     const post = new Purchase({
       user: userId,
       event:findEvent.event,
-      tickets:tickets,
-      totalPrice:Number(ticketPrice),
-      ownerPrice:Number(ticketPrice) - Number(twoPer),
-      remainig_ticket:tickets,
+      tickets:1,
+      totalPrice:Number(findEvent.price),
+      remainig_ticket:1,
       tickets_type_sale:{
-        type:findEvent.tickets_type_sale[0].type,
-        totalTicket:tickets,
-        price:findEvent.tickets_type_sale[0].total_price,
-        code:codeArray,
+        type:findEvent.type,
+        totalTicket:1,
+        price:findEvent.price,
+        code:ticketCode(),
         scanned:[]
       },
       resel_by:findEvent.user._id,
     })
 
-    const twentyPer=Number(ticketPrice) * 0.20
+    const twentyPer = Number(findEvent.price) * 0.20
 
 
-    const purchase = await Purchase.findById(findEvent.purchase_ticketId)
-    purchase.resellticket = Number(purchase.resellticket) + Number(tickets)
-    purchase.remainig_ticket = Number(purchase.resellticket) - Number(tickets)
+    // const purchase = await Purchase.findById(findEvent.purchase_ticketId)
+    // purchase.resellticket = Number(purchase.resellticket) + Number(tickets)
+    // purchase.remainig_ticket = Number(purchase.resellticket) - Number(tickets)
     
-    await purchase.save()
+    // await purchase.save()
 
     
-    await Resell.findByIdAndUpdate(eventId,{remaining_tickets:Number(findEvent.remaining_tickets) - Number(tickets),$addToSet:{resellTickets:post._id}})
-    await Purchase.findByIdAndUpdate(findEvent.purchase_ticketId,{ $addToSet :{resellpurchases: post._id } } )
+    // await Resell.findByIdAndUpdate(eventId,{remaining_tickets:Number(findEvent.remaining_tickets) - Number(tickets),$addToSet:{resellTickets:post._id}})
+    // await Purchase.findByIdAndUpdate(findEvent.purchase_ticketId,{ $addToSet :{resellpurchases: post._id } } )
     
     await sendNotification({
       user : userId,
@@ -292,14 +279,14 @@ exports.purchaseTicket = async (req, res) => {
     const transaction = new Transaction({
       user: findEvent.user._id,
       ticket:findEvent.purchase_ticketId,
-      total_price: Number(ticketPrice) - Number(twentyPer),
+      total_price: Number(findEvent.price) - Number(twentyPer),
       type:"deposit",
     });
     await transaction.save();
 
 
     const balance = Number(user?.balance) || 0;
-    const totalPrice = Number(ticketPrice) - Number(twentyPer) || 0;
+    const totalPrice = Number(findEvent.price) - Number(twentyPer) || 0;
 
     user.balance = balance + totalPrice;
     await user.save();
