@@ -38,7 +38,7 @@ exports.createPost = async (req, res) => {
       type
     } = req.body;
 
-    const purchase=await Purchase.findById(purchase_ticketId)
+    const purchase=await Purchase.findOne({_id:purchase_ticketId,"tickets_type_sale.code": { $in: code } })
 
     if (!purchase) return res.status(400).json({success: true,message: "Tickets are not found."});
     
