@@ -64,7 +64,7 @@ exports.createPost = async (req, res) => {
     
     await Purchase.findOneAndUpdate(
       { _id: purchase_ticketId },
-      { $pull: { "tickets_type_sale.code": code },ResellTickets:resell._id }
+      { $pull: { "tickets_type_sale.code": code },ResellTickets:resell._id, remainig_ticket : Number(purchase.remainig_ticket) - 1 }
     );
     await resell.save();
     res.status(200).json({success: true,message: "Resell tickets created successfully",resell});
@@ -245,7 +245,7 @@ exports.purchaseTicket = async (req, res) => {
       tickets_type_sale:{
         type:findEvent.type,
         totalTicket:1,
-        price:findEvent.price,
+        price:Number(findEvent.price),
         code:ticketCode(),
         scanned:[]
       },
@@ -253,17 +253,6 @@ exports.purchaseTicket = async (req, res) => {
     })
 
     const twentyPer = Number(findEvent.price) * 0.20
-
-
-    // const purchase = await Purchase.findById(findEvent.purchase_ticketId)
-    // purchase.resellticket = Number(purchase.resellticket) + Number(tickets)
-    // purchase.remainig_ticket = Number(purchase.resellticket) - Number(tickets)
-    
-    // await purchase.save()
-
-    
-    // await Resell.findByIdAndUpdate(eventId,{remaining_tickets:Number(findEvent.remaining_tickets) - Number(tickets),$addToSet:{resellTickets:post._id}})
-    // await Purchase.findByIdAndUpdate(findEvent.purchase_ticketId,{ $addToSet :{resellpurchases: post._id } } )
     
     await sendNotification({
       user : userId,
