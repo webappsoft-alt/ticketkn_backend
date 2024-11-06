@@ -9,7 +9,13 @@ const ticketObj={
   totalTicket:{
     type: Number,
     default: 0,
-  }
+  },
+  price:{
+    type: Number,
+    default: 0,
+  },
+  code:[Number],
+  scanned:[Number],
 }
 
 
@@ -27,7 +33,7 @@ const joinUserSchema = new mongoose.Schema({
     type:Number,
     default:0
   },
-  tickets_type_sale:[ticketObj],
+  tickets_type_sale:ticketObj,
   totalPrice: {
     type:Number,
     default:0

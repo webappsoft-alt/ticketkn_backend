@@ -47,7 +47,7 @@ exports.createPost = async (req, res) => {
 
     if (Number(tickets) > Number(purchase.tickets)) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
 
-    const error = validateTicketArray(purchase.tickets_type_sale, tickets_type_sale)
+    const error = validateTicketArray([purchase.tickets_type_sale], tickets_type_sale)
 
     if (error !== "") return res.status(400).json({success: true,message: error});
     
@@ -99,27 +99,27 @@ exports.editResellTickets = async (req, res) => {
   }
 
   let updateData={
-    tickets_type_sale:[{
-      ...resell.tickets_type_sale[0],
-    }]
+    tickets_type_sale:{
+      ...resell.tickets_type_sale,
+    }
   }
   if (tickets) {
 
-    if (Number(tickets) > Number(Number(resell.tickets_type_sale[0].totalTicket) - Number(resell.remaining_tickets))) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
+    if (Number(tickets) > Number(Number(resell.tickets_type_sale.totalTicket) - Number(resell.remaining_tickets))) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
     
     updateData={
-      tickets_type_sale:[{
+      tickets_type_sale:{
         ...resell.tickets_type_sale[0],
         tickets:tickets
-      }]
+      }
     }
   }
   if (totalPrice) {
     updateData={
-      tickets_type_sale:[{
+      tickets_type_sale:{
         ...updateData.tickets_type_sale[0],
         total_price:totalPrice
-      }]
+      }
     }
   }
 
@@ -239,6 +239,13 @@ exports.purchaseTicket = async (req, res) => {
 
     const twoPer=Number(ticketPrice) * 0.02
 
+    let codeArray=[]
+
+    for (let index = 0; index < Number(tickets); index++) {
+      codeArray.push(ticketCode())
+    }
+
+
     const post = new Purchase({
       user: userId,
       event:findEvent.event,
@@ -246,12 +253,14 @@ exports.purchaseTicket = async (req, res) => {
       totalPrice:Number(ticketPrice),
       ownerPrice:Number(ticketPrice) - Number(twoPer),
       remainig_ticket:tickets,
-      tickets_type_sale:[{
+      tickets_type_sale:{
         type:findEvent.tickets_type_sale[0].type,
-        totalTicket:tickets
-      }],
+        totalTicket:tickets,
+        price:findEvent.tickets_type_sale[0].total_price,
+        code:codeArray,
+        scanned:[]
+      },
       resel_by:findEvent.user._id,
-      code:ticketCode()
     })
 
     const twentyPer=Number(ticketPrice) * 0.20
