@@ -404,96 +404,6 @@ exports.filterPosts = async (req, res) => {
     const totalPages = Math.ceil(totalCount.length / pageSize);
     
    return res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
-
-   
-// const events = await Post.aggregate([
-//   {
-//     $addFields: {
-//       purchaseCount: { $size: "$purchase_by" } // Temporary field to count `purchase_by` length
-//     }
-//   },
-//   {
-//     $sort: { purchaseCount: -1, _id: -1 } // Sort by purchase count descending
-//   },
-//   {
-//     $skip: skip
-//   },
-//   {
-//     $limit: pageSize
-//   },
-//   {
-//     $lookup: {
-//       from: 'purchases', // Assuming `purchase_by` references the `Purchase` collection
-//       localField: 'purchase_by',
-//       foreignField: '_id',
-//       as: 'purchase_by'
-//     }
-//   },
-//   {
-//     $lookup: {
-//       from: 'users',
-//       let: { purchaseUserIds: "$purchase_by.user" },
-//       pipeline: [
-//         { $match: { $expr: { $in: ["$_id", "$$purchaseUserIds"] } } },
-//         { $limit: 3 } // Limit to 3 users per `purchase_by` entry
-//       ],
-//       as: 'purchase_users'
-//     }
-//   },
-//   {
-//     $lookup: {
-//       from: 'users',
-//       localField: 'user',
-//       foreignField: '_id',
-//       as: 'user'
-//     }
-//   },
-//   {
-//     $lookup: {
-//       from: 'likes',
-//       localField: 'likes',
-//       foreignField: '_id',
-//       as: 'likes'
-//     }
-//   },
-//   {
-//     $lookup: {
-//       from: 'coupons',
-//       localField: 'coupon',
-//       foreignField: '_id',
-//       as: 'coupon'
-//     }
-//   },
-//   {
-//     $lookup: {
-//       from: 'categories',
-//       localField: 'category',
-//       foreignField: '_id',
-//       as: 'category'
-//     }
-//   },
-//   {
-//     $addFields: {
-//       "purchase_by.user": { $slice: ["$purchase_users", 3] } // Limit the users in each `purchase_by` entry to 3
-//     }
-//   },
-//   {
-//     $project: {
-//       purchaseCount: 0 // Only exclude `purchaseCount` since it's a temporary field
-//     }
-//   }
-// ]);
-//     // Post-process for total likes and user-specific likes if needed
-//     for (const post of events) {
-//       post.TotalLikes = post.likes ? post.likes.length : 0;
-//       post.likes = userId
-//         ? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString())
-//         : false;
-//     }
-    
-//    return res.send({ success: true, events: events});
-  
-
 } {
 
   const users = await Post.find(query).populate({
@@ -661,12 +571,24 @@ exports.getMyFavPosts = async (req, res) => {
   }
 };
 
+
+const updateTicketAndTotal = (tickets_sale,type,count) => {
+  const typeSale = tickets_sale;
+  let updatedTickets = [...typeSale];
+  for (let i = 0; i < updatedTickets.length; i++) {
+    if (updatedTickets[i].type === type) {
+      updatedTickets[i].totalTicket = Number(updatedTickets[i].totalTicket) + Number(count);
+    }
+  }
+  return updatedTickets;
+};
+
 exports.purchaseTicket = async (req, res) => {
   const userId = req.user._id;
   const eventId=req.params.id;
 
   try {
-    const {totalPrice,tickets,tickets_sale,tickets_type_sale,couponId}=req.body;
+    const {totalPrice,tickets,tickets_type_sale,couponId}=req.body;
 
     const findEvent = await Post.findById(eventId).lean()
 
@@ -699,7 +621,7 @@ exports.purchaseTicket = async (req, res) => {
       remainig_ticket:tickets,
     })
 
-    const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale },{new:true}).populate("user").lean()
+    const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale:updateTicketAndTotal(findEvent.tickets_sale,tickets_type_sale[0].type,Number(tickets)) },{new:true}).populate("user").lean()
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
 
