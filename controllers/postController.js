@@ -848,6 +848,8 @@ exports.getPurchase = async (req, res) => {
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   query.user = userId;
+
+  query.remainig_ticket={ $gt: 0 }
   try {
     const likedJobs = await Purchase.find(query).populate({
       path: 'event',
@@ -894,6 +896,7 @@ exports.eventsPurchases = async (req, res) => {
   if (req.params.status!=="all") {
     query.scanner = Boolean(req.params.status)
   }
+  query.remainig_ticket={ $gt: 0 }
 
   try {
     const likedJobs = await Purchase.find(query).populate({
@@ -936,7 +939,7 @@ exports.getMyPurchases = async (req, res) => {
   const totalEvents=events.map(item=>item._id)
 
   try {
-    const likedJobs = await Purchase.find({event:{$in:totalEvents},resel_by: { $exists: false }}).populate({
+    const likedJobs = await Purchase.find({ event:{$in:totalEvents}, resel_by: { $exists: false }, remainig_ticket: { $gt: 0 } }).populate({
       path: 'event',
       populate: [
         { path: 'user', model: 'user' },

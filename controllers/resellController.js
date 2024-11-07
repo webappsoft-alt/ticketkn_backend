@@ -52,7 +52,7 @@ exports.createPost = async (req, res) => {
     
     await Purchase.findOneAndUpdate(
       { _id: purchase_ticketId },
-      { $pull: { "tickets_type_sale.code": code },ResellTickets:resell._id, remainig_ticket : Number(purchase.remainig_ticket) - 1 }
+      { $pull: { "tickets_type_sale.code": code }, remainig_ticket : Number(purchase.remainig_ticket) - 1 }
     );
     await resell.save();
     res.status(200).json({success: true,message: "Resell tickets created successfully",resell});
@@ -218,16 +218,22 @@ exports.purchaseTicket = async (req, res) => {
 };
 
 exports.deleteResellTicket = async (req, res) => {
-  const userId = req.user._id;
   const eventId=req.params.id;
-
   try {
     const findEvent = await Resell.findByIdAndDelete(eventId).populate("user").lean()
 
     if (!findEvent) return res.status(404).json({ message: "Resell tickets not found with that Id" });
-    
 
-    res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
+    const purchase=await Purchase.findById(findEvent.purchase_ticketId)
+
+    if (!purchase) return res.status(404).json({ message: "Resell tickets not found with that Id" });
+    
+    await Purchase.findOneAndUpdate(
+      { _id: findEvent.purchase_ticketId },
+      { $pull: { "tickets_type_sale.code": ticketCode() }, remainig_ticket : Number(purchase.remainig_ticket) + 1 }
+    );
+
+    res.status(201).json({ success: true, message: 'Resel Ticket delete successfully', ticket:findEvent });
   } catch (error) {
     console.log(error)
     res.status(500).json({ success: false, message: 'Internal server error' });
