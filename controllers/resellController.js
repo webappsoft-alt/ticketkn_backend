@@ -160,7 +160,7 @@ exports.purchaseTicket = async (req, res) => {
   const eventId=req.params.id;
 
   try {
-    const findEvent = await Resell.findById(eventId).populate("user").lean()
+    const findEvent = await Resell.findOne({_id:eventId,resellTickets:{ $exists: false  }}).populate("user").lean()
 
     if (!findEvent) return res.status(404).json({ message: "Resel ticket has already been booked by anyother user." });
 
@@ -224,7 +224,7 @@ exports.purchaseTicket = async (req, res) => {
 exports.deleteResellTicket = async (req, res) => {
   const eventId=req.params.id;
   try {
-    const findEvent = await Resell.findByIdAndDelete(eventId).populate("user").lean()
+    const findEvent = await Resell.findOneAndDelete({_id:eventId,resellTickets:{ $exists: false  }}).populate("user").lean()
 
     if (!findEvent) return res.status(404).json({ message: "Resell tickets not found with that Id" });
 
