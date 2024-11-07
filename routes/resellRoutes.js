@@ -9,5 +9,6 @@ router.post('/create', authMiddleware,resellController.createPost);
 router.get('/me/all/:id', authMiddleware,resellController.getMyResellTickets);
 router.get('/all/:id', optionalAuth,resellController.otherResellEvents);
 router.put('/purchase/:id', authMiddleware,resellController.purchaseTicket);
+router.delete('/:id', authMiddleware,resellController.deleteResellTicket);
 
 module.exports = router;

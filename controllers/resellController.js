@@ -42,18 +42,6 @@ exports.createPost = async (req, res) => {
 
     if (!purchase) return res.status(400).json({success: true,message: "Tickets are not found."});
 
-
-    
-    // const findreselTickets=await Resell.findOne({purchase_ticketId:purchase_ticketId})
-    
-    // if (findreselTickets) return res.status(400).json({success: true,message: "Ticket are already been uploaded for resell.",resell:findreselTickets});
-    
-    // if (Number(tickets) > Number(purchase.tickets)) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
-    
-    // const error = validateTicketArray([purchase.tickets_type_sale], tickets_type_sale)
-    
-    // if (error !== "") return res.status(400).json({success: true,message: error});
-    
     const resell = new Resell({
       user:purchase.user,
       event:purchase.event,
@@ -71,67 +59,6 @@ exports.createPost = async (req, res) => {
   } catch (error) {
     console.log(error)
     res.status(500).json({ success: false, message: "Internal server error" });
-  }
-};
-
-
-exports.editResellTickets = async (req, res) => {
-  try {
-    const { 
-      tickets,
-      totalPrice,
-    } = req.body;
-
-    const postId = req.params.id;
-
-    const resell=await Resell.findById(postId)
-
-    if (!resell) return res.status(400).json({success: true,message: "The Resell Ticket with the given ID was not found.",});
-
-
-    // Create an object to store the fields to be updated
-  let updateFields = Object.fromEntries(
-    Object.entries({
-      tickets,
-      totalPrice
-    }).filter(([key, value]) => value !== undefined)
-  );
-
-  // Check if there are any fields to update
-  if (Object.keys(updateFields).length === 0) {
-    return res.status(400).send({ success: false, message: 'No valid fields provided for update.' });
-  }
-
-  let updateData={
-    tickets_type_sale:{
-      ...resell.tickets_type_sale,
-    }
-  }
-  if (tickets) {
-
-    if (Number(tickets) > Number(Number(resell.tickets_type_sale.totalTicket) - Number(resell.remaining_tickets))) return res.status(400).json({success: true,message: "Resell Ticket should not be more than purchase tickets."});
-    
-    updateData={
-      tickets_type_sale:{
-        ...resell.tickets_type_sale[0],
-        tickets:tickets
-      }
-    }
-  }
-  if (totalPrice) {
-    updateData={
-      tickets_type_sale:{
-        ...updateData.tickets_type_sale[0],
-        total_price:totalPrice
-      }
-    }
-  }
-
-    const post = await Resell.findOneAndUpdate({_id:postId}, updateData, { new: true });
-    res.send({ success: true, message: 'Resell Ticket updated successfully', post:post });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -257,7 +184,7 @@ exports.purchaseTicket = async (req, res) => {
     await sendNotification({
       user : userId,
       to_id : findEvent.user._id,
-      description :  `Someone has purchased your resell ${tickets} tickets of your ${findEvent.event.name}`,
+      description :  `Someone has purchased your resell 1 tickets of your ${findEvent.event.name} booked event`,
       type :'purchase',
       title :"New Resell Ticket Purchase",
       fcmtoken : findEvent.user?.fcmtoken,
@@ -283,6 +210,23 @@ exports.purchaseTicket = async (req, res) => {
     await user.save();
     
     await post.save();
+    res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.deleteResellTicket = async (req, res) => {
+  const userId = req.user._id;
+  const eventId=req.params.id;
+
+  try {
+    const findEvent = await Resell.findByIdAndDelete(eventId).populate("user").lean()
+
+    if (!findEvent) return res.status(404).json({ message: "Resell tickets not found with that Id" });
+    
+
     res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
   } catch (error) {
     console.log(error)
