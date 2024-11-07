@@ -161,7 +161,7 @@ exports.purchaseTicket = async (req, res) => {
   try {
     const findEvent = await Resell.findById(eventId).populate("user").lean()
 
-    if (!findEvent) return res.status(404).json({ message: "Resell tickets not found with that Id" });
+    if (!findEvent) return res.status(404).json({ message: "Resel ticket has already been booked by anyother user." });
 
     const post = new Purchase({
       user: userId,
