@@ -75,6 +75,7 @@ exports.getMyResellTickets = async (req, res) => {
   const pageSize = 10;
 
   query.user = userId;
+  query.resellTickets={ $exists: false  }
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   try {
@@ -179,6 +180,8 @@ exports.purchaseTicket = async (req, res) => {
       resel_by:findEvent.user._id,
     })
 
+    findEvent.resellTickets=post._id
+
     const twentyPer = Number(findEvent.price) * 0.20
     
     await sendNotification({
@@ -208,6 +211,7 @@ exports.purchaseTicket = async (req, res) => {
 
     user.balance = balance + totalPrice;
     await user.save();
+    await findEvent.save();
     
     await post.save();
     res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
