@@ -103,6 +103,8 @@ exports.editPost = async (req, res) => {
       city,
       state,
       description,
+      join_people,
+      ticket_plans,
       refund_policy,
     } = req.body;
     const postId = req.params.id;
@@ -120,6 +122,8 @@ exports.editPost = async (req, res) => {
       city,
       state,
       description,
+      join_people,
+      ticket_plans,
       refund_policy,
     }).filter(([key, value]) => value !== undefined)
   );
