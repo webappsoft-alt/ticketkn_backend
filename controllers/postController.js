@@ -680,11 +680,11 @@ exports.transferTickets = async (req, res) => {
     })
     
     await sendNotification({
-      user : userId,
-      to_id : findEvent.user._id,
-      description :  `Someone has purchased your resell 1 tickets of your ${findEvent.event.name} booked event`,
+      user : ownerUser,
+      to_id : userId,
+      description :  `1 ticket has been transfer to`,
       type :'purchase',
-      title :"New Resell Ticket Purchase",
+      title :"Ticket transfer",
       fcmtoken : findEvent.user?.fcmtoken,
       event:purchase.event,
       purchase:post._id
