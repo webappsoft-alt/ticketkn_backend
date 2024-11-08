@@ -301,6 +301,13 @@ router.post("/check-email", async (req, res) => {
   res.send({ success: true, message: "Email doesn't existed" });
 });
 
+router.post("/conversion", async (req, res) => {
+
+  const {amount}=req.body
+
+  res.send({ success: true, convertedAmount:Number(amount)*0.37 });
+});
+
 router.put("/update-user", auth, async (req, res) => {
   const {
     name,image,interests,location,address
@@ -413,7 +420,6 @@ router.get('/search/:id/:search?', auth , async (req, res) => {
 
   res.send({ success: true, users: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 });
-
 
 router.get('/dashboard',[auth,admin], async (req, res) => {
   const totalUsers = await User.countDocuments({type:"customer"});
