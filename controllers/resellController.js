@@ -202,6 +202,7 @@ exports.purchaseTicket = async (req, res) => {
       ticket:findEvent.purchase_ticketId,
       total_price: Number(findEvent.price) - Number(twentyPer),
       type:"deposit",
+      originalPrice:Number(findEvent.price)
     });
     await transaction.save();
 

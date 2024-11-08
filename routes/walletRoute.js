@@ -15,12 +15,15 @@ router.put('/purchase', async (req, res) => {
   if (Number(balance)>Number(user.balance)) {
     return res.status(400).send({success:false,message:"You don't have enough balance in your account"});
   }
+
+  const eightPer = Number(balance) * 0.08
   
   const transaction = new Transaction({
     user: userId,
     ticket:ticketId,
     total_price:Number(balance),
     type:"purchase",
+    originalPrice:Number(balance)+eightPer
   });
   
   await transaction.save();
