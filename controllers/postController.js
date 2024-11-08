@@ -685,16 +685,18 @@ exports.transferTickets = async (req, res) => {
     );
 
     const event = await Post.findById(purchase.event).lean()
-
+    
     if (!event) return res.status(404).json({ message: 'Event not found.' });
-
+    
+    const to_User = await User.findById(userId).select("fcmtoken").lean()
+ 
     await sendNotification({
       user : ownerUser,
       to_id : userId,
       description : `${purchase.user?.name} has transfer 1 ticket of ${event.name} event to you.`,
       type :'transfer',
       title :"Ticket transfer",
-      fcmtoken : findEvent.user?.fcmtoken,
+      fcmtoken : to_User?.fcmtoken,
       event:purchase.event,
       purchase:post._id
     })
