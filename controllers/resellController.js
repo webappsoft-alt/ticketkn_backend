@@ -1,7 +1,9 @@
+const Event = require("../models/Event");
 const Purchase = require("../models/Purchase");
 const Resell = require("../models/Resell");
 const Transaction = require("../models/Transaction");
 const { User } = require("../models/user");
+const { purchaseEmail } = require("./emailservice");
 const { ticketCode } = require("./generateCode");
 const { sendNotification } = require("./notificationCreateService");
 
@@ -155,6 +157,14 @@ exports.otherResellEvents = async (req, res) => {
   }
 };
 
+function convertToUKFormat(dateString) {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}   
+
 exports.purchaseTicket = async (req, res) => {
   const userId = req.user._id;
   const eventId=req.params.id;
@@ -179,6 +189,17 @@ exports.purchaseTicket = async (req, res) => {
       },
       resel_by:findEvent.user._id,
     })
+
+    const event = await Event.findById(findEvent.event).populate("user category").lean()
+
+    if (!event) return res.status(404).json({ message: 'Event not found.' });
+
+
+    const logInuser=await User.findById(userId).select("email").lean()
+
+    const ukFormattedDate = convertToUKFormat(event.start_Date);
+
+   await purchaseEmail(logInuser.email,event.name,ukFormattedDate,event.category.name,findEvent.type,)
 
     findEvent.resellTickets=post._id
 

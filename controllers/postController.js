@@ -8,6 +8,7 @@ const admin = require("firebase-admin");
 const Coupon = require('../models/Coupon');
 const Category = require('../models/Category');
 const { ticketCode } = require('./generateCode');
+const { purchaseEmail } = require('./emailservice');
 
 exports.createPost = async (req, res) => {
   try {
@@ -582,6 +583,15 @@ const updateTicketAndTotal = (tickets_sale,type,count) => {
   return updatedTickets;
 };
 
+
+function convertToUKFormat(dateString) {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}   
+
 exports.purchaseTicket = async (req, res) => {
   const userId = req.user._id;
   const eventId=req.params.id;
@@ -620,7 +630,7 @@ exports.purchaseTicket = async (req, res) => {
       remainig_ticket:tickets,
     })
 
-    const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale:updateTicketAndTotal(findEvent.tickets_sale,tickets_type_sale[0].type,Number(tickets)) },{new:true}).populate("user").lean()
+    const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale:updateTicketAndTotal(findEvent.tickets_sale,tickets_type_sale[0].type,Number(tickets)) },{new:true}).populate("user category").lean()
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });
 
@@ -638,7 +648,13 @@ exports.purchaseTicket = async (req, res) => {
       fcmtoken : event.user?.fcmtoken,
       event:eventId,
       purchase:post._id
-  })
+    }) 
+
+    const logInuser=await User.findById(userId).select("email").lean()
+
+    const ukFormattedDate = convertToUKFormat(event.start_Date);
+
+   await purchaseEmail(logInuser.email,event.name,ukFormattedDate,event.category.name,tickets_type_sale[0].type)
     
     await post.save();
     res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
