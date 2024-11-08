@@ -659,7 +659,7 @@ exports.transferTickets = async (req, res) => {
       _id:purchaseId,
       "tickets_type_sale.code": { $in: purchaseCode } ,
       "tickets_type_sale.scanned": { $ne: purchaseCode } 
-     },{$addToSet:{"tickets_type_sale.scanned":purchaseCode}},{new:true})
+     },{$addToSet:{"tickets_type_sale.scanned":purchaseCode}},{new:true}).populate("user")
 
      if (!purchase) return res.status(404).json({ message: 'Ticket did not found or has already been scanned.' });
 
@@ -678,12 +678,21 @@ exports.transferTickets = async (req, res) => {
       },
       resel_by:ownerUser
     })
-    
+
+    await Purchase.findOneAndUpdate(
+      { _id: purchaseId },
+      { $pull: { "tickets_type_sale.code": purchaseCode }, remainig_ticket : Number(purchase.remainig_ticket) - 1 }
+    );
+
+    const event = await Post.findById(purchase.event).lean()
+
+    if (!event) return res.status(404).json({ message: 'Event not found.' });
+
     await sendNotification({
       user : ownerUser,
       to_id : userId,
-      description :  `1 ticket has been transfer to`,
-      type :'purchase',
+      description : `${purchase.user?.name} has transfer 1 ticket of ${event.name} event to you.`,
+      type :'transfer',
       title :"Ticket transfer",
       fcmtoken : findEvent.user?.fcmtoken,
       event:purchase.event,
