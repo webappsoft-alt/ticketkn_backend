@@ -381,6 +381,39 @@ router.get('/admin/:type/:id',[auth,admin], async (req, res) => {
   res.send({ success: true, users: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 });
 
+router.get('/search/:id/:search?', auth , async (req, res) => {
+  const lastId = parseInt(req.params.id)||1;
+
+  // Check if lastId is a valid number
+  if (isNaN(lastId) || lastId < 0) {
+    return res.status(400).json({ error: 'Invalid last_id' });
+  }
+
+  let query={}
+
+  query.type="customer";
+  query._id={ $ne : req.user._id }
+
+  if (req.params.search) {
+    const searchQuery=req.params.search
+    query.$or = [
+      { name: { $regex: searchQuery, $options: 'i' } }, // Case-insensitive search
+      { email: { $regex: searchQuery, $options: 'i' } }, // Case-insensitive search
+    ];
+  }
+
+  const pageSize = 10;
+
+  const skip = Math.max(0, (lastId - 1)) * pageSize;
+
+  const users = await User.find(query).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+
+  const totalCount = await User.countDocuments(query);
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  res.send({ success: true, users: users,count: { totalPage: totalPages, currentPageSize: users.length } });
+});
+
 
 router.get('/dashboard',[auth,admin], async (req, res) => {
   const totalUsers = await User.countDocuments({type:"customer"});

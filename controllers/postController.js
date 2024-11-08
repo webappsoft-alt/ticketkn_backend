@@ -222,7 +222,6 @@ exports.getAdminPurchases = async (req, res) => {
   res.send({ success: true, purchases: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 };
 
-
 exports.latestEvent = async (req, res) => {
   const userId = req?.user?._id||""
   
@@ -647,6 +646,59 @@ exports.purchaseTicket = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
+exports.transferTickets = async (req, res) => {
+  const ownerUser = req?.user?._id||""
+  const userId = req.params.userId;
+  const purchaseId = req.params.purchaseId;
+  const purchaseCode = req.params.code;
+
+  try {
+    const purchase = await Purchase.findOneAndUpdate({
+      user: ownerUser,
+      _id:purchaseId,
+      "tickets_type_sale.code": { $in: purchaseCode } ,
+      "tickets_type_sale.scanned": { $ne: purchaseCode } 
+     },{$addToSet:{"tickets_type_sale.scanned":purchaseCode}},{new:true})
+
+     if (!purchase) return res.status(404).json({ message: 'Ticket did not found or has already been scanned.' });
+
+    const post = new Purchase({
+      user: userId,
+      event:purchase.event,
+      tickets:1,
+      totalPrice:Number(purchase.totalPrice),
+      remainig_ticket:1,
+      tickets_type_sale:{
+        type:purchase.tickets_type_sale.type,
+        totalTicket:1,
+        price:Number(purchase.tickets_type_sale.price),
+        code:ticketCode(),
+        scanned:[]
+      },
+      resel_by:ownerUser
+    })
+    
+    await sendNotification({
+      user : userId,
+      to_id : findEvent.user._id,
+      description :  `Someone has purchased your resell 1 tickets of your ${findEvent.event.name} booked event`,
+      type :'purchase',
+      title :"New Resell Ticket Purchase",
+      fcmtoken : findEvent.user?.fcmtoken,
+      event:purchase.event,
+      purchase:post._id
+    })
+    
+    await post.save();
+    res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+
 exports.paymentDone = async (req, res) => {
 
   try {
