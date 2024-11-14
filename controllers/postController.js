@@ -275,13 +275,16 @@ exports.getAdminPost = async (req, res) => {
   if (req.body.search) {
     query.name= { $regex: new RegExp(req.body.search, 'i') };
   }
-  
+
   if (req.body.today=="false"||req.body.today==false) {
     // Get the current date and time (now)
     const now = new Date();
     
     // Only retrieve upcoming events (those with start_Date in the future)
     query.start_Date = { $gte: now };
+  }
+  if (req.body.paymentDone) {
+    query.paymentDone = req.body.paymentDone
   }
 
 
