@@ -454,7 +454,7 @@ function findDateIndex(createdAt,dates) {
 }
 
 
-router.get('/dashboard',[auth,admin], async (req, res) => {
+router.get('/dashboard',async (req, res) => {
   const totalUsers = await User.countDocuments({type:"customer"});
 
    // Get users registered yesterday
@@ -502,8 +502,8 @@ router.get('/dashboard',[auth,admin], async (req, res) => {
       growthOrder = ((totalOrder - totalOrderYesterday) / totalOrderYesterday) * 100;
    }
 
-   const purchases = await Purchase.find({resel_by: { $exists: false },}).sort({ _id: -1 }).lean();
-   const totalPurchase = await Purchase.find({resel_by: { $exists: true },}).sort({ _id: -1 }).lean();
+   const purchases = await Purchase.find({resel_by: { $exists: false },}).select("totalPrice createdAt").sort({ _id: -1 }).lean();
+   const totalPurchase = await Purchase.find({resel_by: { $exists: true },}).select("totalPrice createdAt").sort({ _id: -1 }).lean();
  
  
    const totalPayments=purchases.reduce((a,b)=>a + Number(b.totalPrice),0)
@@ -527,7 +527,7 @@ router.get('/dashboard',[auth,admin], async (req, res) => {
   const orders = await Purchase.find({createdAt: { $gte: startDate, $lte: todayEnd }}).select("totalPrice createdAt").lean()
  
    // Initialize the graph array
-   let graph = dates.map(date => ({ x: date, earnings }));
+   let graph = dates.map(date => ({ x: date, earnings:0 }));
   
    // Increment the y value for the correct date ranges
    orders.forEach(order => {
