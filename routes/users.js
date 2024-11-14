@@ -362,6 +362,24 @@ router.delete("/", auth, async (req, res) => {
   res.send({ success: true, message: "User deleted successfully", user });
 });
 
+router.delete("/:id",[auth,admin], async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { status: "deleted" },
+    { new: true }
+  );
+
+  if (!user)
+    return res
+      .status(400)
+      .send({
+        success: false,
+        message: "The User with the given ID was not found.",
+      });
+
+  res.send({ success: true, message: "User deleted successfully", user });
+});
+
 router.get('/admin/:type/:id',[auth,admin], async (req, res) => {
   const lastId = parseInt(req.params.id)||1;
 
