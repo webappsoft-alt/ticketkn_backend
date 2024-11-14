@@ -406,22 +406,30 @@ exports.filterPosts = async (req, res) => {
     res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
   }else if (req.body.popular) {
 
+    const popularEvents = await Post.find({...query,popular:true}).populate({
+      path: 'purchase_by',
+      options: { limit: 3 }, // Limit to 3 users
+      populate: [
+        { path: 'user', model: 'user' },
+      ]
+    }).populate("user").populate("likes").populate("coupon").populate("category").sort({ total_tickets_sale: -1 }).limit(pageSize).lean();
+
     const users = await Post.find(query).populate({
       path: 'purchase_by',
       options: { limit: 3 }, // Limit to 3 users
       populate: [
         { path: 'user', model: 'user' },
       ]
-    }).populate("user").populate("likes").populate("coupon").populate("category").sort({ total_tickets_sale: -1 }).skip(skip).limit(pageSize).lean();
-    for (const post of users) {
+    }).populate("user").populate("likes").populate("coupon").populate("category").sort({ total_tickets_sale: -1 }).limit(pageSize-popularEvents.length).lean();
+
+    let events=[...popularEvents,...users]
+
+    for (const post of events) {
       post.TotalLikes = post?.likes?.length || 0
       post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
     }
-    
-    const totalCount = await Post.find(query);
-    const totalPages = Math.ceil(totalCount.length / pageSize);
-    
-   return res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
+        
+   return res.send({ success: true, posts: events });
 } {
 
   const users = await Post.find(query).populate({

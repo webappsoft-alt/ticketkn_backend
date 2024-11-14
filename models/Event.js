@@ -69,6 +69,10 @@ const postSchema = new mongoose.Schema({
     type:Boolean,
     default:false
   },
+  popular:{
+    type:Boolean,
+    default:false
+  },
   status: {
     type: String,
     default: 'active',
