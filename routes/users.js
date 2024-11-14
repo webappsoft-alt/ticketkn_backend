@@ -487,8 +487,8 @@ router.get('/dashboard',[auth,admin], async (req, res) => {
       growthOrder = ((totalOrder - totalOrderYesterday) / totalOrderYesterday) * 100;
    }
 
-   const purchases = await Purchase.find({event:req.params.id,resel_by: { $exists: false },}).sort({ _id: -1 }).lean();
-   const totalPurchase = await Purchase.find({event:req.params.id,resel_by: { $exists: true },}).sort({ _id: -1 }).lean();
+   const purchases = await Purchase.find({resel_by: { $exists: false },}).sort({ _id: -1 }).lean();
+   const totalPurchase = await Purchase.find({resel_by: { $exists: true },}).sort({ _id: -1 }).lean();
  
  
    const totalPayments=purchases.reduce((a,b)=>a + Number(b.totalPrice),0)
