@@ -19,6 +19,7 @@ const admin = require("../middleware/admin");
 const Event = require("../models/Event");
 const Purchase = require("../models/Purchase");
 const { sendNotification } = require("../controllers/notificationCreateService");
+const moment = require('moment');
 
 router.get("/me", auth, async (req, res) => {
   const user = await User.findById(req.user._id).select("-password").populate("interests").lean();
@@ -439,6 +440,20 @@ router.get('/search/:id/:search?', auth , async (req, res) => {
   res.send({ success: true, users: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 });
 
+function findDateIndex(createdAt,dates) {
+  for (let i = 0; i < dates.length - 1; i++) {
+    if (moment(createdAt).isBetween(dates[i], dates[i + 1], null, '[)')) {
+      return i + 1; // Increment y value of the next date
+    }
+  }
+  // If the date is after the last date in the array
+  if (moment(createdAt).isSameOrAfter(dates[dates.length - 1])) {
+    return dates.length - 1;
+  }
+  return -1;
+}
+
+
 router.get('/dashboard',[auth,admin], async (req, res) => {
   const totalUsers = await User.countDocuments({type:"customer"});
 
@@ -498,23 +513,44 @@ router.get('/dashboard',[auth,admin], async (req, res) => {
    const twoPerc=Number(totalPayments) * 0.02
    const twentPerc=Number(totalOtherPayments) * 0.20
    const eightResel=Number(totalOtherPayments) * 0.08
+
+   const now = new Date();
+   let dates = [];
+   for (let i = 0; i < 12; i++) {
+    let date = new Date(now);
+    date.setMonth(now.getMonth() - i);
+    dates.unshift(date.toISOString());
+  }
+  const startDate = moment().startOf('year');
+  const todayEnd = moment().endOf('day');
+ 
+  const orders = await Purchase.find({createdAt: { $gte: startDate, $lte: todayEnd }}).select("totalPrice createdAt").lean()
+ 
+   // Initialize the graph array
+   let graph = dates.map(date => ({ x: date, earnings }));
+  
+   // Increment the y value for the correct date ranges
+   orders.forEach(order => {
+     const index = findDateIndex(order.createdAt,dates);
+     if (index !== -1 && index < graph.length) {
+       let earnings=0
+      if (order.resel_by) {
+        earnings=Number(order.totalPrice) * 0.28
+      }else{
+        earnings=Number(order.totalPrice) * 0.10
+      }
+      graph[index].earnings = graph[index].earnings+earnings;
+     }
+   });
+ 
+   let newGraph = graph.map(obj => {
+     return { ["x"]: moment(obj.x).format('MMM'), ["y"]: obj.earnings};
+   });
+ 
   
   res.send({ success: true, 
     totalEarnings:eightPerc+twoPerc+twentPerc+eightResel ,
-    graph:[
-      { x: "Jan", y: 15 },
-      { x: "Feb", y: 16.0 },
-      { x: "Mar", y: 12.0 },
-      { x: "Apr", y: 14.0 },
-      { x: "May", y: 18.0 },
-      { x: "Jun", y: 25.0 },
-      { x: "Jul", y: 23.0 },
-      { x: "Aug", y: 40.0 },
-      { x: "Sep", y: 10.0 },
-      { x: "Oct", y: 25.0 },
-      { x: "Nov", y: 40000 },
-      { x: "Dec", "y": 66000 },
-    ],
+    graph:newGraph,
     rentee:{
       totalUsers,
       growth: growth.toFixed(2),
