@@ -454,7 +454,7 @@ function findDateIndex(createdAt,dates) {
 }
 
 
-router.get('/dashboard',async (req, res) => {
+router.get('/dashboard',[auth, admin],async (req, res) => {
   const totalUsers = await User.countDocuments({type:"customer"});
 
    // Get users registered yesterday
