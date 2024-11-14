@@ -513,7 +513,7 @@ router.get('/dashboard',[auth,admin], async (req, res) => {
       { x: "Sep", y: 10.0 },
       { x: "Oct", y: 25.0 },
       { x: "Nov", y: 40000 },
-      { "x": "Dec", "y": 66000 },
+      { x: "Dec", "y": 66000 },
     ],
     rentee:{
       totalUsers,
