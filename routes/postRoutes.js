@@ -11,7 +11,7 @@ router.get('/purchases/:eventId/:status/:id', authMiddleware, postController.eve
 router.get('/purchase/all/:id', authMiddleware, postController.getPurchase);
 router.get('/me/purchase/:id?', authMiddleware, postController.getMyPurchases);
 // router.post('/admin/purchases/:id',[authMiddleware,admin], postController.getAdminPurchases);
-// router.put('/admin/update-purchases/:id',[authMiddleware,admin], postController.updatePurchasePaymentByAdmin);
+router.put('/admin/update-purchases/:id',[authMiddleware,admin], postController.updatePurchasePaymentByAdmin);
 router.post('/admin/:type/:id',[authMiddleware,admin], postController.getAdminPost);
 router.post('/filter',optionalAuth, postController.filterPosts);
 router.get('/detail/:id',optionalAuth, postController.getDetailsEvent);
