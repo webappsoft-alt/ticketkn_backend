@@ -267,8 +267,21 @@ exports.getAdminPost = async (req, res) => {
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   let query = {};
   query.status='active'
+
   if (req.params.type!=='all') {
     query.category = req.params.type; 
+  }
+
+  if (req.body.search) {
+    query.name= { $regex: new RegExp(req.body.search, 'i') };
+  }
+  
+  if (req.body.today=="false"||req.body.today==false) {
+    // Get the current date and time (now)
+    const now = new Date();
+    
+    // Only retrieve upcoming events (those with start_Date in the future)
+    query.start_Date = { $gte: now };
   }
 
 

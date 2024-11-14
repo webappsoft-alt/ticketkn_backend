@@ -6,8 +6,6 @@ exports.create = async (req, res) => {
     const category = new Category({
       name,
       image,
-      lat:"32.166351",
-      lng:"74.195900"
     });
     await category.save();
 
@@ -92,8 +90,6 @@ exports.editCategories = async (req, res) => {
       { _id: serviceId },
       {
         name, image,
-         lat:"32.166351",
-         lng:"74.195900",
         updated_at: Date.now()
       },
       { new: true }
