@@ -228,30 +228,12 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
 };
 
 exports.getAdminPurchases = async (req, res) => {
-  const lastId = parseInt(req.params.id)||1;
-  // Check if lastId is a valid number
-  if (isNaN(lastId) || lastId < 0) {
-    return res.status(400).json({ error: 'Invalid last_id' });
-  }
+  const users = await Purchase.find({event:req.params.id}).sort({ _id: -1 }).lean();
 
-  const pageSize = 10;
-  
-  const skip = Math.max(0, (lastId - 1)) * pageSize;
-  let query = {};
-
-  if (req.body.event!=='all') {
-    query.event=req.body.event;
-  }
-  if (req.body.paymentDone) {
-    query.paymentDone=req.body.paymentDone;
-  }
-
-  const users = await Purchase.find(query).populate("user").populate("event").populate("ResellTickets").populate("resellpurchases").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
-  
-  const totalCount = await Purchase.find(query);
-  const totalPages = Math.ceil(totalCount.length / pageSize);
-  
-  res.send({ success: true, purchases: users,count: { totalPage: totalPages, currentPageSize: users.length } });
+  const totalPayments=users.reduce((a,b)=>a + Number(b.totalPrice),0)
+  const totalOwnerTax=users.reduce((a,b)=>a + Number(b.ownerPrice),0)
+    
+  res.send({ success: true, totalPayments,totalOwnerTax });
 };
 
 exports.latestEvent = async (req, res) => {
