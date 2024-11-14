@@ -524,7 +524,7 @@ router.get('/dashboard',async (req, res) => {
   const startDate = moment().startOf('year');
   const todayEnd = moment().endOf('day');
  
-  const orders = await Purchase.find({createdAt: { $gte: startDate, $lte: todayEnd }}).select("totalPrice createdAt").lean()
+  const orders = await Purchase.find({createdAt: { $gte: startDate, $lte: todayEnd }}).select("totalPrice createdAt resel_by").lean()
  
    // Initialize the graph array
    let graph = dates.map(date => ({ x: date, earnings:0 }));
@@ -534,10 +534,10 @@ router.get('/dashboard',async (req, res) => {
      const index = findDateIndex(order.createdAt,dates);
      if (index !== -1 && index < graph.length) {
        let earnings=0
-      if (order.resel_by) {
-        earnings=Number(order.totalPrice) * 0.28
-      }else{
+       if (order.resel_by==undefined) {
         earnings=Number(order.totalPrice) * 0.10
+      }else{
+        earnings=Number(order.totalPrice) * 0.28
       }
       graph[index].earnings = graph[index].earnings+earnings;
      }
@@ -549,7 +549,7 @@ router.get('/dashboard',async (req, res) => {
  
   
   res.send({ success: true, 
-    totalEarnings:eightPerc+twoPerc+twentPerc+eightResel ,
+    totalEarnings:eightPerc+twoPerc+twentPerc+eightResel,
     graph:newGraph,
     rentee:{
       totalUsers,
