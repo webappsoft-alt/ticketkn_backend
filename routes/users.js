@@ -487,7 +487,26 @@ router.get('/dashboard',[auth,admin], async (req, res) => {
       growthOrder = ((totalOrder - totalOrderYesterday) / totalOrderYesterday) * 100;
    }
 
+   const purchase = await Purchase.find({}).sort({ _id: -1 }).lean();
+
+   const totalEarnings=purchase.reduce((a,b)=>a + Number(b.ownerPrice),0)
+ 
   res.send({ success: true, 
+    totalEarnings,
+    graph:[
+      { x: "Jan", y: 15 },
+      { x: "Feb", y: 16.0 },
+      { x: "Mar", y: 12.0 },
+      { x: "Apr", y: 14.0 },
+      { x: "May", y: 18.0 },
+      { x: "Jun", y: 25.0 },
+      { x: "Jul", y: 23.0 },
+      { x: "Aug", y: 40.0 },
+      { x: "Sep", y: 10.0 },
+      { x: "Oct", y: 25.0 },
+      { x: "Nov", y: 40000 },
+      { "x": "Dec", "y": 66000 },
+    ],
     rentee:{
       totalUsers,
       growth: growth.toFixed(2),

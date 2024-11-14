@@ -228,12 +228,21 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
 };
 
 exports.getAdminPurchases = async (req, res) => {
-  const users = await Purchase.find({event:req.params.id}).sort({ _id: -1 }).lean();
+  const users = await Purchase.find({event:req.params.id,resel_by: { $exists: false },}).sort({ _id: -1 }).lean();
+  const totalPurchase = await Purchase.find({event:req.params.id,resel_by: { $exists: true },}).sort({ _id: -1 }).lean();
+
 
   const totalPayments=users.reduce((a,b)=>a + Number(b.totalPrice),0)
+  const totalOtherPayments=totalPurchase.reduce((a,b)=>a + Number(b.totalPrice),0)
   const totalOwnerTax=users.reduce((a,b)=>a + Number(b.ownerPrice),0)
+
+  const eightPerc=Number(totalPayments) * 0.08
+  const twoPerc=Number(totalPayments) * 0.02
+  const twentPerc=Number(totalOtherPayments) * 0.20
+  const eightResel=Number(totalOtherPayments) * 0.08
+
     
-  res.send({ success: true, totalPayments,totalOwnerTax });
+  res.send({ success: true, totalPayments,totalOwnerTax,adminEarning:eightPerc+twoPerc+twentPerc+eightResel });
 };
 
 exports.latestEvent = async (req, res) => {
@@ -936,6 +945,7 @@ exports.eventsPurchases = async (req, res) => {
     query.scanner = Boolean(req.params.status)
   }
   query.remainig_ticket={ $gt: 0 }
+  query.resel_by = { $exists: false }
 
   try {
     const likedJobs = await Purchase.find(query).populate({
