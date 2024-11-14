@@ -487,12 +487,20 @@ router.get('/dashboard',[auth,admin], async (req, res) => {
       growthOrder = ((totalOrder - totalOrderYesterday) / totalOrderYesterday) * 100;
    }
 
-   const purchase = await Purchase.find({}).sort({ _id: -1 }).lean();
-
-   const totalEarnings=purchase.reduce((a,b)=>a + Number(b.ownerPrice),0)
+   const purchases = await Purchase.find({event:req.params.id,resel_by: { $exists: false },}).sort({ _id: -1 }).lean();
+   const totalPurchase = await Purchase.find({event:req.params.id,resel_by: { $exists: true },}).sort({ _id: -1 }).lean();
  
+ 
+   const totalPayments=purchases.reduce((a,b)=>a + Number(b.totalPrice),0)
+   const totalOtherPayments=totalPurchase.reduce((a,b)=>a + Number(b.totalPrice),0)
+ 
+   const eightPerc=Number(totalPayments) * 0.08
+   const twoPerc=Number(totalPayments) * 0.02
+   const twentPerc=Number(totalOtherPayments) * 0.20
+   const eightResel=Number(totalOtherPayments) * 0.08
+  
   res.send({ success: true, 
-    totalEarnings,
+    totalEarnings:eightPerc+twoPerc+twentPerc+eightResel ,
     graph:[
       { x: "Jan", y: 15 },
       { x: "Feb", y: 16.0 },
