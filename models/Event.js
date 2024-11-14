@@ -70,6 +70,11 @@ const postSchema = new mongoose.Schema({
     default: 'active',
     enum: ['active', 'deleted']
   },
+  type:{
+    type: String,
+    default: 'free',
+    enum: ['free', 'paid']
+  }
 });
 
 postSchema.index({ location: '2dsphere' });

@@ -169,6 +169,8 @@ exports.purchaseTicket = async (req, res) => {
   const userId = req.user._id;
   const eventId=req.params.id;
 
+  const { type }=req.body;
+
   try {
     const findEvent = await Resell.findOne({_id:eventId,resellTickets:{ $exists: false  }}).populate("user")
 
@@ -188,6 +190,7 @@ exports.purchaseTicket = async (req, res) => {
         scanned:[]
       },
       resel_by:findEvent.user._id,
+      type
     })
 
     const event = await Event.findById(findEvent.event).populate("user category").lean()

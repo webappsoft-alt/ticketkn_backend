@@ -26,7 +26,8 @@ exports.createPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
-      category
+      category,
+      type
      } = req.body;
     const userId = req.user._id;
 
@@ -46,7 +47,8 @@ exports.createPost = async (req, res) => {
       ticket_plans,
       refund_policy,
       category,
-      tickets_sale:[{ type:"general", totalTicket:0},{type: 'vip',totalTicket:0},{type:'vvip',totalTicket:0},{type:"earlybird",totalTicket:0}]
+      tickets_sale:[{ type:"general", totalTicket:0},{type: 'vip',totalTicket:0},{type:'vvip',totalTicket:0},{type:"earlybird",totalTicket:0}],
+      type
     })
 
     const users=await User.find({ type:"customer",status:"online" }).select("fcmtoken").lean();
@@ -597,7 +599,7 @@ exports.purchaseTicket = async (req, res) => {
   const eventId=req.params.id;
 
   try {
-    const {totalPrice,tickets,tickets_type_sale,couponId}=req.body;
+    const {totalPrice,tickets,tickets_type_sale,couponId,type}=req.body;
 
     const findEvent = await Post.findById(eventId).lean()
 
@@ -628,6 +630,7 @@ exports.purchaseTicket = async (req, res) => {
         scanned:[]
       },
       remainig_ticket:tickets,
+      type
     })
 
     const event = await Post.findByIdAndUpdate(eventId, { $addToSet : { purchase_by : post._id },total_tickets_sale:Number(findEvent.total_tickets_sale)+Number(tickets),tickets_sale:updateTicketAndTotal(findEvent.tickets_sale,tickets_type_sale[0].type,Number(tickets)) },{new:true}).populate("user category").lean()

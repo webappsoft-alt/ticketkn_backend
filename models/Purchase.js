@@ -75,6 +75,11 @@ const joinUserSchema = new mongoose.Schema({
     ref: 'user',
   },
   createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
+  type:{
+    type: String,
+    default: 'show',
+    enum: ['show', 'unshow']
+  }
 });
 
 module.exports = mongoose.model('Purchase', joinUserSchema);
