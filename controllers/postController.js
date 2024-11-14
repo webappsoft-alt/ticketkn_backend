@@ -148,6 +148,35 @@ exports.editPost = async (req, res) => {
   }
 };
 
+exports.makePopularEvent = async (req, res) => {
+  try {
+    const { popular } = req.body;
+    const postId = req.params.id;
+
+    // Create an object to store the fields to be updated
+  let updateFields = Object.fromEntries(
+    Object.entries({
+      popular
+    }).filter(([key, value]) => value !== undefined)
+  );
+
+  // Check if there are any fields to update
+  if (Object.keys(updateFields).length === 0) {
+    return res.status(400).send({ success: false, message: 'No valid fields provided for update.' });
+  }
+    const post = await Post.findOneAndUpdate({_id:postId}, updateFields, {
+      new: true
+    });
+
+    if (!post) return res.status(404).send({ success: false, message: 'The Event with the given ID was not found.' });
+
+    res.send({ success: true, message: 'Event updated successfully', post:post });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 exports.getMyPosts = async (req, res) => {
   const lastId = parseInt(req.params.id)||1;
   const userId = req?.user?._id||""

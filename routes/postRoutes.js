@@ -24,6 +24,7 @@ router.put('/ticket/scan/:userId/:eventId/:purchaseId/:code',authMiddleware, pos
 router.get('/me/latest',authMiddleware, postController.latestEvent);
 router.get('/me/:id/:search?',authMiddleware, postController.getMyPosts);
 router.put('/edit/:id',authMiddleware, postController.editPost);
+router.put('/editpopular/:id',[authMiddleware,admin], postController.makePopularEvent);
 router.delete('/:id', authMiddleware,postController.deletePostById);
 router.put('/like/:id', authMiddleware,postController.likePost);
 
