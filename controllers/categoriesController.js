@@ -2,10 +2,12 @@ const Category = require('../models/Category');
 
 exports.create = async (req, res) => {
   try {
-    const { name, image } = req.body;
+    const { name, image,lat,lng } = req.body;
     const category = new Category({
       name,
       image,
+      lat,
+      lng
     });
     await category.save();
 
@@ -84,12 +86,29 @@ exports.editCategories = async (req, res) => {
   try {
     const serviceId = req.params.id;
 
-    const { name, image } = req.body;
+    const { name, image,lat, lng } = req.body;
+
+     // Create an object to store the fields to be updated
+  const updateFields = Object.fromEntries(
+    Object.entries({
+      name, image,lat, lng 
+    }).filter(([key, value]) => value !== undefined)
+  );
+
+  // Check if there are any fields to update
+  if (Object.keys(updateFields).length === 0) {
+    return res
+      .status(400)
+      .send({
+        success: false,
+        message: "No valid fields provided for update.",
+      });
+  }
 
     const service = await Category.findOneAndUpdate(
       { _id: serviceId },
       {
-        name, image,
+       ...updateFields,
         updated_at: Date.now()
       },
       { new: true }
