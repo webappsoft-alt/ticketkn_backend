@@ -550,6 +550,7 @@ router.get('/dashboard',[auth, admin],async (req, res) => {
   
   res.send({ success: true, 
     totalEarnings:eightPerc+twoPerc+twentPerc+eightResel,
+    totalPayments:totalPayments,
     graph:newGraph,
     rentee:{
       totalUsers,
