@@ -27,7 +27,8 @@ exports.createPost = async (req, res) => {
       ticket_plans,
       refund_policy,
       category,
-      type
+      type,
+      location
      } = req.body;
     const userId = req.user._id;
 
@@ -48,7 +49,8 @@ exports.createPost = async (req, res) => {
       refund_policy,
       category,
       tickets_sale:[{ type:"general", totalTicket:0},{type: 'vip',totalTicket:0},{type:'vvip',totalTicket:0},{type:"earlybird",totalTicket:0}],
-      type
+      type,
+      location
     })
 
     const users=await User.find({ type:"customer",status:"online" }).select("fcmtoken").lean();
@@ -109,6 +111,7 @@ exports.editPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
+      location
     } = req.body;
     const postId = req.params.id;
 
@@ -128,6 +131,7 @@ exports.editPost = async (req, res) => {
       join_people,
       ticket_plans,
       refund_policy,
+      location
     }).filter(([key, value]) => value !== undefined)
   );
 

@@ -61,10 +61,10 @@ const postSchema = new mongoose.Schema({
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Like' }], // Reference to likes
   purchase_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Purchase' }], // Reference to likes
   createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
-  // location: {
-  //   type: { type: String, enum: ['Point'], default: 'Point' },
-  //   coordinates: { type: [Number], required: true }
-  // },
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], required: true }
+  },
   paymentDone:{
     type:Boolean,
     default:false
