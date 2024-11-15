@@ -69,6 +69,10 @@ const postSchema = new mongoose.Schema({
     type:Boolean,
     default:false
   },
+  payment:{
+    type:Number,
+    default:0
+  },
   popular:{
     type:Boolean,
     default:false

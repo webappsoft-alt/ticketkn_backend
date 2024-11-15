@@ -216,7 +216,9 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
   try {
     const postId = req.params.id;
 
-    const post = await Post.findOneAndUpdate({_id:postId}, {paymentDone:true}, {new: true});
+    const {paymentDone,payment}=req.body;
+
+    const post = await Post.findOneAndUpdate({_id:postId}, {paymentDone,payment}, {new: true});
 
     if (!post) return res.status(404).send({ success: false, message: 'The Purchase with the given ID was not found.' });
 
