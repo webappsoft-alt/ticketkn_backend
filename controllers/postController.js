@@ -318,7 +318,7 @@ exports.getAdminPost = async (req, res) => {
     query.start_Date = { $gte: now };
   }
   if (req.body.paymentDone) {
-    query.paymentDone = req.body.paymentDone
+    query.paymentDone = (req.body.paymentDone=="true"||req.body.paymentDone==true) ? true : false
   }
 
 
