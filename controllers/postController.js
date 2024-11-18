@@ -223,8 +223,6 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
     const {paymentDone,payment}=req.body;
     const payemntObject={amount:payment,date:Date.now()}
 
-    console.log("payemntObject===",payemntObject)
-
     const post = await Post.findOneAndUpdate({_id:postId}, {paymentDone:paymentDone,$push:{payment:payemntObject}}, {new: true});
 
     if (!post) return res.status(404).send({ success: false, message: 'The Purchase with the given ID was not found.' });
@@ -337,6 +335,7 @@ exports.getAdminPost = async (req, res) => {
     const purchases = await Purchase.find({event:post._id,resel_by: { $exists: false },}).select("totalPrice").lean();  
     const totalPayments = purchases.reduce((a,b)=>a + Number(b.totalPrice),0)
     post.totalPayments = totalPayments;
+    post.paidAmount = post.payment.reduce((a,b)=>a+Number(b.amount),0);
   }
   
   const totalCount = await Post.find(query);
