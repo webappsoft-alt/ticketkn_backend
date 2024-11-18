@@ -4,9 +4,10 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const logger = require('./startup/logger'); // Adjust the path as needed
-
+const cron = require('node-cron');
 
 const admin = require("firebase-admin");
+const { CheckCoupons } = require('./controllers/CheckCoupons');
 
 const config = {
   "type": process.env.TYPE,
@@ -119,5 +120,12 @@ app.get('/privacy', (req, res) => {
     res.send(privacyPolicyHTML);
 });
 
+// Schedule a cron job to run daily at midnight
+cron.schedule('0 0 * * *', async () => {
+    await CheckCoupons()
+  }, {
+    scheduled: true,
+    timezone: "America/New_York" // Set your preferred timezone, e.g., "America/New_York"
+});
 
 module.exports = server;
