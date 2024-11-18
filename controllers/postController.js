@@ -242,13 +242,13 @@ exports.getAdminPurchases = async (req, res) => {
   const totalOtherPayments=totalPurchase.reduce((a,b)=>a + Number(b.totalPrice),0)
   const totalOwnerTax=users.reduce((a,b)=>a + Number(b.ownerPrice),0)
 
-  const eightPerc=Number(totalPayments) * 0.08
-  const twoPerc=Number(totalPayments) * 0.02
-  const twentPerc=Number(totalOtherPayments) * 0.20
-  const eightResel=Number(totalOtherPayments) * 0.08
+  const eightPerc = Number(totalPayments) * 0.08
+  const twoPerc = Number(totalPayments) * 0.02
+  const twentPerc = Number(totalOtherPayments) * 0.20
+  const eightResel = Number(totalOtherPayments) * 0.08
 
     
-  res.send({ success: true, totalPayments,totalOwnerTax,adminEarning:eightPerc+twoPerc+twentPerc+eightResel });
+  res.send({ success: true, totalPayments, totalOwnerTax,adminEarning:eightPerc+twoPerc+twentPerc+eightResel });
 };
 
 exports.latestEvent = async (req, res) => {
@@ -329,6 +329,12 @@ exports.getAdminPost = async (req, res) => {
       { path: 'user', model: 'user' },
     ]
   }).populate("category").populate("coupon").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+
+  for (let post of users) {
+    const purchases = await Purchase.find({event:post._id,resel_by: { $exists: false },}).select("totalPrice").lean();  
+    const totalPayments = purchases.reduce((a,b)=>a + Number(b.totalPrice),0)
+    post.totalPayments = totalPayments;
+  }
   
   const totalCount = await Post.find(query);
   const totalPages = Math.ceil(totalCount.length / pageSize);
