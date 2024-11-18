@@ -454,22 +454,20 @@ exports.filterPosts = async (req, res) => {
       ]
     }).populate("user").populate("likes").populate("coupon").populate("category").sort({ total_tickets_sale: -1 }).limit(pageSize).lean();
 
-    const users = await Post.find(query).populate({
-      path: 'purchase_by',
-      options: { limit: 3 }, // Limit to 3 users
-      populate: [
-        { path: 'user', model: 'user' },
-      ]
-    }).populate("user").populate("likes").populate("coupon").populate("category").sort({ total_tickets_sale: -1 }).limit(pageSize-popularEvents.length).lean();
+    // const users = await Post.find(query).populate({
+    //   path: 'purchase_by',
+    //   options: { limit: 3 }, // Limit to 3 users
+    //   populate: [
+    //     { path: 'user', model: 'user' },
+    //   ]
+    // }).populate("user").populate("likes").populate("coupon").populate("category").sort({ total_tickets_sale: -1 }).limit(pageSize-popularEvents.length).lean();
 
-    let events=[...popularEvents,...users]
-
-    for (const post of events) {
+    for (const post of popularEvents) {
       post.TotalLikes = post?.likes?.length || 0
       post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
     }
         
-   return res.send({ success: true, posts: events });
+   return res.send({ success: true, posts: popularEvents });
 } {
 
   const users = await Post.find(query).populate({
