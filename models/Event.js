@@ -70,8 +70,8 @@ const postSchema = new mongoose.Schema({
     default:false
   },
   payment:[{
-    type:Number,
-    default:0
+    amount:Number,
+    date:Date
   }],
   popular:{
     type:Boolean,
