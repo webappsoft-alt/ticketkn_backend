@@ -20,6 +20,7 @@ const Event = require("../models/Event");
 const Purchase = require("../models/Purchase");
 const { sendNotification } = require("../controllers/notificationCreateService");
 const moment = require('moment');
+const admin = require("firebase-admin");
 
 router.get("/me", auth, async (req, res) => {
   const user = await User.findById(req.user._id).select("-password").populate("interests").lean();
@@ -671,15 +672,31 @@ router.post('/send-notifications/:type', [auth, admin], async (req, res) => {
   const { title, description } = req.body;
 
   const users = await User.find({type:type,status:"online"}).select("fcmtoken").lean()
-  for (let user of users) {
-      await sendNotification({
-        userId: req.user._id,
-        to_id: user._id,
-        description: description,
-        title: title,
-        fcmToken: user.fcmtoken,
-        type:"noti"
-      })
+  const fcmTokens = [...new Set(users.map(item => item.fcmtoken).filter(item=>item!==undefined||item!==""))];
+  if (fcmTokens.length > 0) {
+    // Create an array of message objects for each token
+    const messages = fcmTokens.map(token => ({
+      token: token,
+      notification: {
+          title: title,
+          body: description,
+      },
+      android: {
+          notification: {
+              sound: 'default',
+          },
+      },
+      apns: {
+          payload: {
+              aps: {
+                  sound: 'default',
+              },
+          },
+      },
+    }));
+    try {
+      await admin.messaging().sendEach(messages)
+    } catch (error) {}
   }
 
   res.send({ success: true, message: 'notification sent successfully', });
