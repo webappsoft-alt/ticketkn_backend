@@ -115,10 +115,29 @@ const privacyPolicyHTML = `
 `;
 
 // API Endpoint to Serve Privacy Policy
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    res.json([
+        {
+          "relation": [
+            "delegate_permission/common.handle_all_urls"
+          ],
+          "target": {
+            "namespace": "android_app",
+            "package_name": "com.ticketkn.app",
+            "sha256_cert_fingerprints": [
+              "5E:DE:CE:68:17:C0:BD:6B:72:E3:43:12:B5:13:44:A4:E0:9E:67:BF:35:38:A1:E3:81:41:3E:CE:30:A8:EB:F7"
+            ]
+          }
+        }
+      ]);
+});
+
+// API Endpoint to Serve Privacy Policy
 app.get('/privacy', (req, res) => {
     res.setHeader('Content-Type', 'text/html');
     res.send(privacyPolicyHTML);
 });
+
 
 // Schedule a cron job to run daily at midnight
 cron.schedule('0 0 * * *', async () => {
