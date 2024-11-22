@@ -511,7 +511,7 @@ router.get('/dashboard',[auth, admin],async (req, res) => {
    const totalOtherPayments=totalPurchase.reduce((a,b)=>a + Number(b.totalPrice),0)
  
    const eightPerc=Number(totalPayments) * 0.08
-   const twoPerc=Number(totalPayments) * 0.02
+  //  const twoPerc=Number(totalPayments) * 0.02
    const twentPerc=Number(totalOtherPayments) * 0.20
    const eightResel=Number(totalOtherPayments) * 0.08
 
@@ -550,7 +550,7 @@ router.get('/dashboard',[auth, admin],async (req, res) => {
  
   
   res.send({ success: true, 
-    totalEarnings:eightPerc+twoPerc+twentPerc+eightResel,
+    totalEarnings:eightPerc+twentPerc+eightResel,
     totalPayments:totalPayments,
     graph:newGraph,
     rentee:{

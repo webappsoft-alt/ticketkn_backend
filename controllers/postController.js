@@ -244,12 +244,12 @@ exports.getAdminPurchases = async (req, res) => {
   const totalOwnerTax=users.reduce((a,b)=>a + Number(b.ownerPrice),0)
 
   const eightPerc = Number(totalPayments) * 0.08
-  const twoPerc = Number(totalPayments) * 0.02
+  // const twoPerc = Number(totalPayments) * 0.02
   const twentPerc = Number(totalOtherPayments) * 0.20
   const eightResel = Number(totalOtherPayments) * 0.08
 
     
-  res.send({ success: true, totalPayments, totalOwnerTax,adminEarning:eightPerc+twoPerc+twentPerc+eightResel });
+  res.send({ success: true, totalPayments, totalOwnerTax,adminEarning:eightPerc+twentPerc+eightResel });
 };
 
 exports.latestEvent = async (req, res) => {
@@ -687,7 +687,7 @@ exports.purchaseTicket = async (req, res) => {
       event:eventId,
       tickets:tickets,
       totalPrice:totalPriceValue,
-      ownerPrice:Number(totalPriceValue) - Number(twoPer),
+      ownerPrice:Number(totalPriceValue),
       tickets_type_sale:{
         ...tickets_type_sale[0],
         code:codeArray,
