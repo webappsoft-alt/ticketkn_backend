@@ -518,6 +518,8 @@ exports.deletePostById = async (req, res) => {
       return res.status(404).json({ message: 'Event not found or user does not have permission to delete it' });
     }
 
+    await like.deleteMany({ event: postId, });
+
     res.status(200).json({ message: 'Event deleted successfully', post: deletedPost });
   } catch (error) {
     console.error(error);
