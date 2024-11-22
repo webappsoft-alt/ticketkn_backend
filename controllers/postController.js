@@ -204,7 +204,7 @@ exports.getMyPosts = async (req, res) => {
     populate: [
       { path: 'user', model: 'user' },
     ]
-  }).populate("coupon").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  }).populate("coupon").populate("category").sort({ start_Date : 1 }).skip(skip).limit(pageSize).lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0
     posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
@@ -423,8 +423,7 @@ exports.filterPosts = async (req, res) => {
           $maxDistance: radiusInMeters
         }
       }
-    })
-    .populate("user").populate("likes").populate("coupon").populate("category").skip(skip).limit(pageSize).lean();
+    }).sort({ start_Date : 1 }).populate("user").populate("likes").populate("coupon").populate("category").skip(skip).limit(pageSize).lean();
 
     for (const post of users) {
       post.TotalLikes = post?.likes?.length || 0
@@ -432,7 +431,7 @@ exports.filterPosts = async (req, res) => {
       post.purchase_by = userId? Array.isArray(post.purchase_by) && post.purchase_by.some(like => like.toString() === userId.toString()):false;
     }
     
-    const totalCount = await Post.find({...query,
+    const totalCount = await Post.countDocuments({...query,
       location: {
         $near: {
           $geometry: {
@@ -443,7 +442,7 @@ exports.filterPosts = async (req, res) => {
         }
       }
   });
-    const totalPages = Math.ceil(totalCount.length / pageSize);
+    const totalPages = Math.ceil(totalCount / pageSize);
     
     res.send({ success: true, posts: users,count: { totalPage: totalPages, currentPageSize: users.length } });
   }else if (req.body.popular) {
