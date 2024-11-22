@@ -501,6 +501,10 @@ exports.getDetailsEvent = async (req, res) => {
     ]
   }).populate("user").populate("likes").populate("coupon").populate("category").lean();
 
+  if (!post) {
+    return res.status(404).json({ message: 'Event not found.' });
+  }
+
   const TotalLikes = post?.likes?.length || 0
   const likes = userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
     
