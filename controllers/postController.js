@@ -516,11 +516,18 @@ exports.deletePostById = async (req, res) => {
   try {
     const postId = req.params.id;
 
-    const deletedPost = await Post.findOneAndUpdate({ _id: postId },{status:'deleted'},{new:true});
+    const deletedPost = await Post.findById(postId);
 
     if (!deletedPost) {
       return res.status(404).json({ message: 'Event not found or user does not have permission to delete it' });
     }
+
+    const findPurcahse=await Purchase.findOne({event:postId})
+
+    if (findPurcahse) return res.status(404).json({ message: "Event cann't deleted as someone has purchased a ticket of it." });
+
+    deletedPost.status='deleted';
+    await deletedPost.save()
 
     await like.deleteMany({ event: postId, });
 
