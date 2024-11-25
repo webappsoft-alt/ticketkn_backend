@@ -77,7 +77,7 @@ exports.getMyResellTickets = async (req, res) => {
   const pageSize = 10;
 
   query.user = userId;
-  query.resellTickets={ $exists: false  }
+  // query.resellTickets={ $exists: false  }
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   try {
