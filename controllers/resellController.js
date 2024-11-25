@@ -90,10 +90,15 @@ exports.getMyResellTickets = async (req, res) => {
         { path: 'coupon', model: 'Coupon' },
         { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
       ]
+    }).populate({
+      path:"resellTickets",
+      populate: [
+        { path: 'user', model: 'user' },
+      ]
     }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
 
-      const totalCount = await Resell.countDocuments(query);
-      const totalPages = Math.ceil(totalCount / pageSize);
+    const totalCount = await Resell.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
     
 
     if (likedJobs.length > 0) {
