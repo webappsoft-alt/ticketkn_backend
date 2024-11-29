@@ -389,12 +389,16 @@ exports.filterPosts = async (req, res) => {
     query.name= { $regex: new RegExp(req.body.search, 'i') };
   }
 
+  let sort={_id: -1}
+
   if (req.body.today=="true"||req.body.today==true) {
     // Get the current date and time (now)
     const now = new Date();
     
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     // Only retrieve upcoming events (those with start_Date in the future)
-    query.start_Date = { $gte: now };
+    query.start_Date = { $gte: startOfDay };
+    sort={start_Date: 1}
   }
 
   if (req.body.otherId) {
@@ -479,7 +483,7 @@ exports.filterPosts = async (req, res) => {
     populate: [
       { path: 'user', model: 'user' },
     ]
-  }).populate("user").populate("likes").populate("coupon").populate("category").sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  }).populate("user").populate("likes").populate("coupon").populate("category").sort(sort).skip(skip).limit(pageSize).lean();
   for (const post of users) {
     post.TotalLikes = post?.likes?.length || 0
     post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
