@@ -671,7 +671,14 @@ router.post('/send-notifications/:type', [auth, admin], async (req, res) => {
   }
   const { title, description } = req.body;
 
-  const users = await User.find({type:type,status:"online"}).select("fcmtoken").lean()
+  let query={}
+
+  if (type!=="all") {
+    query.type=type
+  }
+  query.status='online'
+
+  const users = await User.find(query).select("fcmtoken").lean()
   const fcmTokens = [...new Set(users.map(item => item.fcmtoken).filter(item=>item!==undefined||item!==""))];
   if (fcmTokens.length > 0) {
     // Create an array of message objects for each token
