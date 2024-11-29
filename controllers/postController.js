@@ -254,7 +254,7 @@ exports.getAdminPurchases = async (req, res) => {
 
 exports.latestEvent = async (req, res) => {
   const userId = req?.user?._id||""
-  
+
   let query = {};
   query.status='active'
   query.user=userId
@@ -262,8 +262,10 @@ exports.latestEvent = async (req, res) => {
   // Get the current date and time (now)
   const now = new Date();
     
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
   // Only retrieve upcoming events (those with start_Date in the future)
-  query.start_Date = { $gte: now };
+  query.start_Date = { $gte: startOfDay };
 
 
   const users = await Post.find(query).populate("user").populate({
@@ -272,7 +274,7 @@ exports.latestEvent = async (req, res) => {
     populate: [
       { path: 'user', model: 'user' },
     ]
-  }).populate("category").populate("coupon").sort({ start_Date: 1 }).limit(2).lean();
+  }).populate("category").populate("coupon").sort({ start_Date: 1 }).limit(10).lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0
     posts.likes = Array.isArray(posts.likes) && posts.likes.some(like => like.user.toString() === userId.toString());
