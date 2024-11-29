@@ -18,9 +18,9 @@ const { TempUser } = require("../models/TempUser");
 const admin = require("../middleware/admin");
 const Event = require("../models/Event");
 const Purchase = require("../models/Purchase");
-const { sendNotification } = require("../controllers/notificationCreateService");
 const moment = require('moment');
 const firebaseadmin = require("firebase-admin");
+const Notification = require("../models/Notification");
 
 router.get("/me", auth, async (req, res) => {
   const user = await User.findById(req.user._id).select("-password").populate("interests").lean();
@@ -703,6 +703,14 @@ router.post('/send-notifications/:type', [auth, admin], async (req, res) => {
     }));
     try {
       await firebaseadmin.messaging().sendEach(messages)
+      const notifications= users.map(item=>({
+        user:req.user._id,
+        to_id:item._id,
+        type:"noti",
+        description,
+        title,
+      }))
+      await Notification.insertMany(notifications)
     } catch (error) {}
   }
 
