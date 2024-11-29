@@ -675,6 +675,8 @@ router.post('/send-notifications/:type', [auth, admin], async (req, res) => {
 
   if (type!=="all") {
     query.type=type
+  }else{
+    query.type={$ne:"admin"}
   }
   query.status='online'
 
