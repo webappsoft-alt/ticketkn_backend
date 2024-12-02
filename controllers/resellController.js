@@ -264,7 +264,7 @@ exports.deleteResellTicket = async (req, res) => {
     
     await Purchase.findOneAndUpdate(
       { _id: findEvent.purchase_ticketId },
-      { $pull: { "tickets_type_sale.code": ticketCode() }, remainig_ticket : Number(purchase.remainig_ticket) + 1 }
+      { $push: { "tickets_type_sale.code": ticketCode() }, remainig_ticket : Number(purchase.remainig_ticket) + 1 }
     );
 
     res.status(201).json({ success: true, message: 'Resel Ticket delete successfully', ticket:findEvent });
