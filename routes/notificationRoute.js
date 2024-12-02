@@ -4,6 +4,7 @@ const notificationController = require('../controllers/notificationController');
 
 router.get('/all/:id?', notificationController.getApplicationDetails);
 router.get('/check-seen', notificationController.checkSeen);
+router.delete('/delete-all', notificationController.deleteNoti);
 router.delete('/:id', notificationController.deleteNoti);
 
 module.exports = router;

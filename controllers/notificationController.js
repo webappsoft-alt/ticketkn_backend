@@ -40,16 +40,11 @@ exports.checkSeen = async (req, res) => {
 
 exports.deleteNoti = async (req, res) => {
   try {
-    const notiId = req.params.id;
     const userId = req.user._id;
 
-    const notification = await Notification.findOneAndDelete({ to_id: userId, _id: notiId });
+    await Notification.deleteMany({ to_id: userId });
 
-    if (notification == null) {
-      return res.status(404).json({ message: 'Notifcation not found' });
-    }
-
-    res.status(200).json({ message: `Notifcation deleted successfully`, notification: notification });
+    res.status(200).json({ message: `All notifcation deleted successfully` });
 
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });

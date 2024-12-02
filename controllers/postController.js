@@ -398,7 +398,7 @@ exports.filterPosts = async (req, res) => {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     // Only retrieve upcoming events (those with start_Date in the future)
     query.start_Date = { $gte: startOfDay };
-    sort={start_Date: 1}
+    sort={ start_Date : 1 }
   }
 
   if (req.body.otherId) {
@@ -475,7 +475,7 @@ exports.filterPosts = async (req, res) => {
     }
         
    return res.send({ success: true, posts: popularEvents });
-} {
+  } {
 
   const users = await Post.find(query).populate({
     path: 'purchase_by',
@@ -484,6 +484,7 @@ exports.filterPosts = async (req, res) => {
       { path: 'user', model: 'user' },
     ]
   }).populate("user").populate("likes").populate("coupon").populate("category").sort(sort).skip(skip).limit(pageSize).lean();
+
   for (const post of users) {
     post.TotalLikes = post?.likes?.length || 0
     post.likes =userId? Array.isArray(post.likes) && post.likes.some(like => like.user.toString() === userId.toString()):false;
