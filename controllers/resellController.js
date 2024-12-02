@@ -133,7 +133,7 @@ exports.otherResellEvents = async (req, res) => {
   query.resellTickets={ $exists: false  }
 
   try {
-    const likedJobs = await Resell.find(query).populate({
+    const likedJobs = await Resell.find(query).populate("user").populate({
       path: 'event',
       populate: [
         { path: 'user', model: 'user' },
