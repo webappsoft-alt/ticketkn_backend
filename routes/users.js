@@ -489,7 +489,7 @@ router.get('/dashboard',[auth, admin],async (req, res) => {
    }
 
 
-   const totalOrder = await Event.countDocuments({status:"active"});
+   const totalOrder = await Event.countDocuments({status:"active",});
 
    const yesterdayOrder = await Event.countDocuments({
     createdAt: { $gte: yesterday, $lt: today },
@@ -572,10 +572,17 @@ router.get('/dashboard',[auth, admin],async (req, res) => {
 });
 
 router.get('/owner-dashboard',auth, async (req, res) => {
-  const userId=req.user._id
-  const totalActiveEvents = await Event.countDocuments({user:userId,status:"active"});
 
-  const events = await Event.find({user:userId,status:"active"}).select("status")
+  const userId=req.user._id
+  
+  // Get the current date and time (now)
+  const now = new Date();
+    
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  const totalActiveEvents = await Event.countDocuments({user:userId,status:"active",start_Date:{ $gte: startOfDay }});
+
+  const events = await Event.find({user:userId,status:"active",start_Date:{ $gte: startOfDay }}).select("status")
 
   const totalEvents=events.map(item=>item._id)
 
@@ -623,7 +630,7 @@ router.get('/owner-dashboard',auth, async (req, res) => {
    }
 
 
-   const totalUpcomingEvents = await Event.countDocuments({user:userId,status:"active"});
+   const totalUpcomingEvents = await Event.countDocuments({user:userId,status:"active",start_Date:{ $gte: startOfDay }});
 
    const yesterdayUpcomingEvents = await Event.countDocuments({
     createdAt: { $gte: yesterday, $lt: today },
