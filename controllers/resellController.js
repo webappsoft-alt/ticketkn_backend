@@ -81,7 +81,7 @@ exports.getMyResellTickets = async (req, res) => {
   
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   try {
-    const likedJobs = await Resell.find(query).populate({
+    const likedJobs = await Resell.find(query).populate("user").populate({
       path: 'event',
       populate: [
         { path: 'user', model: 'user' },
