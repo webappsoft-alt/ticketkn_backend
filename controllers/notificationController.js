@@ -38,7 +38,7 @@ exports.checkSeen = async (req, res) => {
   }
 };
 
-exports.deleteNoti = async (req, res) => {
+exports.deleteAllNoti = async (req, res) => {
   try {
     const userId = req.user._id;
 
@@ -56,7 +56,7 @@ exports.deletenotification = async (req, res) => {
   try {
     const serviceId = req.params.id;
 
-    const service = await Notification.findByIdAndDelete(serviceId);
+    const service = await Notification.findOneAndDelete({to_id: userId,_id:serviceId});
 
     if (service == null) {
       return res.status(404).json({ message: 'Notification not found' });
