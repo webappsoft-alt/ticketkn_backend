@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
-const Joi = require('joi');
-const config = require('config');
-const mongoose = require('mongoose');
+const jwt = require("jsonwebtoken");
+const Joi = require("joi");
+const config = require("config");
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -25,17 +25,20 @@ const userSchema = new mongoose.Schema({
   location: {
     type: {
       type: String,
-      enum: ['Point'],
+      enum: ["Point"],
+      default: "Point",
     },
     coordinates: {
       type: [Number],
+      required: true,
+      default: [0, 0],
     },
   },
-  address:String,
-  interests:[{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
-  image:String,
+  address: String,
+  interests: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
+  image: String,
   fcmtoken: String,
-  cus_id:String,
+  cus_id: String,
   code: {
     type: Number,
     minlength: 0,
@@ -43,45 +46,45 @@ const userSchema = new mongoose.Schema({
   },
   balance: {
     type: Number,
-    default:0
+    default: 0,
   },
   status: {
     type: String,
-    default: 'online',
-    enum: ['online', 'deleted', "deactivated"]
+    default: "online",
+    enum: ["online", "deleted", "deactivated"],
   },
   type: {
     type: String,
-    default: 'customer',
-    enum: ['customer',"owner",'admin']
+    default: "customer",
+    enum: ["customer", "owner", "admin"],
   },
   login_type: {
     type: String,
-    default: 'email',
-    enum: ['email', 'social-login']
+    default: "email",
+    enum: ["email", "social-login"],
   },
   createdAt: {
     type: Date,
     default: Date.now,
-    index: true
+    index: true,
   },
 });
 
-userSchema.index({ location: '2dsphere' });
+userSchema.index({ location: "2dsphere" });
 
-
-function generateAuthToken(_id,type) {
-  const token = jwt.sign({ _id: _id,type:type }, config.get('jwtPrivateKey'));
+function generateAuthToken(_id, type) {
+  const token = jwt.sign({ _id: _id, type: type }, config.get("jwtPrivateKey"));
   return token;
 }
 function generateIdToken(_id) {
   const expiresIn = 3600; // Token will expire in 1 hour (3600 seconds)
-  const token = jwt.sign({ _id: _id }, config.get('jwtIDPrivateKey'), { expiresIn });
+  const token = jwt.sign({ _id: _id }, config.get("jwtIDPrivateKey"), {
+    expiresIn,
+  });
   return token;
 }
 
-
-const User = mongoose.model('user', userSchema);
+const User = mongoose.model("user", userSchema);
 
 function validateUser(user) {
   const commonSchema = {
@@ -89,11 +92,11 @@ function validateUser(user) {
     password: Joi.string().min(5).max(255).required(),
     email: Joi.string().min(5).max(255).email(),
     fcmtoken: Joi.string().min(0).max(1024).optional(),
-    code: Joi.string().min(0).max(1024).optional()
+    code: Joi.string().min(0).max(1024).optional(),
   };
 
   const schema = Joi.object({
-    ...commonSchema
+    ...commonSchema,
   });
 
   return schema.validate(user);
@@ -102,8 +105,8 @@ function passwordApiBodyValidate(body) {
   const schema = Joi.object({
     password: Joi.string().min(5).max(255).required(),
     token: Joi.string().min(5).max(255).required(),
-    code: Joi.string().min(0).max(1024).optional()
-  })
+    code: Joi.string().min(0).max(1024).optional(),
+  });
 
   return schema.validate(body);
 }
@@ -111,14 +114,14 @@ function passwordApiBodyValidate(body) {
 function emailApiBodyValidate(body) {
   const schema = Joi.object({
     email: Joi.string().min(4).max(50).required(),
-  })
+  });
 
   return schema.validate(body);
 }
 function phoneApiBodyValidate(body) {
   const schema = Joi.object({
     phone: Joi.string().min(4).max(50).required(),
-  })
+  });
 
   return schema.validate(body);
 }
