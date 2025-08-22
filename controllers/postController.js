@@ -219,7 +219,10 @@ exports.makePopularEvent = async (req, res) => {
 exports.getMyPosts = async (req, res) => {
   const lastId = parseInt(req.params.id) || 1;
   const userId = req?.user?._id || "";
-
+  const search = req.params.search?.trim();
+  const type = req.query.type?.trim();
+  const planType = req.query.plan_type?.trim();
+  const ticketType = req.query.ticket_type?.trim();
   // Check if lastId is a valid number
   if (isNaN(lastId) || lastId < 0) {
     return res.status(400).json({ error: "Invalid last_id" });
@@ -231,7 +234,29 @@ exports.getMyPosts = async (req, res) => {
   let query = {};
   query.status = "active";
   query.user = userId;
+  console.log(type);
+  if (type) {
+    query.type = type;
+  }
+  if (planType) {
+    query["ticketPlanObj.type"] = planType;
+  }
+  if (ticketType) {
+    query["ticketObj.type"] = planType;
+  }
 
+  if (search) {
+    const regex = new RegExp(search, "i"); // case-insensitive
+
+    query.$or = [
+      { name: regex },
+      { description: regex },
+      { address: regex },
+      { city: regex },
+      { state: regex },
+      { country: regex },
+    ];
+  }
   const users = await Post.find(query)
     .populate("user")
     .populate("likes")
@@ -517,10 +542,11 @@ exports.filterPosts = async (req, res) => {
     query.category = req.body.category;
   }
   if (req.body.offer == true) {
-    const users = await Post.find({
+    const offerQuery = {
       ...query,
-      coupon: { $ne: null }, // only include posts that have a non-null coupon
-    })
+      coupon: { $ne: null }, // Filter only posts with a coupon
+    };
+    const users = await Post.find(offerQuery)
       .sort({ start_Date: 1 })
       .populate("user")
       .populate("likes")
@@ -541,22 +567,10 @@ exports.filterPosts = async (req, res) => {
         : false;
     }
 
-    const totalCount = await Post.countDocuments({
-      ...query,
-      // location: {
-      //   $near: {
-      //     $geometry: {
-      //       type: "Point",
-      //       coordinates: [parseFloat(lng), parseFloat(lat)],
-      //     },
-      //     $maxDistance: radiusInMeters,
-      //   },
-      // },
-    });
-    
+    const totalCount = await Post.countDocuments(offerQuery);
     const totalPages = Math.ceil(totalCount / pageSize);
-    
-   return res.send({
+
+    return res.send({
       success: true,
       posts: users,
       count: { totalPage: totalPages, currentPageSize: users.length },
@@ -1305,6 +1319,7 @@ exports.getPurchase = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 exports.eventsPurchases = async (req, res) => {
   const event = req.params.eventId;
   const lastId = parseInt(req.params.id) || 1;

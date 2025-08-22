@@ -13,6 +13,7 @@ const notificationRoute = require('../routes/notificationRoute');
 const walletRoute = require('../routes/walletRoute');
 const authMiddleware = require('../middleware/auth');
 const BannerRoute = require('../routes/BannerRoute');
+const supportRoute = require('../routes/supportRoute');
 
 module.exports = function (app) {
   app.use(express.json());
@@ -29,6 +30,6 @@ module.exports = function (app) {
   app.use('/api/msg',authMiddleware, messageRoutes);
   app.use('/api/notification',authMiddleware, notificationRoute);
   app.use('/api/wallet',authMiddleware, walletRoute);
-  // app.use('/api/support', supportRoute);
+  app.use('/api/support', supportRoute);
   app.use(error);
 }
