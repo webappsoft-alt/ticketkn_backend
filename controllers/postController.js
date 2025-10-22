@@ -29,8 +29,9 @@ exports.createPost = async (req, res) => {
       category,
       type,
       location,
+      supplierid,
     } = req.body;
-    const userId = req.user._id;
+    const userId = supplierid || req.user._id;
 
     const post = new Post({
       user: userId,
