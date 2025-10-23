@@ -126,6 +126,7 @@ exports.editPost = async (req, res) => {
       ticket_plans,
       refund_policy,
       location,
+      type,
     } = req.body;
     const postId = req.params.id;
 
@@ -146,6 +147,7 @@ exports.editPost = async (req, res) => {
         ticket_plans,
         refund_policy,
         location,
+        type,
       }).filter(([key, value]) => value !== undefined)
     );
 
