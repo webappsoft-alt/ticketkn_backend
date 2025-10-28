@@ -7,9 +7,9 @@ const { User } = require("../models/user");
 const admin = require("firebase-admin");
 const Coupon = require("../models/Coupon");
 const Category = require("../models/Category");
-const { ticketCode } = require("./generateCode");
+const { ticketCode, generateRandomString } = require("./generateCode");
 const { purchaseEmail } = require("./emailservice");
-
+const { AdminTicket, PrintTicket } = require("../models/AdminTicket");
 exports.createPost = async (req, res) => {
   try {
     const {
@@ -1456,5 +1456,353 @@ exports.getMyPurchases = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.createAdminTicket = async (req, res) => {
+  try {
+    console.log("createAdminTicket", req.body);
+    const { eventId, tickets, supplierId } = req.body;
+
+    if (
+      !eventId ||
+      !Array.isArray(tickets) ||
+      tickets.length === 0 ||
+      !supplierId
+    ) {
+      return res
+        .status(400)
+        .json({ message: "eventId, supplierId, and tickets are required" });
+    }
+
+    // Validate ticket structure
+    for (const ticket of tickets) {
+      if (!ticket.type || !ticket.totalTicket || ticket.totalTicket <= 0) {
+        return res.status(400).json({
+          message:
+            "Each ticket must have type and totalTicket (positive number)",
+        });
+      }
+    }
+
+    // Check if event exists
+    const event = await Post.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check if supplier exists
+    const supplier = await User.findById(supplierId);
+    if (!supplier) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+
+    // Prevent multiple admin tickets for the same event and supplier
+    const existingTicket = await AdminTicket.findOne({
+      event: eventId,
+      supplier: supplierId,
+    });
+    if (existingTicket) {
+      return res.status(400).json({
+        message: "Admin ticket already exists for this event and supplier",
+        adminTicket: existingTicket,
+      });
+    }
+
+    let printTickets = [];
+    let totalTicketCount = 0;
+
+    for (const ticket of tickets) {
+      // Create multiple PrintTickets based on totalTicket count
+      for (let i = 0; i < ticket.totalTicket; i++) {
+        const code = generateRandomString(8);
+        console.log(code);
+        const printTicket = await PrintTicket.create({
+          type: ticket.type,
+          code: code,
+          scanned: false,
+        });
+        printTickets.push(printTicket._id);
+        totalTicketCount++;
+      }
+    }
+
+    // Create AdminTicket
+    const adminTicket = await AdminTicket.create({
+      event: eventId,
+      supplier: supplierId,
+      tickets: printTickets,
+      totalTicket: totalTicketCount,
+    });
+    const adminTicketWithTickets = await AdminTicket.findById(adminTicket._id)
+      .populate(["tickets", "event", "supplier"])
+      .lean();
+    res.status(201).json({
+      message: "Admin ticket created successfully",
+      adminTicket: adminTicketWithTickets,
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+exports.updateAdminTicket = async (req, res) => {
+  try {
+    console.log("updateAdminTicket", req.body);
+    const { tickets } = req.body;
+
+    if (!Array.isArray(tickets) || tickets.length === 0) {
+      return res.status(400).json({
+        message: "tickets array is required and must not be empty",
+      });
+    }
+
+    // Validate ticket structure
+    for (const ticket of tickets) {
+      if (!ticket.type || !ticket.totalTicket || ticket.totalTicket <= 0) {
+        return res.status(400).json({
+          message:
+            "Each ticket must have type and totalTicket (positive number)",
+        });
+      }
+    }
+
+    // Check if admin ticket exists
+    const existingAdminTicket = await AdminTicket.findById(req.params.id);
+    if (!existingAdminTicket) {
+      return res.status(404).json({ message: "Admin ticket not found" });
+    }
+
+    // Delete existing PrintTickets
+    await PrintTicket.deleteMany({ _id: { $in: existingAdminTicket.tickets } });
+
+    let printTickets = [];
+    let totalTicketCount = 0;
+
+    for (const ticket of tickets) {
+      // Create multiple PrintTickets based on totalTicket count
+      for (let i = 0; i < ticket.totalTicket; i++) {
+        const code = generateRandomString(8);
+        console.log(code);
+        const printTicket = await PrintTicket.create({
+          type: ticket.type,
+          code: code,
+          scanned: false,
+        });
+        printTickets.push(printTicket._id);
+        totalTicketCount++;
+      }
+    }
+
+    // Update AdminTicket
+    const adminTicket = await AdminTicket.findByIdAndUpdate(
+      req.params.id,
+      {
+        tickets: printTickets,
+        totalTicket: totalTicketCount,
+      },
+      { new: true, runValidators: true }
+    );
+
+    const adminTicketWithTickets = await AdminTicket.findById(adminTicket._id)
+      .populate(["tickets", "event", "supplier"])
+      .lean();
+
+    res.status(200).json({
+      message: "Admin ticket updated successfully",
+      adminTicket: adminTicketWithTickets,
+    });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+exports.getAdminTickets = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
+    const limit =
+      parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
+    const skip = (page - 1) * limit;
+    const category = req.query.category ? req.query.category.trim() : "";
+    const search = req.query.search ? req.query.search.trim() : "";
+
+    let filter = {};
+
+    // if (search) {
+    //   // This allows searching by event name or supplier's name (case-insensitive)
+    //   filter = {
+    //     $or: [
+    //       {
+    //         // assumes 'event' is an objectId and we have to populate before filter on name
+    //         // so we'll use aggregation below for search
+    //       }
+    //     ]
+    //   };
+    // }
+
+    // If search is provided, use aggregation framework for flexible search
+    let adminTickets, total;
+    if (category) {
+      filter.tickets.type = category;
+    }
+    if (search) {
+      // Build aggregation pipeline for search across event.name and supplier.name
+      const pipeline = [
+        {
+          $lookup: {
+            from: "events",
+            localField: "event",
+            foreignField: "_id",
+            as: "event",
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "supplier",
+            foreignField: "_id",
+            as: "supplier",
+          },
+        },
+        { $unwind: "$event" },
+        { $unwind: "$supplier" },
+        {
+          $match: {
+            $or: [
+              { "event.name": { $regex: search, $options: "i" } },
+              { "supplier.name": { $regex: search, $options: "i" } },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: "printtickets",
+            localField: "tickets",
+            foreignField: "_id",
+            as: "tickets",
+          },
+        },
+      ];
+
+      // Clone the pipeline for count and for results
+      const ticketPipeline = [...pipeline, { $skip: skip }, { $limit: limit }];
+
+      adminTickets = await AdminTicket.aggregate(ticketPipeline);
+
+      // Populate event and supplier references if needed
+      // Get total number of results
+      const countPipeline = [...pipeline, { $count: "count" }];
+      const countResult = await AdminTicket.aggregate(countPipeline);
+      total = countResult.length > 0 ? countResult[0].count : 0;
+    } else {
+      [adminTickets, total] = await Promise.all([
+        AdminTicket.find()
+          .skip(skip)
+          .limit(limit)
+          .populate(["event", "supplier", "tickets"]),
+        AdminTicket.countDocuments(),
+      ]);
+    }
+
+    res.status(200).json({
+      message: "Admin tickets fetched successfully",
+      adminTickets,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNext: skip + adminTickets.length < total,
+        hasPrev: page > 1,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+exports.getAdminTicketbyId = async (req, res) => {
+  try {
+    const adminTicket = await AdminTicket.findById(req.params.id).populate([
+      "event",
+      "supplier",
+      "tickets",
+    ]);
+    res
+      .status(200)
+      .json({ message: "Admin ticket fetched successfully", adminTicket });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+exports.deleteAdminTicket = async (req, res) => {
+  try {
+    const adminTicket = await AdminTicket.findByIdAndDelete(req.params.id);
+    await PrintTicket.deleteMany({ _id: { $in: adminTicket.tickets } });
+    res.status(200).json({ message: "Admin ticket deleted successfully" });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+exports.deletePrintTicket = async (req, res) => {
+  try {
+    const printTicket = await PrintTicket.findOneAndDelete({
+      _id: req.params.id,
+      scanned: false,
+    });
+    if (!printTicket) {
+      return res.status(404).json({ message: "Print ticket not found" });
+    }
+    await AdminTicket.updateOne(
+      { tickets: { $in: [printTicket._id] } },
+      { $pull: { tickets: printTicket._id } }
+    );
+
+    res.status(200).json({ message: "Print ticket deleted successfully" });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+exports.scanPrintTicket = async (req, res) => {
+  try {
+    const printTicket = await PrintTicket.findOne({
+      _id: req.params.id,
+      code: req.params.code,
+    });
+    if (!printTicket) {
+      return res.status(404).json({ message: "Print ticket not found or code is incorrect" });
+    }
+    if (printTicket.scanned) {
+      return res.status(400).json({ message: "Print ticket already scanned" });
+    }
+    printTicket.scanned = true;
+    await printTicket.save();
+    res.status(200).json({ message: "Print ticket scanned successfully" });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };

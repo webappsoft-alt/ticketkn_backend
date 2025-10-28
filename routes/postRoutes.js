@@ -55,5 +55,11 @@ router.put(
 );
 router.delete("/:id", authMiddleware, postController.deletePostById);
 router.put("/like/:id", authMiddleware, postController.likePost);
-
+router.post("/admin/create-ticket", authMiddleware, postController.createAdminTicket);
+router.put("/admin/update-ticket/:id", authMiddleware, postController.updateAdminTicket);
+router.get("/admin/tickets",  postController.getAdminTickets);
+router.get("/admin/ticket/:id", authMiddleware, postController.getAdminTicketbyId);
+router.delete("/admin/ticket/:id", authMiddleware, postController.deleteAdminTicket);
+router.delete("/admin/print-ticket/:id", authMiddleware, postController.deletePrintTicket);
+router.put("/admin/scan-ticket/:id/:code", authMiddleware, postController.scanPrintTicket);
 module.exports = router;
