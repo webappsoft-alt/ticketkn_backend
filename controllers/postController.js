@@ -1634,34 +1634,28 @@ exports.getAdminTickets = async (req, res) => {
     const category = req.query.category ? req.query.category.trim() : "";
     const search = req.query.search ? req.query.search.trim() : "";
 
-    let filter = {};
+    // Build base filter for AdminTicket collection
+    let baseFilter = {};
     if (userId) {
-      filter.supplier = userId;
+      baseFilter.supplier = userId;
     }
     if (eventId) {
-      filter.event = eventId;
+      baseFilter.event = eventId;
     }
 
-    // if (search) {
-    //   // This allows searching by event name or supplier's name (case-insensitive)
-    //   filter = {
-    //     $or: [
-    //       {
-    //         // assumes 'event' is an objectId and we have to populate before filter on name
-    //         // so we'll use aggregation below for search
-    //       }
-    //     ]
-    //   };
-    // }
-
-    // If search is provided, use aggregation framework for flexible search
+    // If search or category is provided, use aggregation framework for flexible filtering
     let adminTickets, total;
-    if (category) {
-      filter.tickets.type = category;
-    }
-    if (search) {
-      // Build aggregation pipeline for search across event.name and supplier.name
-      const pipeline = [
+    if (search || category) {
+      // Build aggregation pipeline
+      const pipeline = [];
+
+      // Add initial match stage for base filters (userId, eventId)
+      if (Object.keys(baseFilter).length > 0) {
+        pipeline.push({ $match: baseFilter });
+      }
+
+      // Lookup event and supplier for search capability
+      pipeline.push(
         {
           $lookup: {
             from: "events",
@@ -1679,42 +1673,58 @@ exports.getAdminTickets = async (req, res) => {
           },
         },
         { $unwind: "$event" },
-        { $unwind: "$supplier" },
-        {
+        { $unwind: "$supplier" }
+      );
+
+      // Add search filter if provided
+      if (search) {
+        pipeline.push({
           $match: {
             $or: [
               { "event.name": { $regex: search, $options: "i" } },
               { "supplier.name": { $regex: search, $options: "i" } },
             ],
           },
+        });
+      }
+
+      // Lookup tickets to enable category filtering
+      pipeline.push({
+        $lookup: {
+          from: "printtickets",
+          localField: "tickets",
+          foreignField: "_id",
+          as: "tickets",
         },
-        {
-          $lookup: {
-            from: "printtickets",
-            localField: "tickets",
-            foreignField: "_id",
-            as: "tickets",
+      });
+
+      // Add category filter if provided
+      if (category) {
+        pipeline.push({
+          $match: {
+            "tickets.type": category,
           },
-        },
-      ];
+        });
+      }
 
-      // Clone the pipeline for count and for results
-      const ticketPipeline = [...pipeline, { $skip: skip }, { $limit: limit }];
-
-      adminTickets = await AdminTicket.aggregate(ticketPipeline);
-
-      // Populate event and supplier references if needed
-      // Get total number of results
+      // Get total count before pagination
       const countPipeline = [...pipeline, { $count: "count" }];
       const countResult = await AdminTicket.aggregate(countPipeline);
       total = countResult.length > 0 ? countResult[0].count : 0;
+
+      // Add pagination stages
+      pipeline.push({ $skip: skip }, { $limit: limit });
+
+      // Execute aggregation
+      adminTickets = await AdminTicket.aggregate(pipeline);
     } else {
+      // No search or category filter - use simple find with filter
       [adminTickets, total] = await Promise.all([
-        AdminTicket.find()
+        AdminTicket.find(baseFilter)
           .skip(skip)
           .limit(limit)
           .populate(["event", "supplier", "tickets"]),
-        AdminTicket.countDocuments(),
+        AdminTicket.countDocuments(baseFilter),
       ]);
     }
 
