@@ -1625,6 +1625,8 @@ exports.updateAdminTicket = async (req, res) => {
 
 exports.getAdminTickets = async (req, res) => {
   try {
+    const userId = req.query.userId || req.user._id;
+    const eventId = req.query.eventId;
     const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
     const limit =
       parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
@@ -1633,6 +1635,12 @@ exports.getAdminTickets = async (req, res) => {
     const search = req.query.search ? req.query.search.trim() : "";
 
     let filter = {};
+    if (userId) {
+      filter.supplier = userId;
+    }
+    if (eventId) {
+      filter.event = eventId;
+    }
 
     // if (search) {
     //   // This allows searching by event name or supplier's name (case-insensitive)
@@ -1791,7 +1799,9 @@ exports.scanPrintTicket = async (req, res) => {
       code: req.params.code,
     });
     if (!printTicket) {
-      return res.status(404).json({ message: "Print ticket not found or code is incorrect" });
+      return res
+        .status(404)
+        .json({ message: "Print ticket not found or code is incorrect" });
     }
     if (printTicket.scanned) {
       return res.status(400).json({ message: "Print ticket already scanned" });
