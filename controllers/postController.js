@@ -1625,7 +1625,7 @@ exports.updateAdminTicket = async (req, res) => {
 
 exports.getAdminTickets = async (req, res) => {
   try {
-    const userId = req.query.userId || req.user._id;
+    const userId = req.query.userId || req.user?._id;
     const eventId = req.query.eventId;
     const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
     const limit =
