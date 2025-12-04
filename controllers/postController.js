@@ -1810,7 +1810,9 @@ exports.scanPrintTicket = async (req, res) => {
       supplier: supplierId,
       event: eventId,
       tickets: { $in: [req.params.id] },
-    });
+    })
+      .populate("event")
+      .populate("supplier");
     if (!adminTicket) {
       return res.status(404).json({
         success: false,
@@ -1835,9 +1837,12 @@ exports.scanPrintTicket = async (req, res) => {
     }
     printTicket.scanned = true;
     await printTicket.save();
-    res
-      .status(200)
-      .json({ success: true, message: "Print ticket scanned successfully" });
+
+    res.status(200).json({
+      success: true,
+      message: "Print ticket scanned successfully",
+      data: adminTicket,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({
