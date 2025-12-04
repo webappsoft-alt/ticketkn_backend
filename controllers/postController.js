@@ -1812,7 +1812,12 @@ exports.scanPrintTicket = async (req, res) => {
       tickets: { $in: [req.params.id] },
     })
       .populate("event")
-      .populate("supplier");
+      .populate({
+        path: "event",
+        populate: {
+          path: "user",
+        },
+      });
     if (!adminTicket) {
       return res.status(404).json({
         success: false,
