@@ -1812,29 +1812,38 @@ exports.scanPrintTicket = async (req, res) => {
       tickets: { $in: [req.params.id] },
     });
     if (!adminTicket) {
-      return res
-        .status(404)
-        .json({ message: "Print ticket not found or code is incorrect" });
+      return res.status(404).json({
+        success: false,
+        message: "Print ticket not found or code is incorrect",
+      });
     }
     const printTicket = await PrintTicket.findOne({
       _id: req.params.id,
       code: req.params.code,
     });
     if (!printTicket) {
-      return res
-        .status(404)
-        .json({ message: "Print ticket not found or code is incorrect" });
+      return res.status(404).json({
+        success: false,
+        message: "Print ticket not found or code is incorrect",
+      });
     }
     if (printTicket.scanned) {
-      return res.status(400).json({ message: "Print ticket already scanned" });
+      return res.status(400).json({
+        success: false,
+        message: "Print ticket already scanned",
+      });
     }
     printTicket.scanned = true;
     await printTicket.save();
-    res.status(200).json({ message: "Print ticket scanned successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Print ticket scanned successfully" });
   } catch (error) {
     console.log(error);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
