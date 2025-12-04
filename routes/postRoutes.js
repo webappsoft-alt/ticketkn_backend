@@ -82,7 +82,7 @@ router.delete(
   postController.deletePrintTicket
 );
 router.put(
-  "/admin/scan-ticket/:id/:code",
+  "/admin/scan-ticket/:id/:code/:eventId",
   authMiddleware,
   postController.scanPrintTicket
 );

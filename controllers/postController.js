@@ -1804,6 +1804,18 @@ exports.deletePrintTicket = async (req, res) => {
 
 exports.scanPrintTicket = async (req, res) => {
   try {
+    const supplierId = req.user._id;
+    const eventId = req.params.eventId;
+    const adminTicket = await AdminTicket.findOne({
+      supplier: supplierId,
+      event: eventId,
+      tickets: { $in: [req.params.id] },
+    });
+    if (!adminTicket) {
+      return res
+        .status(404)
+        .json({ message: "Print ticket not found or code is incorrect" });
+    }
     const printTicket = await PrintTicket.findOne({
       _id: req.params.id,
       code: req.params.code,
