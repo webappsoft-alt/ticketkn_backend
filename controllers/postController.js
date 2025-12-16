@@ -1857,3 +1857,121 @@ exports.scanPrintTicket = async (req, res) => {
     });
   }
 };
+
+exports.purchaseInstallment = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const eventId = req.params.id;
+    const {
+      totalPrice,
+      tickets,
+      tickets_type_sale,
+      couponId,
+      type,
+      installmentPlans,
+      addOns,
+    } = req.body;
+
+    const findEvent = await Post.findById(eventId).lean();
+
+    if (
+      Number(findEvent.total_tickets_sale + Number(tickets)) >
+      Number(findEvent.join_people)
+    ) {
+      return res
+        .status(404)
+        .json({ message: "Event's tickets are fully sold" });
+    }
+
+    const eightPerc = Number(totalPrice) * 0.08;
+
+    const totalPriceValue = Number(totalPrice) - Number(eightPerc);
+    const twoPer = Number(totalPriceValue) * 0.02;
+
+    let codeArray = [];
+
+    for (
+      let index = 0;
+      index < Number(tickets_type_sale[0].totalTicket);
+      index++
+    ) {
+      codeArray.push(ticketCode());
+    }
+
+    const post = new Purchase({
+      user: userId,
+      event: eventId,
+      tickets: tickets,
+      totalPrice: totalPriceValue,
+      ownerPrice: Number(totalPriceValue),
+      tickets_type_sale: {
+        ...tickets_type_sale[0],
+        code: codeArray,
+        scanned: [],
+      },
+      remainig_ticket: tickets,
+      type,
+      isinstallment: true,
+      addOns,
+      installmentPlans,
+    });
+
+    const event = await Post.findByIdAndUpdate(
+      eventId,
+      {
+        $addToSet: { purchase_by: post._id },
+        total_tickets_sale:
+          Number(findEvent.total_tickets_sale) + Number(tickets),
+        tickets_sale: updateTicketAndTotal(
+          findEvent.tickets_sale,
+          tickets_type_sale[0].type,
+          Number(tickets)
+        ),
+      },
+      { new: true }
+    )
+      .populate("user category")
+      .lean();
+
+    if (!event) return res.status(404).json({ message: "Event not found." });
+
+    if (couponId) {
+      await Coupon.findByIdAndUpdate(couponId, {
+        $addToSet: { used_by: userId },
+      }).lean();
+    }
+
+    await sendNotification({
+      user: userId,
+      to_id: event.user._id,
+      description: `Someone has purchased ${tickets} tickets of your ${event.name} on Installment`,
+      type: "purchase",
+      title: "New Ticket Purchase",
+      fcmtoken: event.user?.fcmtoken,
+      event: eventId,
+      purchase: post._id,
+    });
+
+    const logInuser = await User.findById(userId).select("email").lean();
+
+    const ukFormattedDate = convertToUKFormat(event.start_Date);
+
+    await purchaseEmail(
+      logInuser.email,
+      event.name,
+      ukFormattedDate,
+      event.category.name,
+      tickets_type_sale[0].type
+    );
+
+    await post.save();
+    res.status(201).json({
+      success: true,
+      message: "Ticket purchase successfully",
+      ticket: post,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

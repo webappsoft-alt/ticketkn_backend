@@ -1,85 +1,100 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const ticketObj={
-  type:{
+const ticketObj = {
+  type: {
     type: String,
-    default: 'general',
-    enum: ['general', 'vip','vvip','earlybird']
+    default: "general",
+    enum: ["general", "vip", "vvip", "earlybird"],
   },
-  totalTicket:{
+  totalTicket: {
     type: Number,
     default: 0,
   },
-  price:{
+  price: {
     type: Number,
     default: 0,
   },
-  code:[Number],
-  scanned:[Number],
-}
-
+  code: [Number],
+  scanned: [Number],
+};
 
 const joinUserSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'user',
+    ref: "user",
     required: true,
   },
   event: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Event',
+    ref: "Event",
   },
   tickets: {
-    type:Number,
-    default:0
+    type: Number,
+    default: 0,
   },
-  tickets_type_sale:ticketObj,
+  tickets_type_sale: ticketObj,
   totalPrice: {
-    type:Number,
-    default:0
+    type: Number,
+    default: 0,
   },
   ownerPrice: {
-    type:Number,
-    default:0
+    type: Number,
+    default: 0,
   },
   resellticket: {
-    type:Number,
-    default:0
+    type: Number,
+    default: 0,
   },
   remainig_ticket: {
-    type:Number,
-    default:0
+    type: Number,
+    default: 0,
   },
-  paymentDone:{
-    type:Boolean,
-    default:false
+  paymentDone: {
+    type: Boolean,
+    default: false,
   },
-  scanner:{
-    type:Boolean,
-    default:false
+  scanner: {
+    type: Boolean,
+    default: false,
   },
-  code:{
-    type:Number,
-    default:0
+  code: {
+    type: Number,
+    default: 0,
   },
-  resellpurchases:[{
+  isinstallment: {
+    type: Boolean,
+    default: false,
+  },
+  installmentPlans: [
+    {
+      type: mongoose.Schema.Types.Mixed,
+    },
+  ],
+  resellpurchases: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Purchase",
+    },
+  ],
+  ResellTickets: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Purchase',
-  }],
-  ResellTickets:{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Resell',
+    ref: "Resell",
   },
-  resel_by:{
+  resel_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'user',
+    ref: "user",
   },
+  addOns: [
+    {
+      type: mongoose.Schema.Types.Mixed,
+    },
+  ],
   createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
-  type:{
+  type: {
     type: String,
-    default: 'show',
-    enum: ['show', 'unshow']
-  }
+    default: "show",
+    enum: ["show", "unshow"],
+  },
 });
 
-module.exports = mongoose.model('Purchase', joinUserSchema);
+module.exports = mongoose.model("Purchase", joinUserSchema);

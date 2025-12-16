@@ -33,6 +33,16 @@ router.post("/filter", optionalAuth, postController.filterPosts);
 router.get("/detail/:id", optionalAuth, postController.getDetailsEvent);
 router.get("/no-coupon", optionalAuth, postController.noCouponEvent);
 router.put("/purchase/:id", authMiddleware, postController.purchaseTicket);
+router.post(
+  "/purchase/installment/:id",
+  authMiddleware,
+  postController.purchaseInstallment
+);
+router.put(
+  "/purchase/installment/:id",
+  authMiddleware,
+  postController.payInstallment
+);
 router.put(
   "/transfer/:userId/:purchaseId/:code",
   authMiddleware,
