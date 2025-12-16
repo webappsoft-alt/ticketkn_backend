@@ -1975,3 +1975,24 @@ exports.purchaseInstallment = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+exports.payInstallment = async (req, res) => {
+  try {
+    const { purchaseId } = req.params;
+    const { installmentPlans } = req.body;
+    const purchase = await Purchase.findById(purchaseId);
+    if (!purchase) {
+      return res.status(404).json({ message: "Purchase not found" });
+    }
+    const user = await User.findById(purchase.user);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    purchase.installmentPlans = installmentPlans;
+    await purchase.save();
+    res.status(200).json({ message: "Payment successful" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

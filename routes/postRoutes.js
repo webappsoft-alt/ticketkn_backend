@@ -39,7 +39,7 @@ router.post(
   postController.purchaseInstallment
 );
 router.put(
-  "/purchase/installment/:id",
+  "/purchase/installment/:purchaseId",
   authMiddleware,
   postController.payInstallment
 );
