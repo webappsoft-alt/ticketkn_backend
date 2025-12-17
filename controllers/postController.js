@@ -265,7 +265,7 @@ exports.getMyPosts = async (req, res) => {
     .populate("likes")
     .populate({
       path: "purchase_by",
-      options: { limit: 3 }, // Limit to 3 users
+      // options: { limit: 3 }, // Limit to 3 users
       populate: [{ path: "user", model: "user" }],
     })
     .populate("coupon")
