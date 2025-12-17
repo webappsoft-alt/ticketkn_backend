@@ -2001,7 +2001,7 @@ exports.payInstallment = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     purchase.installmentPlans = installmentPlans;
-    if (isinstallment) {
+    if (isinstallment === false) {
       purchase.isinstallment = isinstallment;
     }
     await purchase.save();
