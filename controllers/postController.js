@@ -930,7 +930,16 @@ exports.purchaseTicket = async (req, res) => {
   const eventId = req.params.id;
 
   try {
-    const { totalPrice, tickets, tickets_type_sale, couponId, type } = req.body;
+    const {
+      totalPrice,
+      tickets,
+      tickets_type_sale,
+      couponId,
+      type,
+      installmentPlans,
+      addOns,
+      isinstallment,
+    } = req.body;
 
     const findEvent = await Post.findById(eventId).lean();
 
@@ -971,6 +980,9 @@ exports.purchaseTicket = async (req, res) => {
       },
       remainig_ticket: tickets,
       type,
+      isinstallment,
+      installmentPlans,
+      addOns,
     });
 
     const event = await Post.findByIdAndUpdate(
