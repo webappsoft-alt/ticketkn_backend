@@ -2005,9 +2005,11 @@ exports.payInstallment = async (req, res) => {
       purchase.isinstallment = isinstallment;
     }
     await purchase.save();
-    res.status(200).json({ message: "Payment successful", ticket: purchase });
+    res
+      .status(200)
+      .json({ success: true, message: "Payment successful", ticket: purchase });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
