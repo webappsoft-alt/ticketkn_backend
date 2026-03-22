@@ -1,4 +1,3 @@
-const mongoose = require("mongoose");
 const { default: axios } = require("axios");
 const Post = require("../models/Event");
 const like = require("../models/like");
@@ -1654,35 +1653,38 @@ exports.updateAdminTicket = async (req, res) => {
   }
 };
 
-function createdAtFromDocOrId(doc) {
-  if (doc?.createdAt != null) return doc.createdAt;
-  const id = doc?._id;
-  if (id == null) return null;
-  try {
-    const oid =
-      id instanceof mongoose.Types.ObjectId
-        ? id
-        : new mongoose.Types.ObjectId(String(id));
-    return oid.getTimestamp();
-  } catch {
-    return null;
+function enrichPurchaseWithScannedAt(purchase) {
+  const p =
+    purchase && typeof purchase.toObject === "function"
+      ? purchase.toObject()
+      : { ...purchase };
+  const tts = p.tickets_type_sale;
+  if (!tts) return p;
+  const codes = Array.isArray(tts.code) ? tts.code : [];
+  const scannedArr = Array.isArray(tts.scanned)
+    ? tts.scanned.map((c) => String(c))
+    : [];
+  const log = Array.isArray(tts.scannedAtLog) ? tts.scannedAtLog : [];
+  const latestByCode = {};
+  for (const row of log) {
+    if (row == null || row.scannedAt == null) continue;
+    const key = String(row.code);
+    const t = new Date(row.scannedAt).getTime();
+    if (Number.isNaN(t)) continue;
+    const prev = latestByCode[key];
+    if (
+      prev == null ||
+      t >= new Date(prev).getTime()
+    ) {
+      latestByCode[key] = row.scannedAt;
+    }
   }
-}
-
-function attachCreatedAtForAdminTicket(doc) {
-  if (!doc || typeof doc !== "object") return doc;
-  const o = typeof doc.toObject === "function" ? doc.toObject() : { ...doc };
-  const adminTs = createdAtFromDocOrId(o);
-  if (adminTs != null) o.created_at = adminTs;
-  if (Array.isArray(o.tickets)) {
-    o.tickets = o.tickets.map((t) => {
-      const x = t && typeof t.toObject === "function" ? t.toObject() : { ...t };
-      const ticketTs = createdAtFromDocOrId(x);
-      if (ticketTs != null) x.created_at = ticketTs;
-      return x;
-    });
-  }
-  return o;
+  p.ticketCodes = codes.map((code) => ({
+    code,
+    scanned: scannedArr.includes(String(code)),
+    scannedAt: latestByCode[String(code)] ?? null,
+  }));
+  return p;
 }
 
 exports.getAdminTickets = async (req, res) => {
@@ -1790,13 +1792,25 @@ exports.getAdminTickets = async (req, res) => {
       ]);
     }
 
-    const adminTicketsOut = adminTickets.map((t) =>
-      attachCreatedAtForAdminTicket(t)
-    );
+    let purchases = [];
+    if (eventId && userId) {
+      const eventDoc = await Post.findById(eventId).select("user").lean();
+      if (
+        eventDoc &&
+        String(eventDoc.user) === String(userId)
+      ) {
+        const purchaseDocs = await Purchase.find({ event: eventId })
+          .populate("user", "name email phone")
+          .sort({ createdAt: -1 })
+          .lean();
+        purchases = purchaseDocs.map((doc) => enrichPurchaseWithScannedAt(doc));
+      }
+    }
 
     res.status(200).json({
       message: "Admin tickets fetched successfully",
-      adminTickets: adminTicketsOut,
+      adminTickets,
+      purchases,
       pagination: {
         total,
         page,
