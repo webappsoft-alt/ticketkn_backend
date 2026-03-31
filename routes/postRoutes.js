@@ -10,24 +10,24 @@ router.get("/fav/me/:id?", authMiddleware, postController.getMyFavPosts);
 router.get(
   "/purchases/:eventId/:status/:id",
   authMiddleware,
-  postController.eventsPurchases
+  postController.eventsPurchases,
 );
 router.get("/purchase/all/:id", authMiddleware, postController.getPurchase);
 router.get("/me/purchase/:id?", authMiddleware, postController.getMyPurchases);
 router.get(
   "/admin/event/payment/:id",
   [authMiddleware, admin],
-  postController.getAdminPurchases
+  postController.getAdminPurchases,
 );
 router.put(
   "/admin/update-purchases/:id",
   [authMiddleware, admin],
-  postController.updatePurchasePaymentByAdmin
+  postController.updatePurchasePaymentByAdmin,
 );
 router.post(
   "/admin/:type/:id",
   [authMiddleware, admin],
-  postController.getAdminPost
+  postController.getAdminPost,
 );
 router.post("/filter", optionalAuth, postController.filterPosts);
 router.get("/detail/:id", optionalAuth, postController.getDetailsEvent);
@@ -36,23 +36,23 @@ router.put("/purchase/:id", authMiddleware, postController.purchaseTicket);
 router.post(
   "/purchase/installment/:id",
   authMiddleware,
-  postController.purchaseInstallment
+  postController.purchaseInstallment,
 );
 router.put(
   "/purchase/installment/:purchaseId",
   authMiddleware,
-  postController.payInstallment
+  postController.payInstallment,
 );
 router.put(
   "/transfer/:userId/:purchaseId/:code",
   authMiddleware,
-  postController.transferTickets
+  postController.transferTickets,
 );
 router.post("/payment", postController.paymentDone);
 router.put(
   "/ticket/scan/:userId/:eventId/:purchaseId/:code",
   authMiddleware,
-  postController.updatePurchaseScan
+  postController.updatePurchaseScan,
 );
 // router.get('/ticket/:purchaseId/:code',authMiddleware, postController.getPurchaseTicket);
 router.get("/me/latest", authMiddleware, postController.latestEvent);
@@ -61,39 +61,46 @@ router.put("/edit/:id", authMiddleware, postController.editPost);
 router.put(
   "/editpopular/:id",
   [authMiddleware, admin],
-  postController.makePopularEvent
+  postController.makePopularEvent,
 );
 router.delete("/:id", authMiddleware, postController.deletePostById);
 router.put("/like/:id", authMiddleware, postController.likePost);
 router.post(
   "/admin/create-ticket",
   authMiddleware,
-  postController.createAdminTicket
+  postController.createAdminTicket,
 );
+
+router.delete(
+  "/admin/delete/:id",
+  authMiddleware,
+  postController.deletePostById,
+);
+
 router.put(
   "/admin/update-ticket/:id",
   authMiddleware,
-  postController.updateAdminTicket
+  postController.updateAdminTicket,
 );
 router.get("/admin/tickets", optionalAuth, postController.getAdminTickets);
 router.get(
   "/admin/ticket/:id",
   authMiddleware,
-  postController.getAdminTicketbyId
+  postController.getAdminTicketbyId,
 );
 router.delete(
   "/admin/ticket/:id",
   authMiddleware,
-  postController.deleteAdminTicket
+  postController.deleteAdminTicket,
 );
 router.delete(
   "/admin/print-ticket/:id",
   authMiddleware,
-  postController.deletePrintTicket
+  postController.deletePrintTicket,
 );
 router.put(
   "/admin/scan-ticket/:id/:code/:eventId",
   authMiddleware,
-  postController.scanPrintTicket
+  postController.scanPrintTicket,
 );
 module.exports = router;
