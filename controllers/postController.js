@@ -68,7 +68,7 @@ exports.createPost = async (req, res) => {
       ...new Set(
         users
           .map((item) => item.fcmtoken)
-          .filter((item) => item !== undefined || item !== "")
+          .filter((item) => item !== undefined || item !== ""),
       ),
     ];
     if (fcmTokens.length > 0) {
@@ -148,7 +148,7 @@ exports.editPost = async (req, res) => {
         refund_policy,
         location,
         type,
-      }).filter(([key, value]) => value !== undefined)
+      }).filter(([key, value]) => value !== undefined),
     );
 
     // Check if there are any fields to update
@@ -188,7 +188,7 @@ exports.makePopularEvent = async (req, res) => {
     let updateFields = Object.fromEntries(
       Object.entries({
         popular,
-      }).filter(([key, value]) => value !== undefined)
+      }).filter(([key, value]) => value !== undefined),
     );
 
     // Check if there are any fields to update
@@ -301,7 +301,7 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
     const post = await Post.findOneAndUpdate(
       { _id: postId },
       { paymentDone: paymentDone, $push: { payment: payemntObject } },
-      { new: true }
+      { new: true },
     );
 
     if (!post)
@@ -338,7 +338,7 @@ exports.getAdminPurchases = async (req, res) => {
   const totalPayments = users.reduce((a, b) => a + Number(b.totalPrice), 0);
   const totalOtherPayments = totalPurchase.reduce(
     (a, b) => a + Number(b.totalPrice),
-    0
+    0,
   );
   const totalOwnerTax = users.reduce((a, b) => a + Number(b.ownerPrice), 0);
 
@@ -459,7 +459,7 @@ exports.getAdminPost = async (req, res) => {
       .lean();
     const totalPayments = purchases.reduce(
       (a, b) => a + Number(b.totalPrice),
-      0
+      0,
     );
     post.totalPayments = totalPayments;
     post.paidAmount = post.payment.reduce((a, b) => a + Number(b.amount), 0);
@@ -531,7 +531,7 @@ exports.filterPosts = async (req, res) => {
     const startOfDay = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate()
+      now.getDate(),
     );
     // Only retrieve upcoming events (those with start_Date in the future)
     query.start_Date = { $gte: startOfDay };
@@ -792,7 +792,7 @@ exports.likePost = async (req, res) => {
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
       { $push: { likes: likePost._id } },
-      { new: true }
+      { new: true },
     ).populate("user");
 
     if (!updatedPost) {
@@ -824,7 +824,7 @@ const dislike = async (postId, res, userId) => {
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
       { $pull: { likes: deletedLike._id } },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedPost) {
@@ -994,10 +994,10 @@ exports.purchaseTicket = async (req, res) => {
         tickets_sale: updateTicketAndTotal(
           findEvent.tickets_sale,
           tickets_type_sale[0].type,
-          Number(tickets)
+          Number(tickets),
         ),
       },
-      { new: true }
+      { new: true },
     )
       .populate("user category")
       .lean();
@@ -1030,7 +1030,7 @@ exports.purchaseTicket = async (req, res) => {
       event.name,
       ukFormattedDate,
       event.category.name,
-      tickets_type_sale[0].type
+      tickets_type_sale[0].type,
     );
 
     await post.save();
@@ -1059,7 +1059,7 @@ exports.transferTickets = async (req, res) => {
         "tickets_type_sale.scanned": { $ne: purchaseCode },
       },
       { $addToSet: { "tickets_type_sale.scanned": purchaseCode } },
-      { new: true }
+      { new: true },
     ).populate("user");
 
     if (!purchase)
@@ -1088,7 +1088,7 @@ exports.transferTickets = async (req, res) => {
       {
         $pull: { "tickets_type_sale.code": purchaseCode },
         remainig_ticket: Number(purchase.remainig_ticket) - 1,
-      }
+      },
     );
 
     const event = await Post.findById(purchase.event).lean();
@@ -1147,7 +1147,7 @@ exports.paymentDone = async (req, res) => {
       "6EF4CAFCD82E689DECA28EDFDE15ADB35D12BF5982B182E468758A9F8DD072DF";
 
     const response = await axios.get(
-      `https://jad.cash/HAPI/token?apikey=${clientId}&secret=${apiSecret}&grant_type=credentials`
+      `https://jad.cash/HAPI/token?apikey=${clientId}&secret=${apiSecret}&grant_type=credentials`,
     );
     const result = await axios.post(
       "https://jad.cash/HAPI/cardpayment",
@@ -1159,7 +1159,7 @@ exports.paymentDone = async (req, res) => {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     res.status(201).json({ success: true, response: result.data });
   } catch (error) {
@@ -1175,6 +1175,15 @@ exports.updatePurchaseScan = async (req, res) => {
     const purchaseId = req.params.purchaseId;
     const purchaseCode = req.params.code;
 
+    const scannedAtRaw = req.body?.scannedAt;
+    const scannedAt =
+      scannedAtRaw != null && !Number.isNaN(new Date(scannedAtRaw).getTime())
+        ? new Date(scannedAtRaw)
+        : new Date();
+
+    const codeForLog = Number(purchaseCode);
+    const logCode = Number.isNaN(codeForLog) ? purchaseCode : codeForLog;
+
     const event = await Post.findOne({ _id: eventId, user: ownerUser });
 
     if (!event) return res.status(404).json({ message: "Event not found." });
@@ -1186,8 +1195,16 @@ exports.updatePurchaseScan = async (req, res) => {
         "tickets_type_sale.code": { $in: purchaseCode },
         "tickets_type_sale.scanned": { $ne: purchaseCode },
       },
-      { $addToSet: { "tickets_type_sale.scanned": purchaseCode } },
-      { new: true }
+      {
+        $addToSet: { "tickets_type_sale.scanned": purchaseCode },
+        $push: {
+          "tickets_type_sale.scannedAtLog": {
+            code: logCode,
+            scannedAt,
+          },
+        },
+      },
+      { new: true },
     )
       .populate("ResellTickets")
       .populate("resellpurchases")
@@ -1313,7 +1330,7 @@ exports.getPurchase = async (req, res) => {
         purchase.event.likes = userId
           ? Array.isArray(purchase.event.likes) &&
             purchase.event.likes.some(
-              (like) => like.user.toString() === userId.toString()
+              (like) => like.user.toString() === userId.toString(),
             )
           : false;
       }
@@ -1414,7 +1431,7 @@ exports.getMyPurchases = async (req, res) => {
   const skip = Math.max(0, lastId - 1) * pageSize;
 
   const events = await Post.find({ user: userId, status: "active" }).select(
-    "status"
+    "status",
   );
 
   const totalEvents = events.map((item) => item._id);
@@ -1616,7 +1633,7 @@ exports.updateAdminTicket = async (req, res) => {
         tickets: printTickets,
         totalTicket: totalTicketCount,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     const adminTicketWithTickets = await AdminTicket.findById(adminTicket._id)
@@ -1634,6 +1651,37 @@ exports.updateAdminTicket = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
+
+function enrichPurchaseWithScannedAt(purchase) {
+  const p =
+    purchase && typeof purchase.toObject === "function"
+      ? purchase.toObject()
+      : { ...purchase };
+  const tts = p.tickets_type_sale;
+  if (!tts) return p;
+  const codes = Array.isArray(tts.code) ? tts.code : [];
+  const scannedArr = Array.isArray(tts.scanned)
+    ? tts.scanned.map((c) => String(c))
+    : [];
+  const log = Array.isArray(tts.scannedAtLog) ? tts.scannedAtLog : [];
+  const latestByCode = {};
+  for (const row of log) {
+    if (row == null || row.scannedAt == null) continue;
+    const key = String(row.code);
+    const t = new Date(row.scannedAt).getTime();
+    if (Number.isNaN(t)) continue;
+    const prev = latestByCode[key];
+    if (prev == null || t >= new Date(prev).getTime()) {
+      latestByCode[key] = row.scannedAt;
+    }
+  }
+  p.ticketCodes = codes.map((code) => ({
+    code,
+    scanned: scannedArr.includes(String(code)),
+    scannedAt: latestByCode[String(code)] ?? null,
+  }));
+  return p;
+}
 
 exports.getAdminTickets = async (req, res) => {
   try {
@@ -1685,7 +1733,7 @@ exports.getAdminTickets = async (req, res) => {
           },
         },
         { $unwind: "$event" },
-        { $unwind: "$supplier" }
+        { $unwind: "$supplier" },
       );
 
       // Add search filter if provided
@@ -1740,9 +1788,22 @@ exports.getAdminTickets = async (req, res) => {
       ]);
     }
 
+    let purchases = [];
+    if (eventId && userId) {
+      const eventDoc = await Post.findById(eventId).select("user").lean();
+      if (eventDoc && String(eventDoc.user) === String(userId)) {
+        const purchaseDocs = await Purchase.find({ event: eventId })
+          .populate("user", "name email phone")
+          .sort({ createdAt: -1 })
+          .lean();
+        purchases = purchaseDocs.map((doc) => enrichPurchaseWithScannedAt(doc));
+      }
+    }
+
     res.status(200).json({
       message: "Admin tickets fetched successfully",
       adminTickets,
+      purchases,
       pagination: {
         total,
         page,
@@ -1802,7 +1863,7 @@ exports.deletePrintTicket = async (req, res) => {
     }
     await AdminTicket.updateOne(
       { tickets: { $in: [printTicket._id] } },
-      { $pull: { tickets: printTicket._id } }
+      { $pull: { tickets: printTicket._id } },
     );
 
     res.status(200).json({ message: "Print ticket deleted successfully" });
@@ -1937,10 +1998,10 @@ exports.purchaseInstallment = async (req, res) => {
         tickets_sale: updateTicketAndTotal(
           findEvent.tickets_sale,
           tickets_type_sale[0].type,
-          Number(tickets)
+          Number(tickets),
         ),
       },
-      { new: true }
+      { new: true },
     )
       .populate("user category")
       .lean();
@@ -1973,7 +2034,7 @@ exports.purchaseInstallment = async (req, res) => {
       event.name,
       ukFormattedDate,
       event.category.name,
-      tickets_type_sale[0].type
+      tickets_type_sale[0].type,
     );
 
     await post.save();

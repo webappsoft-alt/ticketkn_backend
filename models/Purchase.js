@@ -16,6 +16,12 @@ const ticketObj = {
   },
   code: [Number],
   scanned: [Number],
+  scannedAtLog: [
+    {
+      code: { type: mongoose.Schema.Types.Mixed },
+      scannedAt: { type: Date },
+    },
+  ],
 };
 
 const joinUserSchema = new mongoose.Schema({
