@@ -752,13 +752,13 @@ exports.deletePostById = async (req, res) => {
       });
     }
 
-    const findPurcahse = await Purchase.findOne({ event: postId });
+    // const findPurcahse = await Purchase.findOne({ event: postId });
 
-    if (findPurcahse)
-      return res.status(404).json({
-        message:
-          "Event cann't deleted as someone has purchased a ticket of it.",
-      });
+    // if (findPurcahse)
+    //   return res.status(404).json({
+    //     message:
+    //       "Event cann't deleted as someone has purchased a ticket of it.",
+    //   });
 
     deletedPost.status = "deleted";
     await deletedPost.save();
