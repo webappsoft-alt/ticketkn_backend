@@ -764,6 +764,8 @@ exports.deletePostById = async (req, res) => {
     await deletedPost.save();
 
     await like.deleteMany({ event: postId });
+    await AdminTicket.deleteMany({ event: postId });
+    await PrintTicket.deleteMany({ event: postId });
 
     res
       .status(200)
@@ -1888,9 +1890,7 @@ exports.scanPrintTicket = async (req, res) => {
       .populate("event")
       .populate({
         path: "event",
-        populate: {
-          path: "user",
-        },
+        populate: [{ path: "user" }, { path: "purchase_by", populate: "user" }],
       });
     if (!adminTicket) {
       return res.status(404).json({

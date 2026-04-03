@@ -15,6 +15,10 @@ const printTicketSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    scannedAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
   { timestamps: true },
 );
