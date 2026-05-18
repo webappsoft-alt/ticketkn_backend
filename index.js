@@ -1,48 +1,49 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
 const app = express();
-const logger = require('./startup/logger'); // Adjust the path as needed
-const cron = require('node-cron');
-const moment = require('moment');
-
+const logger = require("./startup/logger"); // Adjust the path as needed
+const cron = require("node-cron");
+const moment = require("moment");
+const dns = require("node:dns");
 const admin = require("firebase-admin");
-const { CheckCoupons } = require('./controllers/CheckCoupons');
-const Event = require('./models/Event');
-
+const { CheckCoupons } = require("./controllers/CheckCoupons");
+const Event = require("./models/Event");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const config = {
-  "type": process.env.TYPE,
-  "project_id":process.env.PROJECTID,
-  "private_key_id": process.env.PRIVATE_KEY_ID,
-  "private_key":process.env.PRIVATE_KEY,
-  "client_email":process.env.CLIENT_EMAIL,
-  "client_id": process.env.CLIENTID,
-  "auth_uri": process.env.AUTH_URI,
-  "token_uri": process.env.TOKEN_URL,
-  "auth_provider_x509_cert_url":process.env.AUTHPROVIDER,
-  "client_x509_cert_url": process.env.CLIENT_CERT,
-  "universe_domain": process.env.DOMAIN
-  };
-
+  type: process.env.TYPE,
+  project_id: process.env.PROJECTID,
+  private_key_id: process.env.PRIVATE_KEY_ID,
+  private_key: process.env.PRIVATE_KEY,
+  client_email: process.env.CLIENT_EMAIL,
+  client_id: process.env.CLIENTID,
+  auth_uri: process.env.AUTH_URI,
+  token_uri: process.env.TOKEN_URL,
+  auth_provider_x509_cert_url: process.env.AUTHPROVIDER,
+  client_x509_cert_url: process.env.CLIENT_CERT,
+  universe_domain: process.env.DOMAIN,
+};
 
 admin.initializeApp({
   credential: admin.credential.cert(config),
-  storageBucket: "gs://eventshub-330f9.appspot.com"
+  storageBucket: "gs://eventshub-330f9.appspot.com",
 });
 
 app.use(cors());
 
-require('./startup/config')();
-require('./startup/logging')();
-require('./startup/routes')(app);
-require('./startup/db')();
-require('./startup/validation')();
+require("./startup/config")();
+require("./startup/logging")();
+require("./startup/routes")(app);
+require("./startup/db")();
+require("./startup/validation")();
 
 const port = process.env.PORT || 8080;
-const server = app.listen(port, () => logger.info(`Listening on port  ${port}...`));
+const server = app.listen(port, () =>
+  logger.info(`Listening on port  ${port}...`),
+);
 
-require('./startup/sockets')(server, app);
+require("./startup/sockets")(server, app);
 
 // Privacy Policy HTML
 const privacyPolicyHTML = `
@@ -117,37 +118,39 @@ const privacyPolicyHTML = `
 `;
 
 // API Endpoint to Serve Privacy Policy
-app.get('/.well-known/assetlinks.json', (req, res) => {
-    res.json([
-        {
-          "relation": [
-            "delegate_permission/common.handle_all_urls"
-          ],
-          "target": {
-            "namespace": "android_app",
-            "package_name": "com.ticketkn.app",
-            "sha256_cert_fingerprints": [
-              "5E:DE:CE:68:17:C0:BD:6B:72:E3:43:12:B5:13:44:A4:E0:9E:67:BF:35:38:A1:E3:81:41:3E:CE:30:A8:EB:F7"
-            ]
-          }
-        }
-      ]);
+app.get("/.well-known/assetlinks.json", (req, res) => {
+  res.json([
+    {
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: {
+        namespace: "android_app",
+        package_name: "com.ticketkn.app",
+        sha256_cert_fingerprints: [
+          "5E:DE:CE:68:17:C0:BD:6B:72:E3:43:12:B5:13:44:A4:E0:9E:67:BF:35:38:A1:E3:81:41:3E:CE:30:A8:EB:F7",
+        ],
+      },
+    },
+  ]);
 });
 
 // API Endpoint to Serve Privacy Policy
-app.get('/event', async(req, res) => {
-    const {id}=req.query;
-    const post = await Event.findById(id).populate({
-        path: 'purchase_by',
-        options: { limit: 3 }, // Limit to 3 users
-        populate: [
-          { path: 'user', model: 'user' },
-        ]
-      }).populate("user").populate("likes").populate("coupon").populate("category").lean();
+app.get("/event", async (req, res) => {
+  const { id } = req.query;
+  const post = await Event.findById(id)
+    .populate({
+      path: "purchase_by",
+      options: { limit: 3 }, // Limit to 3 users
+      populate: [{ path: "user", model: "user" }],
+    })
+    .populate("user")
+    .populate("likes")
+    .populate("coupon")
+    .populate("category")
+    .lean();
 
-      if (!post) return res.send('Event not found.');
+  if (!post) return res.send("Event not found.");
 
-    const html=`
+  const html = `
     <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -336,16 +339,12 @@ app.get('/event', async(req, res) => {
           <div>
             <h1 class="event-title">${post.name}</h1>
             <p class="event-date">${moment(
-                post?.start_date
-                  ? post?.start_date
-                  : post?.event?.start_date
-              ).format("DD MMM YYYY")}, ${moment(
-                post?.start_time
-                  ? post?.start_time
-                  : post?.event?.start_time
-              ).format("h:mm A")}</p>
+              post?.start_date ? post?.start_date : post?.event?.start_date,
+            ).format("DD MMM YYYY")}, ${moment(
+              post?.start_time ? post?.start_time : post?.event?.start_time,
+            ).format("h:mm A")}</p>
           </div>
-          <div class="ticket-count">${post?.remainig_ticket||0} Tickets</div>
+          <div class="ticket-count">${post?.remainig_ticket || 0} Tickets</div>
         </div>
 
         <h2 class="section-title">Event By</h2>
@@ -373,24 +372,27 @@ app.get('/event', async(req, res) => {
     </div>
   </body>
 </html>
-`
+`;
 
-res.send(html)
+  res.send(html);
 });
 
 // API Endpoint to Serve Privacy Policy
-app.get('/privacy', (req, res) => {
-    res.setHeader('Content-Type', 'text/html');
-    res.send(privacyPolicyHTML);
+app.get("/privacy", (req, res) => {
+  res.setHeader("Content-Type", "text/html");
+  res.send(privacyPolicyHTML);
 });
-
 
 // Schedule a cron job to run daily at midnight
-cron.schedule('0 0 * * *', async () => {
-    await CheckCoupons()
-  }, {
+cron.schedule(
+  "0 0 * * *",
+  async () => {
+    await CheckCoupons();
+  },
+  {
     scheduled: true,
-    timezone: "America/New_York" // Set your preferred timezone, e.g., "America/New_York"
-});
+    timezone: "America/New_York", // Set your preferred timezone, e.g., "America/New_York"
+  },
+);
 
 module.exports = server;

@@ -18,12 +18,15 @@ const { TempUser } = require("../models/TempUser");
 const admin = require("../middleware/admin");
 const Event = require("../models/Event");
 const Purchase = require("../models/Purchase");
-const moment = require('moment');
+const moment = require("moment");
 const firebaseadmin = require("firebase-admin");
 const Notification = require("../models/Notification");
 
 router.get("/me", auth, async (req, res) => {
-  const user = await User.findById(req.user._id).select("-password").populate("interests").lean();
+  const user = await User.findById(req.user._id)
+    .select("-password")
+    .populate("interests")
+    .lean();
   res.send({ success: true, user: user });
 });
 
@@ -38,25 +41,21 @@ router.post("/forget-password", async (req, res) => {
   const user = await User.findOne({ email: lowerCaseEmail });
 
   if (!user)
-    return res
-      .status(400)
-      .send({
-        message: "User is not registered with that Phone number or email",
-      });
+    return res.status(400).send({
+      message: "User is not registered with that Phone number or email",
+    });
 
   if (user.status == "deleted")
-    return res
-      .status(400)
-      .send({
-        message: "User has been deleted. Contact admin for further support.",
-      });
+    return res.status(400).send({
+      message: "User has been deleted. Contact admin for further support.",
+    });
 
   let verificationCode = generateCode();
 
   await sendEmail(email, verificationCode);
   await User.findOneAndUpdate(
     { email: lowerCaseEmail },
-    { code: verificationCode }
+    { code: verificationCode },
   );
 
   const token = generateIdToken(user._id);
@@ -76,19 +75,18 @@ router.put("/update-password", passwordauth, async (req, res) => {
       .status(400)
       .send({ success: false, message: error.details[0].message });
 
-  const { password,code } = req.body;
+  const { password, code } = req.body;
 
   const user = await User.findById(req.user._id);
 
   if (!user)
-    return res
-      .status(400)
-      .send({
-        success: false,
-        message: "The User with the given ID was not found.",
-      });
+    return res.status(400).send({
+      success: false,
+      message: "The User with the given ID was not found.",
+    });
 
-  if (Number(user.code) !== Number(code)) return res.status(400).send({ success: false, message: "Incorrect code." });
+  if (Number(user.code) !== Number(code))
+    return res.status(400).send({ success: false, message: "Incorrect code." });
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
@@ -106,12 +104,10 @@ router.put("/change-password", auth, async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (!user)
-    return res
-      .status(400)
-      .send({
-        success: false,
-        message: "The User with the given ID was not found.",
-      });
+    return res.status(400).send({
+      success: false,
+      message: "The User with the given ID was not found.",
+    });
 
   const validPassword = await bcrypt.compare(oldPassword, user.password);
   if (!validPassword)
@@ -181,7 +177,10 @@ router.post("/verify-otp/registration", async (req, res) => {
       email: lowerCaseEmail,
     });
 
-    if (!verificationRecord || Number(verificationRecord.code) !== Number(code)) {
+    if (
+      !verificationRecord ||
+      Number(verificationRecord.code) !== Number(code)
+    ) {
       return res
         .status(400)
         .json({ success: false, message: "Incorrect verification code" });
@@ -199,15 +198,19 @@ router.post("/verify-otp/registration", async (req, res) => {
 router.post("/signup/:type", async (req, res) => {
   try {
     const { error } = validate(req.body);
-    if (error) return res.status(400).send({ success: false, message: error.details[0].message });
+    if (error)
+      return res
+        .status(400)
+        .send({ success: false, message: error.details[0].message });
 
     const { type } = req.params;
 
-    const validTypes = ['customer','owner'];
+    const validTypes = ["customer", "owner"];
 
-    if (!validTypes.includes(type)) return res.status(400).send({ success: false, message: "Invalid type" });
+    if (!validTypes.includes(type))
+      return res.status(400).send({ success: false, message: "Invalid type" });
 
-    const { name, password, email, fcmtoken,code } = req.body;
+    const { name, password, email, fcmtoken, code } = req.body;
 
     const lowerCaseEmail = String(email).trim().toLocaleLowerCase();
 
@@ -215,7 +218,10 @@ router.post("/signup/:type", async (req, res) => {
       email: lowerCaseEmail,
     });
 
-    if (!verificationRecord || Number(verificationRecord.code) !== Number(code)) {
+    if (
+      !verificationRecord ||
+      Number(verificationRecord.code) !== Number(code)
+    ) {
       return res
         .status(400)
         .json({ success: false, message: "Incorrect verification code" });
@@ -236,7 +242,7 @@ router.post("/signup/:type", async (req, res) => {
       name,
       email: lowerCaseEmail,
       fcmtoken,
-      type: type
+      type: type,
     });
 
     await newUser.save();
@@ -251,7 +257,7 @@ router.post("/signup/:type", async (req, res) => {
       user: newUser,
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -263,12 +269,10 @@ router.post("/verify-otp/forget-password", passwordauth, async (req, res) => {
     const user = await User.findById(req.user._id);
 
     if (!user)
-      return res
-        .status(400)
-        .send({
-          success: false,
-          message: "The User with the given ID was not found.",
-        });
+      return res.status(400).send({
+        success: false,
+        message: "The User with the given ID was not found.",
+      });
 
     if (Number(user.code) !== Number(code))
       return res
@@ -304,44 +308,79 @@ router.post("/check-email", async (req, res) => {
 });
 
 router.post("/conversion", async (req, res) => {
+  const { amount } = req.body;
 
-  const {amount}=req.body
-
-  res.send({ success: true, convertedAmount:Number(amount)*0.37 });
+  res.send({ success: true, convertedAmount: Number(amount) * 0.37 });
 });
 
+router.put("/admin/update-user", [auth, admin], async (req, res) => {
+  try {
+    const { _id, name, image, interests, location, address, balance } =
+      req.body;
+    // Create an object to store the fields to be updated
+    const updateFields = Object.fromEntries(
+      Object.entries({
+        _id,
+        name,
+        image,
+        interests,
+        location,
+        address,
+        balance,
+      }).filter(([key, value]) => value !== undefined),
+    );
+    // Check if there are any fields to update
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).send({
+        success: false,
+        message: "No valid fields provided for update.",
+      });
+    }
+    const user = await User.findByIdAndUpdate(_id, updateFields, {
+      new: true,
+    }).lean();
+    if (!user)
+      return res.status(400).send({
+        success: false,
+        message: "The User with the given ID was not found.",
+      });
+
+    res.send({ success: true, message: "User updated successfully", user });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
 router.put("/update-user", auth, async (req, res) => {
-  const {
-    name,image,interests,location,address
-  } = req.body;
+  const { name, image, interests, location, address } = req.body;
 
   // Create an object to store the fields to be updated
   const updateFields = Object.fromEntries(
     Object.entries({
-      name,image,interests,location,address
-    }).filter(([key, value]) => value !== undefined)
+      name,
+      image,
+      interests,
+      location,
+      address,
+    }).filter(([key, value]) => value !== undefined),
   );
 
   // Check if there are any fields to update
   if (Object.keys(updateFields).length === 0) {
-    return res
-      .status(400)
-      .send({
-        success: false,
-        message: "No valid fields provided for update.",
-      });
+    return res.status(400).send({
+      success: false,
+      message: "No valid fields provided for update.",
+    });
   }
   const user = await User.findByIdAndUpdate(req.user._id, updateFields, {
     new: true,
   });
 
   if (!user)
-    return res
-      .status(400)
-      .send({
-        success: false,
-        message: "The User with the given ID was not found.",
-      });
+    return res.status(400).send({
+      success: false,
+      message: "The User with the given ID was not found.",
+    });
 
   res.send({ success: true, message: "User updated successfully", user });
 });
@@ -350,100 +389,146 @@ router.delete("/", auth, async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.user._id,
     { status: "deleted" },
-    { new: true }
+    { new: true },
   );
 
   if (!user)
-    return res
-      .status(400)
-      .send({
-        success: false,
-        message: "The User with the given ID was not found.",
-      });
+    return res.status(400).send({
+      success: false,
+      message: "The User with the given ID was not found.",
+    });
 
   res.send({ success: true, message: "User deleted successfully", user });
 });
 
-router.delete("/:id",[auth,admin], async (req, res) => {
+router.delete("/:id", [auth, admin], async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.params.id,
     { status: "deleted" },
-    { new: true }
+    { new: true },
   );
 
   if (!user)
-    return res
-      .status(400)
-      .send({
-        success: false,
-        message: "The User with the given ID was not found.",
-      });
+    return res.status(400).send({
+      success: false,
+      message: "The User with the given ID was not found.",
+    });
 
   res.send({ success: true, message: "User deleted successfully", user });
 });
 
-router.get('/admin/:type/:id',[auth,admin], async (req, res) => {
-  const lastId = parseInt(req.params.id)||1;
+router.get("/admin/:type/:id", [auth, admin], async (req, res) => {
+  try {
+    const lastId = parseInt(req.params.id) || 1;
 
-  // Check if lastId is a valid number
-  if (isNaN(lastId) || lastId < 0) {
-    return res.status(400).json({ error: 'Invalid last_id' });
+    // Check if lastId is a valid number
+    if (isNaN(lastId) || lastId < 0) {
+      return res.status(400).json({ error: "Invalid last_id" });
+    }
+
+    let query = {};
+
+    if (req.params.type !== "all") {
+      query.type = req.params.type;
+    }
+
+    const pageSize = 10;
+
+    const skip = Math.max(0, lastId - 1) * pageSize;
+
+    const users = await User.find(query)
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .lean();
+
+    const updatedUsers = await Promise.all(
+      users.map(async (user) => {
+        const eventIds = await Event.find({
+          user: user._id,
+          status: "active",
+        }).distinct("_id");
+
+        let totalEarnings = 0;
+
+        if (eventIds.length > 0) {
+          const totalPurchases = await Purchase.find({
+            event: { $in: eventIds },
+            resel_by: { $exists: false },
+          })
+            .select("ownerPrice -_id")
+            .lean();
+
+          totalEarnings = totalPurchases.reduce(
+            (a, b) => a + Number(b.ownerPrice || 0),
+            0,
+          );
+        }
+        return {
+          ...user,
+          address: user.address || "",
+          totalEarnings: totalEarnings,
+        };
+      }),
+    );
+    const totalCount = await User.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    res.send({
+      success: true,
+      users: updatedUsers,
+      count: { totalPage: totalPages, currentPageSize: users.length },
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Internal server error" });
   }
-
-  let query={}
-
-  if (req.params.type!=='all') {
-    query.type=req.params.type;
-  }
-
-  const pageSize = 10;
-
-  const skip = Math.max(0, (lastId - 1)) * pageSize;
-
-  const users = await User.find(query).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
-
-  const totalCount = await User.countDocuments(query);
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  res.send({ success: true, users: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 });
 
-router.get('/search/:id/:search?', auth , async (req, res) => {
-  const lastId = parseInt(req.params.id)||1;
+router.get("/search/:id/:search?", auth, async (req, res) => {
+  const lastId = parseInt(req.params.id) || 1;
 
   // Check if lastId is a valid number
   if (isNaN(lastId) || lastId < 0) {
-    return res.status(400).json({ error: 'Invalid last_id' });
+    return res.status(400).json({ error: "Invalid last_id" });
   }
 
-  let query={}
+  let query = {};
 
-  query.type="customer";
-  query._id={ $ne : req.user._id }
+  query.type = "customer";
+  query._id = { $ne: req.user._id };
 
   if (req.params.search) {
-    const searchQuery=req.params.search
+    const searchQuery = req.params.search;
     query.$or = [
-      { name: { $regex: searchQuery, $options: 'i' } }, // Case-insensitive search
-      { email: { $regex: searchQuery, $options: 'i' } }, // Case-insensitive search
+      { name: { $regex: searchQuery, $options: "i" } }, // Case-insensitive search
+      { email: { $regex: searchQuery, $options: "i" } }, // Case-insensitive search
     ];
   }
 
   const pageSize = 10;
 
-  const skip = Math.max(0, (lastId - 1)) * pageSize;
+  const skip = Math.max(0, lastId - 1) * pageSize;
 
-  const users = await User.find(query).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+  const users = await User.find(query)
+    .sort({ _id: -1 })
+    .skip(skip)
+    .limit(pageSize)
+    .lean();
 
   const totalCount = await User.countDocuments(query);
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  res.send({ success: true, users: users,count: { totalPage: totalPages, currentPageSize: users.length } });
+  res.send({
+    success: true,
+    users: users,
+    count: { totalPage: totalPages, currentPageSize: users.length },
+  });
 });
 
-function findDateIndex(createdAt,dates) {
+function findDateIndex(createdAt, dates) {
   for (let i = 0; i < dates.length - 1; i++) {
-    if (moment(createdAt).isBetween(dates[i], dates[i + 1], null, '[)')) {
+    if (moment(createdAt).isBetween(dates[i], dates[i + 1], null, "[)")) {
       return i + 1; // Increment y value of the next date
     }
   }
@@ -454,277 +539,350 @@ function findDateIndex(createdAt,dates) {
   return -1;
 }
 
+router.get("/dashboard", [auth, admin], async (req, res) => {
+  const totalUsers = await User.countDocuments({ type: "customer" });
 
-router.get('/dashboard',[auth, admin],async (req, res) => {
-  const totalUsers = await User.countDocuments({type:"customer"});
-
-   // Get users registered yesterday
-   const today = new Date();
-   const yesterday = new Date(today);
-   yesterday.setDate(today.getDate() - 1);
-   const yesterdayUsers = await User.countDocuments({
+  // Get users registered yesterday
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const yesterdayUsers = await User.countDocuments({
     createdAt: { $gte: yesterday, $lt: today },
-       type:"customer"
-   });
-   // Get the number of users until yesterday
-   const totalUsersYesterday = totalUsers - yesterdayUsers;
-   // Calculate growth percentage
-   let growth = 0;
-   if (totalUsersYesterday > 0) {
-       growth = ((totalUsers - totalUsersYesterday) / totalUsersYesterday) * 100;
-   }
+    type: "customer",
+  });
+  // Get the number of users until yesterday
+  const totalUsersYesterday = totalUsers - yesterdayUsers;
+  // Calculate growth percentage
+  let growth = 0;
+  if (totalUsersYesterday > 0) {
+    growth = ((totalUsers - totalUsersYesterday) / totalUsersYesterday) * 100;
+  }
 
-  const totalownerUsers = await User.countDocuments({type:"owner"});
+  const totalownerUsers = await User.countDocuments({ type: "owner" });
 
-   const yesterdayownerUsers = await User.countDocuments({
+  const yesterdayownerUsers = await User.countDocuments({
     createdAt: { $gte: yesterday, $lt: today },
-       type:"owner"
-   });
-   // Get the number of users until yesterday
-   const totalownerUsersYesterday = totalownerUsers - yesterdayownerUsers;
-   // Calculate growth percentage
-   let growthowner = 0;
-   if (totalownerUsersYesterday > 0) {
-      growthowner = ((totalownerUsers - totalownerUsersYesterday) / totalownerUsersYesterday) * 100;
-   }
+    type: "owner",
+  });
+  // Get the number of users until yesterday
+  const totalownerUsersYesterday = totalownerUsers - yesterdayownerUsers;
+  // Calculate growth percentage
+  let growthowner = 0;
+  if (totalownerUsersYesterday > 0) {
+    growthowner =
+      ((totalownerUsers - totalownerUsersYesterday) /
+        totalownerUsersYesterday) *
+      100;
+  }
 
+  const totalOrder = await Event.countDocuments({ status: "active" });
 
-   const totalOrder = await Event.countDocuments({status:"active",});
-
-   const yesterdayOrder = await Event.countDocuments({
+  const yesterdayOrder = await Event.countDocuments({
     createdAt: { $gte: yesterday, $lt: today },
-    status:"active"
-   });
-   // Get the number of users until yesterday
-   const totalOrderYesterday = totalOrder - yesterdayOrder;
-   // Calculate growth percentage
-   let growthOrder = 0;
-   if (totalOrderYesterday > 0) {
-      growthOrder = ((totalOrder - totalOrderYesterday) / totalOrderYesterday) * 100;
-   }
+    status: "active",
+  });
+  // Get the number of users until yesterday
+  const totalOrderYesterday = totalOrder - yesterdayOrder;
+  // Calculate growth percentage
+  let growthOrder = 0;
+  if (totalOrderYesterday > 0) {
+    growthOrder =
+      ((totalOrder - totalOrderYesterday) / totalOrderYesterday) * 100;
+  }
 
-   const purchases = await Purchase.find({resel_by: { $exists: false },}).select("totalPrice createdAt").sort({ _id: -1 }).lean();
-   const totalPurchase = await Purchase.find({resel_by: { $exists: true },}).select("totalPrice createdAt").sort({ _id: -1 }).lean();
- 
- 
-   const totalPayments=purchases.reduce((a,b)=>a + Number(b.totalPrice),0)
-   const totalOtherPayments=totalPurchase.reduce((a,b)=>a + Number(b.totalPrice),0)
- 
-   const eightPerc=Number(totalPayments) * 0.08
+  const purchases = await Purchase.find({ resel_by: { $exists: false } })
+    .select("totalPrice createdAt")
+    .sort({ _id: -1 })
+    .lean();
+  const totalPurchase = await Purchase.find({ resel_by: { $exists: true } })
+    .select("totalPrice createdAt")
+    .sort({ _id: -1 })
+    .lean();
+
+  const totalPayments = purchases.reduce((a, b) => a + Number(b.totalPrice), 0);
+  const totalOtherPayments = totalPurchase.reduce(
+    (a, b) => a + Number(b.totalPrice),
+    0,
+  );
+
+  const eightPerc = Number(totalPayments) * 0.08;
   //  const twoPerc=Number(totalPayments) * 0.02
-   const twentPerc=Number(totalOtherPayments) * 0.20
-   const eightResel=Number(totalOtherPayments) * 0.08
+  const twentPerc = Number(totalOtherPayments) * 0.2;
+  const eightResel = Number(totalOtherPayments) * 0.08;
 
-   const now = new Date();
-   let dates = [];
-   for (let i = 0; i < 12; i++) {
+  const now = new Date();
+  let dates = [];
+  for (let i = 0; i < 12; i++) {
     let date = new Date(now);
     date.setMonth(now.getMonth() - i);
     dates.unshift(date.toISOString());
   }
-  const startDate = moment().startOf('year');
-  const todayEnd = moment().endOf('day');
- 
-  const orders = await Purchase.find({createdAt: { $gte: startDate, $lte: todayEnd }}).select("totalPrice createdAt resel_by").lean()
- 
-   // Initialize the graph array
-   let graph = dates.map(date => ({ x: date, earnings:0 }));
-  
-   // Increment the y value for the correct date ranges
-   orders.forEach(order => {
-     const index = findDateIndex(order.createdAt,dates);
-     if (index !== -1 && index < graph.length) {
-       let earnings=0
-       if (order.resel_by==undefined) {
-        earnings=Number(order.totalPrice) * 0.10
-      }else{
-        earnings=Number(order.totalPrice) * 0.28
+  const startDate = moment().startOf("year");
+  const todayEnd = moment().endOf("day");
+
+  const orders = await Purchase.find({
+    createdAt: { $gte: startDate, $lte: todayEnd },
+  })
+    .select("totalPrice createdAt resel_by")
+    .lean();
+
+  // Initialize the graph array
+  let graph = dates.map((date) => ({ x: date, earnings: 0 }));
+
+  // Increment the y value for the correct date ranges
+  orders.forEach((order) => {
+    const index = findDateIndex(order.createdAt, dates);
+    if (index !== -1 && index < graph.length) {
+      let earnings = 0;
+      if (order.resel_by == undefined) {
+        earnings = Number(order.totalPrice) * 0.1;
+      } else {
+        earnings = Number(order.totalPrice) * 0.28;
       }
-      graph[index].earnings = graph[index].earnings+earnings;
-     }
-   });
- 
-   let newGraph = graph.map(obj => {
-     return { ["x"]: moment(obj.x).format('MMM'), ["y"]: obj.earnings};
-   });
- 
-  
-  res.send({ success: true, 
-    totalEarnings:eightPerc+twentPerc+eightResel,
-    totalPayments:totalPayments,
-    graph:newGraph,
-    rentee:{
+      graph[index].earnings = graph[index].earnings + earnings;
+    }
+  });
+
+  let newGraph = graph.map((obj) => {
+    return { ["x"]: moment(obj.x).format("MMM"), ["y"]: obj.earnings };
+  });
+
+  res.send({
+    success: true,
+    totalEarnings: eightPerc + twentPerc + eightResel,
+    totalPayments: totalPayments,
+    graph: newGraph,
+    rentee: {
       totalUsers,
       growth: growth.toFixed(2),
-      status: growth >= 0 ? 'positive' : 'negative'
+      status: growth >= 0 ? "positive" : "negative",
     },
-    owner:{
-      totalUsers:totalownerUsers,
+    owner: {
+      totalUsers: totalownerUsers,
       growth: growthowner.toFixed(2),
-      status: growthowner >= 0 ? 'positive' : 'negative'
+      status: growthowner >= 0 ? "positive" : "negative",
     },
-    events:{
-      totalEvents:totalOrder,
+    events: {
+      totalEvents: totalOrder,
       growth: growthOrder.toFixed(2),
-      status: growthOrder >= 0 ? 'positive' : 'negative'
+      status: growthOrder >= 0 ? "positive" : "negative",
     },
-   });
+  });
 });
 
-router.get('/owner-dashboard',auth, async (req, res) => {
+router.get("/owner-dashboard", auth, async (req, res) => {
+  const userId = req.user._id;
 
-  const userId=req.user._id
-  
   // Get the current date and time (now)
   const now = new Date();
-    
+
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
-  const totalActiveEvents = await Event.countDocuments({user:userId,status:"active",start_Date:{ $gte: startOfDay }});
 
-  const events = await Event.find({user:userId,status:"active",start_Date:{ $gte: startOfDay }}).select("status")
+  const totalActiveEvents = await Event.countDocuments({
+    user: userId,
+    status: "active",
+    start_Date: { $gte: startOfDay },
+  });
 
-  const totalEvents=events.map(item=>item._id)
+  const events = await Event.find({
+    user: userId,
+    status: "active",
+    start_Date: { $gte: startOfDay },
+  }).select("status");
 
-   // Get users registered yesterday
-   const today = new Date();
-   const yesterday = new Date(today);
-   yesterday.setDate(today.getDate() - 1);
+  const totalEvents = events.map((item) => item._id);
 
-   const yesterdayActiveEvents = await Event.countDocuments({
+  // Get users registered yesterday
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const yesterdayActiveEvents = await Event.countDocuments({
     createdAt: { $gte: yesterday, $lt: today },
-    user:userId,status:"active"
-   });
+    user: userId,
+    status: "active",
+  });
 
-   const totalActiveEventsYesterday = totalActiveEvents - yesterdayActiveEvents;
-   // Calculate growth percentage
-   let growth = 0;
-   if (totalActiveEventsYesterday > 0) {
-       growth = ((totalActiveEvents - totalActiveEventsYesterday) / totalActiveEventsYesterday) * 100;
-   }
+  const totalActiveEventsYesterday = totalActiveEvents - yesterdayActiveEvents;
+  // Calculate growth percentage
+  let growth = 0;
+  if (totalActiveEventsYesterday > 0) {
+    growth =
+      ((totalActiveEvents - totalActiveEventsYesterday) /
+        totalActiveEventsYesterday) *
+      100;
+  }
 
+  const totalPurchases = await Purchase.find({
+    event: { $in: totalEvents },
+    resel_by: { $exists: false },
+  }).select("ownerPrice");
 
-
-  const totalPurchases = await Purchase.find({event:{$in:totalEvents},resel_by: { $exists: false }}).select("ownerPrice");
-
-   const yesterdayPurchases = await Purchase.find({
+  const yesterdayPurchases = await Purchase.find({
     createdAt: { $gte: yesterday, $lt: today },
-    event:{$in:totalEvents},
-    resel_by: { $exists: false }
-   }).select("ownerPrice")
-   // Get the number of users until yesterday
-   const totalPurchasesYesterday = totalPurchases.length - yesterdayPurchases.length;
-   // Calculate growth percentage
-   let growthowner = 0;
-   if (totalPurchasesYesterday > 0) {
-      growthowner = ((totalPurchases.length - totalPurchasesYesterday) / totalPurchasesYesterday) * 100;
-   }
+    event: { $in: totalEvents },
+    resel_by: { $exists: false },
+  }).select("ownerPrice");
+  // Get the number of users until yesterday
+  const totalPurchasesYesterday =
+    totalPurchases.length - yesterdayPurchases.length;
+  // Calculate growth percentage
+  let growthowner = 0;
+  if (totalPurchasesYesterday > 0) {
+    growthowner =
+      ((totalPurchases.length - totalPurchasesYesterday) /
+        totalPurchasesYesterday) *
+      100;
+  }
 
-   const toalEarnings=totalPurchases.reduce((a,b)=>a+Number(b.ownerPrice),0)
-   // Get the number of users until yesterday
-   const totalEarningsYesterday = toalEarnings - yesterdayPurchases.reduce((a,b)=>a+Number(b.ownerPrice),0);
-   // Calculate growth percentage
-   let growthEarnings = 0;
-   if (totalPurchasesYesterday > 0) {
-     growthEarnings = ((toalEarnings - totalEarningsYesterday) / totalEarningsYesterday) * 100;
-   }
+  const toalEarnings = totalPurchases.reduce(
+    (a, b) => a + Number(b.ownerPrice),
+    0,
+  );
+  // Get the number of users until yesterday
+  const totalEarningsYesterday =
+    toalEarnings -
+    yesterdayPurchases.reduce((a, b) => a + Number(b.ownerPrice), 0);
+  // Calculate growth percentage
+  let growthEarnings = 0;
+  if (totalPurchasesYesterday > 0) {
+    growthEarnings =
+      ((toalEarnings - totalEarningsYesterday) / totalEarningsYesterday) * 100;
+  }
 
+  const totalUpcomingEvents = await Event.countDocuments({
+    user: userId,
+    status: "active",
+    start_Date: { $gte: startOfDay },
+  });
 
-   const totalUpcomingEvents = await Event.countDocuments({user:userId,status:"active",start_Date:{ $gte: startOfDay }});
-
-   const yesterdayUpcomingEvents = await Event.countDocuments({
+  const yesterdayUpcomingEvents = await Event.countDocuments({
     createdAt: { $gte: yesterday, $lt: today },
-    user:userId,status:"active"
-   });
+    user: userId,
+    status: "active",
+  });
 
-   const totalUpcomingEventsYesterday = totalUpcomingEvents - yesterdayUpcomingEvents;
-   // Calculate growth percentage
-   let growthUpcoming = 0;
-   if (totalUpcomingEventsYesterday > 0) {
-    growthUpcoming = ((totalUpcomingEvents - totalUpcomingEventsYesterday) / totalUpcomingEventsYesterday) * 100;
-   }
+  const totalUpcomingEventsYesterday =
+    totalUpcomingEvents - yesterdayUpcomingEvents;
+  // Calculate growth percentage
+  let growthUpcoming = 0;
+  if (totalUpcomingEventsYesterday > 0) {
+    growthUpcoming =
+      ((totalUpcomingEvents - totalUpcomingEventsYesterday) /
+        totalUpcomingEventsYesterday) *
+      100;
+  }
 
-  res.send({ success: true, 
-    events:{
-      total:totalActiveEvents,
+  res.send({
+    success: true,
+    events: {
+      total: totalActiveEvents,
       growth: growth.toFixed(2),
-      status: growth >= 0 ? 'positive' : 'negative'
+      status: growth >= 0 ? "positive" : "negative",
     },
-    purchase:{
-      total:totalPurchases.length,
+    purchase: {
+      total: totalPurchases.length,
       growth: growthowner.toFixed(2),
-      status: growthowner >= 0 ? 'positive' : 'negative'
+      status: growthowner >= 0 ? "positive" : "negative",
     },
-    earnings:{
-      total:toalEarnings,
+    earnings: {
+      total: toalEarnings,
       growth: growthEarnings.toFixed(2),
-      status: growthEarnings >= 0 ? 'positive' : 'negative'
+      status: growthEarnings >= 0 ? "positive" : "negative",
     },
 
-    upcomingevents:{
-      total:totalUpcomingEvents,
+    upcomingevents: {
+      total: totalUpcomingEvents,
       growth: growthUpcoming.toFixed(2),
-      status: growthUpcoming >= 0 ? 'positive' : 'negative'
+      status: growthUpcoming >= 0 ? "positive" : "negative",
     },
-   });
+  });
 });
 
-router.post('/send-notifications/:type', [auth, admin], async (req, res) => {
-
-  const {type}=req.params;
-  const validTypes=["all","customer", "owner"]
+router.post("/send-notifications/:type", [auth, admin], async (req, res) => {
+  const { type } = req.params;
+  const validTypes = ["all", "customer", "owner"];
   if (!validTypes.includes(type)) {
-    return res.status(404).send({ success: false, message: 'User Type is not valid' });
+    return res
+      .status(404)
+      .send({ success: false, message: "User Type is not valid" });
   }
-  const { title, description } = req.body;
+  const { title, description, image } = req.body;
 
-  let query={}
+  let query = {};
 
-  if (type!=="all") {
-    query.type=type
-  }else{
-    query.type={$ne:"admin"}
+  if (type !== "all") {
+    query.type = type;
+  } else {
+    query.type = { $ne: "admin" };
   }
-  query.status='online'
+  query.status = "online";
 
-  const users = await User.find(query).select("fcmtoken").lean()
-  const fcmTokens = [...new Set(users.map(item => item.fcmtoken).filter(item=>item!==undefined||item!==""))];
+  const users = await User.find(query).select("fcmtoken").lean();
+  const fcmTokens = [
+    ...new Set(
+      users
+        .map((item) => item.fcmtoken)
+        .filter((item) => item !== undefined || item !== ""),
+    ),
+  ];
   if (fcmTokens.length > 0) {
     // Create an array of message objects for each token
-    const messages = fcmTokens.map(token => ({
-      token: token,
-      notification: {
+    const messages = fcmTokens.map((token) => {
+      const message = {
+        token: token,
+        notification: {
           title: title,
           body: description,
-      },
-      android: {
+        },
+        android: {
           notification: {
-              sound: 'default',
+            sound: "default",
           },
-      },
-      apns: {
+        },
+        apns: {
           payload: {
-              aps: {
-                  sound: 'default',
-              },
+            aps: {
+              sound: "default",
+            },
           },
-      },
-    }));
+        },
+      };
+
+      if (image) {
+        message.notification.image = image;
+        message.android.notification.image = image;
+        message.apns.fcmOptions = {
+          image: image,
+        };
+        message.apns.payload.aps["mutable-content"] = 1;
+      }
+
+      return message;
+    });
     try {
-      await firebaseadmin.messaging().sendEach(messages)
-      const notifications= users.map(item=>({
-        user:req.user._id,
-        to_id:item._id,
-        type:"noti",
+      const result = await firebaseadmin.messaging().sendEach(messages);
+      console.log(
+        "Notification sent successfully",
+        result.successCount,
+        result.failureCount,
+        JSON.stringify(result.responses, null, 2),
+      );
+      const notifications = users.map((item) => ({
+        user: req.user._id,
+        to_id: item._id,
+        type: "noti",
         description,
         title,
-      }))
-      await Notification.insertMany(notifications)
-    } catch (error) {}
+      }));
+      await Notification.insertMany(notifications);
+      // console.log("Notification sent successfully");
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  res.send({ success: true, message: 'notification sent successfully', });
+  res.send({ success: true, message: "notification sent successfully" });
 });
-
 
 module.exports = router;

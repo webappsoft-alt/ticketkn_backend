@@ -13,6 +13,11 @@ router.get(
   postController.eventsPurchases,
 );
 router.get("/purchase/all/:id", authMiddleware, postController.getPurchase);
+router.get(
+  "/admin/purchase/:id",
+  [authMiddleware, admin],
+  postController.getPurchaseAdminSide,
+);
 router.get("/me/purchase/:id?", authMiddleware, postController.getMyPurchases);
 router.get(
   "/admin/event/payment/:id",

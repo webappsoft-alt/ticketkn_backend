@@ -10,6 +10,7 @@ const Category = require("../models/Category");
 const { ticketCode, generateRandomString } = require("./generateCode");
 const { purchaseEmail } = require("./emailservice");
 const { AdminTicket, PrintTicket } = require("../models/AdminTicket");
+const mongoose = require("mongoose");
 exports.createPost = async (req, res) => {
   try {
     const {
@@ -394,7 +395,8 @@ exports.latestEvent = async (req, res) => {
 
 exports.getAdminPost = async (req, res) => {
   const lastId = parseInt(req.params.id) || 1;
-
+  const userId = req.query?.user_id;
+  // console.log(req.query);
   // Check if lastId is a valid number
   if (isNaN(lastId) || lastId < 0) {
     return res.status(400).json({ error: "Invalid last_id" });
@@ -405,7 +407,9 @@ exports.getAdminPost = async (req, res) => {
   const skip = Math.max(0, lastId - 1) * pageSize;
   let query = {};
   query.status = "active";
-
+  if (userId) {
+    query.user = new mongoose.Types.ObjectId(userId);
+  }
   if (req.params.type !== "all") {
     query.category = req.params.type;
   }
@@ -780,6 +784,10 @@ exports.likePost = async (req, res) => {
   try {
     const postId = req.params.id;
     const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
 
     const existingLike = await like.findOne({ user: userId, event: postId });
 
@@ -1283,6 +1291,82 @@ exports.getPurchaseTicket = async (req, res) => {
   }
 };
 
+exports.getPurchaseAdminSide = async (req, res) => {
+  const userId = req.query.user_id;
+  const lastId = parseInt(req.params.id) || 1;
+
+  // Check if lastId is a valid number
+  if (isNaN(lastId) || lastId < 0) {
+    return res.status(400).json({ error: "Invalid last_id" });
+  }
+  let query = {};
+
+  const pageSize = 10;
+
+  const skip = Math.max(0, lastId - 1) * pageSize;
+  if (userId) {
+    // if (!mongoose.Types.ObjectId.isValid(userId)) {
+    //   return res.status(400).json({ error: "Invalid user_id" });
+    // }
+    query.user = new mongoose.Types.ObjectId(userId);
+  }
+  query.remainig_ticket = { $gt: 0 };
+  try {
+    const likedJobs = await Purchase.find(query)
+      .populate({
+        path: "event",
+        populate: [
+          { path: "user", model: "user" },
+          { path: "category", model: "Category" },
+          { path: "likes", model: "Like" },
+          { path: "coupon", model: "Coupon" },
+          {
+            path: "purchase_by",
+            model: "Purchase",
+            options: { limit: 3 },
+            populate: [{ path: "user", model: "user" }],
+          },
+        ],
+      })
+      .populate("user")
+      .populate("ResellTickets")
+      .populate("resellpurchases")
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .lean();
+
+    const totalCount = await Purchase.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    if (likedJobs.length > 0) {
+      // for (let purchase of likedJobs) {
+      //   // purchase.event.TotalLikes = purchase.event?.likes?.length;
+      //   purchase.event.likes = userId
+      //     ? Array.isArray(purchase.event?.likes) &&
+      //       purchase.event.likes.some(
+      //         (like) => like.user.toString() === userId.toString(),
+      //       )
+      //     : false;
+      // }
+      res.status(200).json({
+        success: true,
+        posts: likedJobs,
+        count: { totalPage: totalPages, currentPageSize: likedJobs.length },
+      });
+    } else {
+      res.status(200).json({
+        success: false,
+        message: "No more purchase events found",
+        posts: [],
+        count: { totalPage: totalPages, currentPageSize: likedJobs.length },
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 exports.getPurchase = async (req, res) => {
   const userId = req.user._id;
   const lastId = parseInt(req.params.id) || 1;
