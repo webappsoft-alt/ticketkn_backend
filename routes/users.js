@@ -852,10 +852,19 @@ router.post("/send-notifications/:type", [auth, admin], async (req, res) => {
       if (image) {
         message.notification.image = image;
         message.android.notification.image = image;
-        message.apns.fcmOptions = {
-          image: image,
+
+        // Apple specific payload fix
+        message.apns = {
+          payload: {
+            aps: {
+              ...((message.apns && message.apns.payload && message.apns.payload.aps) || {}),
+              "mutable-content": 1
+            }
+          },
+          fcmOptions: {
+            image: image // FCM v1 API standard for iOS image
+          }
         };
-        message.apns.payload.aps["mutable-content"] = 1;
       }
 
       return message;
