@@ -95,7 +95,7 @@ exports.createPost = async (req, res) => {
       }));
       try {
         await admin.messaging().sendEach(messages);
-      } catch (error) {}
+      } catch (error) { }
     }
 
     await post.save();
@@ -566,11 +566,11 @@ exports.filterPosts = async (req, res) => {
       post.TotalLikes = post?.likes?.length || 0;
       post.likes = userId
         ? Array.isArray(post.likes) &&
-          post.likes.some((like) => like.user.toString() === userId.toString())
+        post.likes.some((like) => like.user.toString() === userId.toString())
         : false;
       post.purchase_by = userId
         ? Array.isArray(post.purchase_by) &&
-          post.purchase_by.some((like) => like.toString() === userId.toString())
+        post.purchase_by.some((like) => like.toString() === userId.toString())
         : false;
     }
 
@@ -620,11 +620,11 @@ exports.filterPosts = async (req, res) => {
       post.TotalLikes = post?.likes?.length || 0;
       post.likes = userId
         ? Array.isArray(post.likes) &&
-          post.likes.some((like) => like.user.toString() === userId.toString())
+        post.likes.some((like) => like.user.toString() === userId.toString())
         : false;
       post.purchase_by = userId
         ? Array.isArray(post.purchase_by) &&
-          post.purchase_by.some((like) => like.toString() === userId.toString())
+        post.purchase_by.some((like) => like.toString() === userId.toString())
         : false;
     }
 
@@ -674,7 +674,7 @@ exports.filterPosts = async (req, res) => {
       post.TotalLikes = post?.likes?.length || 0;
       post.likes = userId
         ? Array.isArray(post.likes) &&
-          post.likes.some((like) => like.user.toString() === userId.toString())
+        post.likes.some((like) => like.user.toString() === userId.toString())
         : false;
     }
 
@@ -699,7 +699,7 @@ exports.filterPosts = async (req, res) => {
       post.TotalLikes = post?.likes?.length || 0;
       post.likes = userId
         ? Array.isArray(post.likes) &&
-          post.likes.some((like) => like.user.toString() === userId.toString())
+        post.likes.some((like) => like.user.toString() === userId.toString())
         : false;
     }
 
@@ -737,7 +737,7 @@ exports.getDetailsEvent = async (req, res) => {
   const TotalLikes = post?.likes?.length || 0;
   const likes = userId
     ? Array.isArray(post.likes) &&
-      post.likes.some((like) => like.user.toString() === userId.toString())
+    post.likes.some((like) => like.user.toString() === userId.toString())
     : false;
 
   res.send({ success: true, post: { ...post, TotalLikes, likes } });
@@ -1375,51 +1375,208 @@ exports.getPurchase = async (req, res) => {
   if (isNaN(lastId) || lastId < 0) {
     return res.status(400).json({ error: "Invalid last_id" });
   }
-  let query = {};
+  let query = { event: { $exists: true, $ne: null } };
 
   const pageSize = 10;
 
   const skip = Math.max(0, lastId - 1) * pageSize;
-  query.user = userId;
+  query.user = new mongoose.Types.ObjectId(userId);
 
   query.remainig_ticket = { $gt: 0 };
   try {
-    const likedJobs = await Purchase.find(query)
-      .populate({
-        path: "event",
-        populate: [
-          { path: "user", model: "user" },
-          { path: "category", model: "Category" },
-          { path: "likes", model: "Like" },
-          { path: "coupon", model: "Coupon" },
-          {
-            path: "purchase_by",
-            model: "Purchase",
-            options: { limit: 3 },
-            populate: [{ path: "user", model: "user" }],
+    const likedJobs = await Purchase.aggregate([
+      // 1. Initial Query Filter
+      { $match: query },
+
+      // 2. Filter out records where Event does not exist in DB
+      {
+        $lookup: {
+          from: "events",
+          localField: "event",
+          foreignField: "_id",
+          as: "eventCheck",
+        },
+      },
+      { $match: { "eventCheck.0": { $exists: true } } },
+
+      // 3. Sorting & Pagination
+      { $sort: { _id: -1 } },
+      { $skip: skip },
+      { $limit: pageSize },
+
+      // 4. Populate: ResellTickets (Refs Resell model -> resells collection)
+      {
+        $lookup: {
+          from: "resells",
+          localField: "ResellTickets",
+          foreignField: "_id",
+          as: "ResellTickets",
+        },
+      },
+      { $unwind: { path: "$ResellTickets", preserveNullAndEmptyArrays: true } },
+
+      // 5. Populate: resellpurchases (Refs Purchase model -> purchases collection)
+      {
+        $lookup: {
+          from: "purchases",
+          localField: "resellpurchases",
+          foreignField: "_id",
+          as: "resellpurchases",
+        },
+      },
+
+      // 6. Populate top-level user
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+      // 7. Populate: event
+      { $addFields: { event: { $arrayElemAt: ["$eventCheck", 0] } } },
+
+      // 8. Populate deeply nested fields inside event
+      {
+        $lookup: {
+          from: "users",
+          localField: "event.user",
+          foreignField: "_id",
+          as: "eventUser",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "event.category",
+          foreignField: "_id",
+          as: "eventCategory",
+        },
+      },
+      {
+        $lookup: {
+          from: "likes",
+          localField: "event.likes",
+          foreignField: "_id",
+          as: "eventLikes",
+        },
+      },
+      {
+        $lookup: {
+          from: "coupons",
+          localField: "event.coupon",
+          foreignField: "_id",
+          as: "eventCoupon",
+        },
+      },
+      {
+        $lookup: {
+          from: "purchases",
+          localField: "event.purchase_by",
+          foreignField: "_id",
+          as: "eventPurchases",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "eventPurchases.user",
+          foreignField: "_id",
+          as: "purchaseUsers",
+        },
+      },
+
+      // 9. Final Structure Reconstruction
+      {
+        $addFields: {
+          "event.user": { $arrayElemAt: ["$eventUser", 0] },
+          "event.category": { $arrayElemAt: ["$eventCategory", 0] },
+          "event.TotalLikes": { $size: { $ifNull: ["$eventLikes", []] } },
+          "event.likes": {
+            $cond: {
+              if: {
+                $and: [
+                  { $ne: [userId, null] },
+                  {
+                    $gt: [
+                      {
+                        $size: {
+                          $filter: {
+                            input: { $ifNull: ["$eventLikes", []] },
+                            as: "l",
+                            cond: {
+                              $eq: [
+                                "$$l.user",
+                                new mongoose.Types.ObjectId(userId),
+                              ],
+                            },
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                ],
+              },
+              then: true,
+              else: false,
+            },
           },
-        ],
-      })
-      .populate("ResellTickets")
-      .populate("resellpurchases")
-      .sort({ _id: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean();
+          "event.coupon": { $arrayElemAt: ["$eventCoupon", 0] },
+          "event.purchase_by": {
+            $slice: [
+              {
+                $map: {
+                  input: "$eventPurchases",
+                  as: "p",
+                  in: {
+                    $mergeObjects: [
+                      "$$p",
+                      {
+                        user: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$purchaseUsers",
+                                as: "pu",
+                                cond: { $eq: ["$$pu._id", "$$p.user"] },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              3,
+            ],
+          },
+        },
+      },
+
+      // 10. Cleanup
+      {
+        $project: {
+          eventCheck: 0,
+          eventUser: 0,
+          eventCategory: 0,
+          eventLikes: 0,
+          eventCoupon: 0,
+          eventPurchases: 0,
+          purchaseUsers: 0,
+        },
+      },
+    ]);
 
     const totalCount = await Purchase.countDocuments(query);
     const totalPages = Math.ceil(totalCount / pageSize);
 
     if (likedJobs.length > 0) {
-      // for (let purchase of likedJobs) {
-      //   // purchase.event.TotalLikes = purchase.event?.likes?.length;
-      //   purchase.event.likes = userId
-      //     ? Array.isArray(purchase.event?.likes) &&
-      //       purchase.event.likes.some(
-      //         (like) => like.user.toString() === userId.toString(),
-      //       )
-      //     : false;
-      // }
       res.status(200).json({
         success: true,
         posts: likedJobs,

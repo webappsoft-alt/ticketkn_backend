@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const Event = require("../models/Event");
 const Purchase = require("../models/Purchase");
 const Resell = require("../models/Resell");
@@ -40,24 +41,24 @@ exports.createPost = async (req, res) => {
       type
     } = req.body;
 
-    const purchase=await Purchase.findOne({_id:purchase_ticketId,"tickets_type_sale.code": { $in: code } })
+    const purchase = await Purchase.findOne({ _id: purchase_ticketId, "tickets_type_sale.code": { $in: code } })
 
-    if (!purchase) return res.status(400).json({success: true,message: "Tickets are not found."});
+    if (!purchase) return res.status(400).json({ success: true, message: "Tickets are not found." });
 
     const resell = new Resell({
-      user:purchase.user,
-      event:purchase.event,
+      user: purchase.user,
+      event: purchase.event,
       purchase_ticketId,
       price,
       type
     });
-    
+
     await Purchase.findOneAndUpdate(
       { _id: purchase_ticketId },
-      { $pull: { "tickets_type_sale.code": code }, remainig_ticket : Number(purchase.remainig_ticket) - 1 }
+      { $pull: { "tickets_type_sale.code": code }, remainig_ticket: Number(purchase.remainig_ticket) - 1 }
     );
     await resell.save();
-    res.status(200).json({success: true,message: "Resell tickets created successfully",resell});
+    res.status(200).json({ success: true, message: "Resell tickets created successfully", resell });
   } catch (error) {
     console.log(error)
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -66,96 +67,446 @@ exports.createPost = async (req, res) => {
 
 exports.getMyResellTickets = async (req, res) => {
   const userId = req.user._id
-  const lastId = parseInt(req.params.id)||1;
+  console.log(userId)
+  const lastId = parseInt(req.params.id) || 1;
 
-    // Check if lastId is a valid number
+  // Check if lastId is a valid number
   if (isNaN(lastId) || lastId < 0) {
     return res.status(400).json({ error: 'Invalid last_id' });
   }
-  let query={};
-
+  let query = { event: { $exists: true, $ne: null } };
   const pageSize = 10;
+  query.user = new mongoose.Types.ObjectId(userId);
+  // query.resellTickets={ $exists: false, $ne: null  }
 
-  query.user = userId;
-  // query.resellTickets={ $exists: false  }
-  
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   try {
-    const likedJobs = await Resell.find(query).populate("user").populate({
-      path: 'event',
-      populate: [
-        { path: 'user', model: 'user' },
-        { path: 'category', model: 'Category' },
-        { path: 'likes', model: 'Like' },
-        { path: 'coupon', model: 'Coupon' },
-        { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
-      ]
-    }).populate({
-      path:"resellTickets",
-      populate: [
-        { path: 'user', model: 'user' },
-      ]
-    }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+    const filteredJobs = await Resell.aggregate([
+      // 1. Initial Query Filter
+      { $match: query },
 
+      // 2. Filter out records where Event does not exist in DB
+      {
+        $lookup: {
+          from: "events", // Ensure this matches your actual Event collection name
+          localField: "event",
+          foreignField: "_id",
+          as: "eventCheck"
+        }
+      },
+      { $match: { "eventCheck.0": { $exists: true } } },
+
+      // 3. Sorting & Pagination (Executed early for performance)
+      { $sort: { _id: -1 } },
+      { $skip: skip },
+      { $limit: pageSize },
+
+      // 4. Populate: user
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+      // 5. Populate: resellTickets & inside resellTickets -> user
+      {
+        $lookup: {
+          from: "reselltickets", // Ensure collection name matches
+          localField: "resellTickets",
+          foreignField: "_id",
+          as: "resellTickets"
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "resellTickets.user",
+          foreignField: "_id",
+          as: "resellTicketsUsers"
+        }
+      },
+      {
+        $addFields: {
+          resellTickets: {
+            $map: {
+              input: "$resellTickets",
+              as: "ticket",
+              in: {
+                $mergeObjects: [
+                  "$$ticket",
+                  {
+                    user: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$resellTicketsUsers",
+                            as: "u",
+                            cond: { $eq: ["$$u._id", "$$ticket.user"] }
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+
+      // 6. Populate: event -> Main processing from the earlier check
+      { $addFields: { event: { $arrayElemAt: ["$eventCheck", 0] } } },
+
+      // 7. Populate deeply nested fields inside event (user, category, likes, coupon, purchase_by)
+      {
+        $lookup: {
+          from: "users",
+          localField: "event.user",
+          foreignField: "_id",
+          as: "eventUser"
+        }
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "event.category",
+          foreignField: "_id",
+          as: "eventCategory"
+        }
+      },
+      {
+        $lookup: {
+          from: "likes",
+          localField: "event.likes",
+          foreignField: "_id",
+          as: "eventLikes"
+        }
+      },
+      {
+        $lookup: {
+          from: "coupons",
+          localField: "event.coupon",
+          foreignField: "_id",
+          as: "eventCoupon"
+        }
+      },
+      {
+        $lookup: {
+          from: "purchases",
+          localField: "event.purchase_by",
+          foreignField: "_id",
+          as: "eventPurchases"
+        }
+      },
+      // Populate user inside purchase_by
+      {
+        $lookup: {
+          from: "users",
+          localField: "eventPurchases.user",
+          foreignField: "_id",
+          as: "purchaseUsers"
+        }
+      },
+
+      // 8. Reconstruct the exact final response structure
+      {
+        $addFields: {
+          "event.user": { $arrayElemAt: ["$eventUser", 0] },
+          "event.category": { $arrayElemAt: ["$eventCategory", 0] },
+          "event.likes": "$eventLikes",
+          "event.coupon": { $arrayElemAt: ["$eventCoupon", 0] },
+          "event.purchase_by": {
+            $slice: [
+              {
+                $map: {
+                  input: "$eventPurchases",
+                  as: "p",
+                  in: {
+                    $mergeObjects: [
+                      "$$p",
+                      {
+                        user: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$purchaseUsers",
+                                as: "pu",
+                                cond: { $eq: ["$$pu._id", "$$p.user"] }
+                              }
+                            },
+                            0
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              3 // Limit purchase_by to 3 items as per your options
+            ]
+          }
+        }
+      },
+
+      // 9. Clean up temporary pipeline fields before returning data
+      {
+        $project: {
+          eventCheck: 0,
+          resellTicketsUsers: 0,
+          eventUser: 0,
+          eventCategory: 0,
+          eventLikes: 0,
+          eventCoupon: 0,
+          eventPurchases: 0,
+          purchaseUsers: 0
+        }
+      }
+    ]);
     const totalCount = await Resell.countDocuments(query);
     const totalPages = Math.ceil(totalCount / pageSize);
-    
 
-    if (likedJobs.length > 0) {
-      for (let purchase of likedJobs) {
-        purchase.event.TotalLikes=purchase.event.likes?.length
-        purchase.event.likes=userId? Array.isArray(purchase.event.likes) && purchase.event.likes.some(like => like.user.toString() === userId.toString()):false
+
+    if (filteredJobs.length > 0) {
+      for (let purchase of filteredJobs) {
+        if (purchase.event) {
+          purchase.event.TotalLikes = purchase.event.likes?.length || 0
+          purchase.event.likes = userId ? Array.isArray(purchase.event.likes) && purchase.event.likes.some(like => like.user.toString() === userId.toString()) : false
+        }
       }
-      res.status(200).json({ success: true, posts: likedJobs,count: { totalPage: totalPages, currentPageSize: likedJobs.length }  });
+      res.status(200).json({ success: true, posts: filteredJobs, count: { totalPage: totalPages, currentPageSize: filteredJobs.length } });
     } else {
-      res.status(200).json({ success: false, message: 'No more resell tickets found',posts:[] ,count: { totalPage: totalPages, currentPageSize: likedJobs.length } });
+      res.status(200).json({ success: false, message: 'No more resell tickets found', posts: [], count: { totalPage: totalPages, currentPageSize: filteredJobs.length } });
     }
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 
 exports.otherResellEvents = async (req, res) => {
-  const userId = req?.user?._id||""
-  const lastId = parseInt(req.params.id)||1;
+  const userId = req?.user?._id || ""
+  const lastId = parseInt(req.params.id) || 1;
 
-    // Check if lastId is a valid number
+  // Check if lastId is a valid number
   if (isNaN(lastId) || lastId < 0) {
     return res.status(400).json({ error: 'Invalid last_id' });
   }
-  let query={};
+  let query = {};
 
   const pageSize = 10;
-  
+
   const skip = Math.max(0, (lastId - 1)) * pageSize;
-  query.user = {$ne:userId};
-  query.resellTickets={ $exists: false  }
+  query.user = { $ne: userId };
+  query.resellTickets = { $exists: false }
 
   try {
-    const likedJobs = await Resell.find(query).populate("user").populate({
-      path: 'event',
-      populate: [
-        { path: 'user', model: 'user' },
-        { path: 'category', model: 'Category' },
-        { path: 'likes', model: 'Like' },
-        { path: 'coupon', model: 'Coupon' },
-        { path: 'purchase_by', model: 'Purchase',options: { limit: 3 }, populate: [{ path: 'user', model: 'user' },]},
-      ]
-    }).sort({ _id: -1 }).skip(skip).limit(pageSize).lean();
+    const likedJobs = await Resell.aggregate([
+      // 1. Initial Query Filter
+      { $match: query },
 
-      const totalCount = await Resell.countDocuments(query);
-      const totalPages = Math.ceil(totalCount / pageSize);
-    
+      // 2. Filter out records where Event does not exist in DB
+      {
+        $lookup: {
+          from: "events", // Ensure this matches your actual Event collection name
+          localField: "event",
+          foreignField: "_id",
+          as: "eventCheck"
+        }
+      },
+      { $match: { "eventCheck.0": { $exists: true } } },
+
+      // 3. Sorting & Pagination (Executed early for performance)
+      { $sort: { _id: -1 } },
+      { $skip: skip },
+      { $limit: pageSize },
+
+      // 4. Populate: user
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+      // 5. Populate: resellTickets & inside resellTickets -> user
+      {
+        $lookup: {
+          from: "reselltickets", // Ensure collection name matches
+          localField: "resellTickets",
+          foreignField: "_id",
+          as: "resellTickets"
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "resellTickets.user",
+          foreignField: "_id",
+          as: "resellTicketsUsers"
+        }
+      },
+      {
+        $addFields: {
+          resellTickets: {
+            $map: {
+              input: "$resellTickets",
+              as: "ticket",
+              in: {
+                $mergeObjects: [
+                  "$$ticket",
+                  {
+                    user: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$resellTicketsUsers",
+                            as: "u",
+                            cond: { $eq: ["$$u._id", "$$ticket.user"] }
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+
+      // 6. Populate: event -> Main processing from the earlier check
+      { $addFields: { event: { $arrayElemAt: ["$eventCheck", 0] } } },
+
+      // 7. Populate deeply nested fields inside event (user, category, likes, coupon, purchase_by)
+      {
+        $lookup: {
+          from: "users",
+          localField: "event.user",
+          foreignField: "_id",
+          as: "eventUser"
+        }
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "event.category",
+          foreignField: "_id",
+          as: "eventCategory"
+        }
+      },
+      {
+        $lookup: {
+          from: "likes",
+          localField: "event.likes",
+          foreignField: "_id",
+          as: "eventLikes"
+        }
+      },
+      {
+        $lookup: {
+          from: "coupons",
+          localField: "event.coupon",
+          foreignField: "_id",
+          as: "eventCoupon"
+        }
+      },
+      {
+        $lookup: {
+          from: "purchases",
+          localField: "event.purchase_by",
+          foreignField: "_id",
+          as: "eventPurchases"
+        }
+      },
+      // Populate user inside purchase_by
+      {
+        $lookup: {
+          from: "users",
+          localField: "eventPurchases.user",
+          foreignField: "_id",
+          as: "purchaseUsers"
+        }
+      },
+
+      // 8. Reconstruct the exact final response structure
+      {
+        $addFields: {
+          "event.user": { $arrayElemAt: ["$eventUser", 0] },
+          "event.category": { $arrayElemAt: ["$eventCategory", 0] },
+          "event.likes": "$eventLikes",
+          "event.coupon": { $arrayElemAt: ["$eventCoupon", 0] },
+          "event.purchase_by": {
+            $slice: [
+              {
+                $map: {
+                  input: "$eventPurchases",
+                  as: "p",
+                  in: {
+                    $mergeObjects: [
+                      "$$p",
+                      {
+                        user: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$purchaseUsers",
+                                as: "pu",
+                                cond: { $eq: ["$$pu._id", "$$p.user"] }
+                              }
+                            },
+                            0
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              3 // Limit purchase_by to 3 items as per your options
+            ]
+          }
+        }
+      },
+
+      // 9. Clean up temporary pipeline fields before returning data
+      {
+        $project: {
+          eventCheck: 0,
+          resellTicketsUsers: 0,
+          eventUser: 0,
+          eventCategory: 0,
+          eventLikes: 0,
+          eventCoupon: 0,
+          eventPurchases: 0,
+          purchaseUsers: 0
+        }
+      }
+    ]);
+
+    const totalCount = await Resell.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
 
     if (likedJobs.length > 0) {
       for (let purchase of likedJobs) {
-        purchase.event.TotalLikes=purchase.event.likes?.length
-        purchase.event.likes=userId? Array.isArray(purchase.event.likes) && purchase.event.likes.some(like => like.user.toString() === userId.toString()):false
+        if (purchase.event) {
+          purchase.event.TotalLikes = purchase.event.likes?.length || 0
+          purchase.event.likes = userId ? Array.isArray(purchase.event.likes) && purchase.event.likes.some(like => like.user.toString() === userId.toString()) : false
+        }
       }
-      res.status(200).json({ success: true, posts: likedJobs,count: { totalPage: totalPages, currentPageSize: likedJobs.length }  });
+      res.status(200).json({ success: true, posts: likedJobs, count: { totalPage: totalPages, currentPageSize: likedJobs.length } });
     } else {
-      res.status(200).json({ success: false, message: 'No more resell tickets found',posts:[] ,count: { totalPage: totalPages, currentPageSize: likedJobs.length } });
+      res.status(200).json({ success: false, message: 'No more resell tickets found', posts: [], count: { totalPage: totalPages, currentPageSize: likedJobs.length } });
     }
   } catch (error) {
     res.status(500).json({ message: 'Internal server error' });
@@ -168,33 +519,33 @@ function convertToUKFormat(dateString) {
   const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
-}   
+}
 
 exports.purchaseTicket = async (req, res) => {
   const userId = req.user._id;
-  const eventId=req.params.id;
+  const eventId = req.params.id;
 
-  const { type }=req.body;
+  const { type } = req.body;
 
   try {
-    const findEvent = await Resell.findOne({_id:eventId,resellTickets:{ $exists: false  }}).populate("user")
+    const findEvent = await Resell.findOne({ _id: eventId, resellTickets: { $exists: false } }).populate("user")
 
     if (!findEvent) return res.status(404).json({ message: "Resel ticket has already been booked by anyother user." });
 
     const post = new Purchase({
       user: userId,
-      event:findEvent.event,
-      tickets:1,
-      totalPrice:Number(findEvent.price),
-      remainig_ticket:1,
-      tickets_type_sale:{
-        type:findEvent.type,
-        totalTicket:1,
-        price:Number(findEvent.price),
-        code:ticketCode(),
-        scanned:[]
+      event: findEvent.event,
+      tickets: 1,
+      totalPrice: Number(findEvent.price),
+      remainig_ticket: 1,
+      tickets_type_sale: {
+        type: findEvent.type,
+        totalTicket: 1,
+        price: Number(findEvent.price),
+        code: ticketCode(),
+        scanned: []
       },
-      resel_by:findEvent.user._id,
+      resel_by: findEvent.user._id,
       type
     })
 
@@ -203,35 +554,35 @@ exports.purchaseTicket = async (req, res) => {
     if (!event) return res.status(404).json({ message: 'Event not found.' });
 
 
-    const logInuser=await User.findById(userId).select("email").lean()
+    const logInuser = await User.findById(userId).select("email").lean()
 
     const ukFormattedDate = convertToUKFormat(event.start_Date);
 
-   await purchaseEmail(logInuser.email,event.name,ukFormattedDate,event.category.name,findEvent.type,)
+    await purchaseEmail(logInuser.email, event.name, ukFormattedDate, event.category.name, findEvent.type,)
 
-    findEvent.resellTickets=post._id
+    findEvent.resellTickets = post._id
 
     const twentyPer = Number(findEvent.price) * 0.20
-    
+
     await sendNotification({
-      user : userId,
-      to_id : findEvent.user._id,
-      description :  `Someone has purchased your resell 1 tickets of your ${findEvent.event.name} booked event`,
-      type :'purchase',
-      title :"New Resell Ticket Purchase",
-      fcmtoken : findEvent.user?.fcmtoken,
-      event:eventId,
-      purchase:post._id
+      user: userId,
+      to_id: findEvent.user._id,
+      description: `Someone has purchased your resell 1 tickets of your ${findEvent.event.name} booked event`,
+      type: 'purchase',
+      title: "New Resell Ticket Purchase",
+      fcmtoken: findEvent.user?.fcmtoken,
+      event: eventId,
+      purchase: post._id
     })
 
     const user = await User.findById(findEvent.user._id);
 
     const transaction = new Transaction({
       user: findEvent.user._id,
-      ticket:findEvent.purchase_ticketId,
+      ticket: findEvent.purchase_ticketId,
       total_price: Number(findEvent.price) - Number(twentyPer),
-      type:"deposit",
-      originalPrice:Number(findEvent.price)
+      type: "deposit",
+      originalPrice: Number(findEvent.price)
     });
     await transaction.save();
 
@@ -242,9 +593,9 @@ exports.purchaseTicket = async (req, res) => {
     user.balance = balance + totalPrice;
     await user.save();
     await findEvent.save();
-    
+
     await post.save();
-    res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket:post });
+    res.status(201).json({ success: true, message: 'Ticket purchase successfully', ticket: post });
   } catch (error) {
     console.log(error)
     res.status(500).json({ success: false, message: 'Internal server error' });
@@ -252,22 +603,22 @@ exports.purchaseTicket = async (req, res) => {
 };
 
 exports.deleteResellTicket = async (req, res) => {
-  const eventId=req.params.id;
+  const eventId = req.params.id;
   try {
-    const findEvent = await Resell.findOneAndDelete({_id:eventId,resellTickets:{ $exists: false  }}).populate("user").lean()
+    const findEvent = await Resell.findOneAndDelete({ _id: eventId, resellTickets: { $exists: false } }).populate("user").lean()
 
     if (!findEvent) return res.status(404).json({ message: "Resell tickets not found with that Id" });
 
-    const purchase=await Purchase.findById(findEvent.purchase_ticketId)
+    const purchase = await Purchase.findById(findEvent.purchase_ticketId)
 
     if (!purchase) return res.status(404).json({ message: "Resell tickets not found with that Id" });
-    
+
     await Purchase.findOneAndUpdate(
       { _id: findEvent.purchase_ticketId },
-      { $push: { "tickets_type_sale.code": ticketCode() }, remainig_ticket : Number(purchase.remainig_ticket) + 1 }
+      { $push: { "tickets_type_sale.code": ticketCode() }, remainig_ticket: Number(purchase.remainig_ticket) + 1 }
     );
 
-    res.status(201).json({ success: true, message: 'Resel Ticket delete successfully', ticket:findEvent });
+    res.status(201).json({ success: true, message: 'Resel Ticket delete successfully', ticket: findEvent });
   } catch (error) {
     console.log(error)
     res.status(500).json({ success: false, message: 'Internal server error' });

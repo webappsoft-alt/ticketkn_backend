@@ -874,6 +874,7 @@ router.post("/send-notifications/:type", [auth, admin], async (req, res) => {
         type: "noti",
         description,
         title,
+        image,
       }));
       await Notification.insertMany(notifications);
       // console.log("Notification sent successfully");
