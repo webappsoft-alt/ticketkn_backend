@@ -161,7 +161,7 @@ exports.editPost = async (req, res) => {
     }
     const post = await Post.findOneAndUpdate({ _id: postId }, updateFields, {
       new: true,
-    });
+    }).populate("category").lean();
 
     if (!post)
       return res.status(404).send({
