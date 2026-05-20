@@ -315,7 +315,7 @@ router.post("/conversion", async (req, res) => {
 
 router.put("/admin/update-user", [auth, admin], async (req, res) => {
   try {
-    const { _id, name, image, interests, location, address, balance } =
+    const { _id, name, image, interests, location, address, balance, status } =
       req.body;
     // Create an object to store the fields to be updated
     const updateFields = Object.fromEntries(
@@ -327,6 +327,7 @@ router.put("/admin/update-user", [auth, admin], async (req, res) => {
         location,
         address,
         balance,
+        status
       }).filter(([key, value]) => value !== undefined),
     );
     // Check if there are any fields to update
@@ -420,6 +421,7 @@ router.delete("/:id", [auth, admin], async (req, res) => {
 router.get("/admin/:type/:id", [auth, admin], async (req, res) => {
   try {
     const lastId = parseInt(req.params.id) || 1;
+    const { status = "online" } = req.query;
 
     // Check if lastId is a valid number
     if (isNaN(lastId) || lastId < 0) {
@@ -427,6 +429,10 @@ router.get("/admin/:type/:id", [auth, admin], async (req, res) => {
     }
 
     let query = {};
+
+    if (status) {
+      query.status = status;
+    }
 
     if (req.params.type !== "all") {
       query.type = req.params.type;

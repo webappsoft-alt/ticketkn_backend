@@ -1180,9 +1180,10 @@ exports.paymentDone = async (req, res) => {
 exports.updatePurchaseScan = async (req, res) => {
   try {
     const ownerUser = req?.user?._id || "";
-    const userId = req.params.userId;
-    const eventId = req.params.eventId;
-    const purchaseId = req.params.purchaseId;
+    console.log("user", req.params.userId);
+    const userId = new mongoose.Types.ObjectId(req.params.userId);
+    const eventId = new mongoose.Types.ObjectId(req.params.eventId);
+    const purchaseId = new mongoose.Types.ObjectId(req.params.purchaseId);
     const purchaseCode = req.params.code;
 
     const scannedAtRaw = req.body?.scannedAt;
@@ -1241,6 +1242,7 @@ exports.updatePurchaseScan = async (req, res) => {
 
     res.status(200).json({ success: true, post: purchase });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -2027,6 +2029,7 @@ exports.getAdminTickets = async (req, res) => {
         AdminTicket.find(baseFilter)
           .skip(skip)
           .limit(limit)
+          .sort({ createdAt: -1 })
           .populate(["event", "supplier", "tickets"]),
         AdminTicket.countDocuments(baseFilter),
       ]);
