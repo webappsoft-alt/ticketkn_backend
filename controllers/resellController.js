@@ -548,7 +548,9 @@ exports.purchaseTicket = async (req, res) => {
       resel_by: findEvent.user._id,
       type
     })
-
+    console.log(" findEvent.purchase_ticketId", findEvent.purchase_ticketId)
+    const purchase = await Purchase.findOneAndUpdate({ _id: findEvent.purchase_ticketId }, { $push: { "resellpurchases": post._id } })
+    if (!purchase) return res.status(404).json({ message: "Resell tickets not found with that Id" });
     const event = await Event.findById(findEvent.event).populate("user category").lean()
 
     if (!event) return res.status(404).json({ message: 'Event not found.' });

@@ -2,6 +2,7 @@ const { default: axios } = require("axios");
 const Post = require("../models/Event");
 const like = require("../models/like");
 const Purchase = require("../models/Purchase");
+const Resell = require("../models/Resell");
 const { sendNotification } = require("./notificationCreateService");
 const { User } = require("../models/user");
 const admin = require("firebase-admin");
@@ -444,8 +445,8 @@ exports.getAdminPost = async (req, res) => {
     .populate("user")
     .populate({
       path: "purchase_by",
-      options: { limit: 3 }, // Limit to 3 users
-      populate: [{ path: "user", model: "user" }],
+      // options: { limit: 300 }, // Limit to 3 users
+      populate: [{ path: "user", model: "user" }, { path: "resellpurchases", model: "Purchase", populate: { path: "user", model: "user" } }],
     })
     .populate("category")
     .populate("coupon")
@@ -467,6 +468,11 @@ exports.getAdminPost = async (req, res) => {
     );
     post.totalPayments = totalPayments;
     post.paidAmount = post.payment.reduce((a, b) => a + Number(b.amount), 0);
+
+    post.ResellTicketsCount = await Resell.countDocuments({
+      event: post._id,
+      resellTickets: { $exists: false },
+    });
   }
 
   const totalCount = await Post.find(query);
@@ -952,7 +958,7 @@ exports.purchaseTicket = async (req, res) => {
     } = req.body;
 
     const findEvent = await Post.findById(eventId).lean();
-
+    // console.log(findEvent._id)
     if (
       Number(findEvent.total_tickets_sale + Number(tickets)) >
       Number(findEvent.join_people)
@@ -961,11 +967,13 @@ exports.purchaseTicket = async (req, res) => {
         .status(404)
         .json({ message: "Event's tickets are fully sold" });
     }
+    // console.log("Hit purchaseTicket")
 
     const eightPerc = Number(totalPrice) * 0.08;
 
     const totalPriceValue = Number(totalPrice) - Number(eightPerc);
     const twoPer = Number(totalPriceValue) * 0.02;
+    // console.log("Hit purchaseTicket")
 
     let codeArray = [];
 
@@ -976,6 +984,7 @@ exports.purchaseTicket = async (req, res) => {
     ) {
       codeArray.push(ticketCode());
     }
+    // console.log("Code", codeArray)
 
     const post = new Purchase({
       user: userId,
@@ -994,20 +1003,27 @@ exports.purchaseTicket = async (req, res) => {
       installmentPlans,
       addOns,
     });
+    // console.log("Event", eventId)
 
     const event = await Post.findByIdAndUpdate(
       eventId,
       {
-        $addToSet: { purchase_by: post._id },
-        total_tickets_sale:
-          Number(findEvent.total_tickets_sale) + Number(tickets),
-        tickets_sale: updateTicketAndTotal(
-          findEvent.tickets_sale,
-          tickets_type_sale[0].type,
-          Number(tickets),
-        ),
+        $push: { purchase_by: post._id },
+        $inc: {
+          total_tickets_sale: Number(tickets)
+        },
+        $set: {
+          tickets_sale: updateTicketAndTotal(
+            findEvent.tickets_sale,
+            tickets_type_sale[0].type,
+            Number(tickets)
+          )
+        }
       },
-      { new: true },
+      {
+        new: true,
+        runValidators: true
+      }
     )
       .populate("user category")
       .lean();
