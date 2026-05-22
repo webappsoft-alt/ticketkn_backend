@@ -304,7 +304,7 @@ exports.otherResellEvents = async (req, res) => {
   const skip = Math.max(0, (lastId - 1)) * pageSize;
   query.user = { $ne: userId };
   query.resellTickets = { $exists: false }
-
+  console.log("query", JSON.stringify(query, null, 2));
   try {
     const likedJobs = await Resell.aggregate([
       // 1. Initial Query Filter
@@ -340,7 +340,7 @@ exports.otherResellEvents = async (req, res) => {
       // 5. Populate: resellTickets & inside resellTickets -> user
       {
         $lookup: {
-          from: "reselltickets", // Ensure collection name matches
+          from: "purchases", // Ensure collection name matches
           localField: "resellTickets",
           foreignField: "_id",
           as: "resellTickets"
@@ -495,7 +495,7 @@ exports.otherResellEvents = async (req, res) => {
 
     const totalCount = await Resell.countDocuments(query);
     const totalPages = Math.ceil(totalCount / pageSize);
-
+    console.log("likedJobs", JSON.stringify(likedJobs, null, 2));
 
     if (likedJobs.length > 0) {
       for (let purchase of likedJobs) {

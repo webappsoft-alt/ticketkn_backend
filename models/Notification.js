@@ -14,7 +14,7 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     default: 'message',
-    enum: ['message',"purchase",'noti','transfer']
+    enum: ['message', "purchase", 'noti', 'transfer']
   },
   event: {
     type: mongoose.Schema.Types.ObjectId,
@@ -40,11 +40,6 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    index: true
-  },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Notification', notificationSchema);

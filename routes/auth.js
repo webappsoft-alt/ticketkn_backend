@@ -19,18 +19,18 @@ router.post('/admin', async (req, res) => {
   if (error) return res.status(400).send({ success: false, message: error.details[0].message });
 
   const { email, password } = req.body;
-  const lowerCaseEmail=String(email).trim().toLocaleLowerCase()
+  const lowerCaseEmail = String(email).trim().toLocaleLowerCase()
 
-  const user = await User.findOne({ email:lowerCaseEmail });
+  const user = await User.findOne({ email: lowerCaseEmail });
 
   if (!user) return res.status(400).send({ success: false, message: 'Invalid credentials' });
 
   const validPassword = await bcrypt.compare(password, user.password);
   if (!validPassword) return res.status(400).send({ success: false, message: 'Invalid credentials' });
 
-  if (user.type !== 'admin') return res.status(400).send({ success: false,message: 'Invalid credentials'  });
+  if (user.type !== 'admin') return res.status(400).send({ success: false, message: 'Invalid credentials' });
 
-  const token = generateAuthToken(user._id,user.type);
+  const token = generateAuthToken(user._id, user.type);
   res.send({
     token: token,
     user: user,
@@ -40,16 +40,16 @@ router.post('/admin', async (req, res) => {
 
 router.post('/:type?', async (req, res) => {
   if (req.params.type == 'social-login') {
-    const { email, fcmtoken,name } = req.body;
-    const lowerCaseEmail=String(email).trim().toLocaleLowerCase()
+    const { email, fcmtoken, name, type } = req.body;
+    const lowerCaseEmail = String(email).trim().toLocaleLowerCase()
 
-    const user = await User.findOne({ email:lowerCaseEmail });
+    const user = await User.findOne({ email: lowerCaseEmail });
 
     if (!user) {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(uid(), salt);
 
-      const newUser = new User({ email:lowerCaseEmail, name: name||"", password: hashedPassword, login_type: "social-login", fcmtoken,type:"customer" });
+      const newUser = new User({ email: lowerCaseEmail, name: name || "", password: hashedPassword, login_type: "social-login", fcmtoken, type: type || "customer" });
 
       await newUser.save();
 
@@ -61,7 +61,7 @@ router.post('/:type?', async (req, res) => {
     if (user.status == 'deleted') return res.status(400).send({ success: false, message: 'User has been deleted. Contact admin for further support.' });
 
     await User.findByIdAndUpdate(user._id, { fcmtoken })
-    const token = generateAuthToken(user._id,user.type);
+    const token = generateAuthToken(user._id, user.type);
 
     res.send({
       token: token,
@@ -74,9 +74,9 @@ router.post('/:type?', async (req, res) => {
   if (error) return res.status(400).send({ success: false, message: error.details[0].message });
 
   const { email, password, fcmtoken } = req.body;
-  const lowerCaseEmail=String(email).trim().toLocaleLowerCase()
+  const lowerCaseEmail = String(email).trim().toLocaleLowerCase()
 
-  const user = await User.findOne({ email:lowerCaseEmail });
+  const user = await User.findOne({ email: lowerCaseEmail });
 
   if (!user) return res.status(400).send({ success: false, message: 'Invalid credentials' });
 
@@ -86,9 +86,9 @@ router.post('/:type?', async (req, res) => {
   if (user.status == 'deleted') return res.status(400).send({ success: false, message: 'User has been deleted. Contact admin for further support.' });
   if (user.status == 'deactivated') return res.status(400).send({ success: false, message: 'User has been deactivated. Contact admin for further support.' });
 
-  user.fcmtoken = fcmtoken||""
+  user.fcmtoken = fcmtoken || ""
   await user.save()
-  const token = generateAuthToken(user._id,user.type);
+  const token = generateAuthToken(user._id, user.type);
   res.send({
     token: token,
     user: user,

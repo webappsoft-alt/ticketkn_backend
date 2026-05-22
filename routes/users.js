@@ -493,6 +493,7 @@ router.get("/admin/:type/:id", [auth, admin], async (req, res) => {
 
 router.get("/search/:id/:search?", auth, async (req, res) => {
   const lastId = parseInt(req.params.id) || 1;
+  const { type } = req.query;
 
   // Check if lastId is a valid number
   if (isNaN(lastId) || lastId < 0) {
@@ -500,8 +501,13 @@ router.get("/search/:id/:search?", auth, async (req, res) => {
   }
 
   let query = {};
+  console.log(type);
 
-  query.type = "customer";
+  if (type && type !== "all") {
+    query.type = type;
+  }
+  console.log(query);
+
   query._id = { $ne: req.user._id };
 
   if (req.params.search) {

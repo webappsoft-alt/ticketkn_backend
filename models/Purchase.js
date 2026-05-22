@@ -95,12 +95,11 @@ const joinUserSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.Mixed,
     },
   ],
-  createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
   type: {
     type: String,
     default: "show",
     enum: ["show", "unshow"],
   },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Purchase", joinUserSchema);

@@ -11,24 +11,22 @@ const productSchema = new mongoose.Schema({
     ref: 'Event',
   },
   price: {
-    type:Number,
-    default:0
+    type: Number,
+    default: 0
   },
-  type:{
+  type: {
     type: String,
     default: 'general',
-    enum: ['general', 'vip','vvip','earlybird']
+    enum: ['general', 'vip', 'vvip', 'earlybird']
   },
-  purchase_ticketId:{
+  purchase_ticketId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Purchase'
   },
-  resellTickets:{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Purchase'
+  resellTickets: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Purchase'
   },
-  createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
-
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Resell', productSchema);
