@@ -626,3 +626,33 @@ exports.deleteResellTicket = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
+exports.adminResellEvents = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query
+    const skip = (Number(page) - 1) * Number(limit)
+    const findEvents = await Resell.find({ resellTickets: { $exists: true } })
+      .populate("user")
+      .populate("purchase_ticketId")
+      .populate("resellTickets")
+      .populate({ path: "event", populate: ["user", "purchase_by", "category"] })
+      .sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean()
+
+    const totalCount = await Resell.countDocuments({ resellTickets: { $exists: true } })
+    const totalPages = Math.ceil(totalCount / Number(limit))
+
+    res.status(200).json({
+      success: true,
+      message: 'Resell tickets found successfully',
+      data: findEvents,
+      page: {
+        totalPage: totalPages,
+        currentPageSize: findEvents.length,
+        currentPage: Number(page)
+      }
+    });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
