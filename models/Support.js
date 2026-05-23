@@ -1,37 +1,58 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
+const messageSchema = new mongoose.Schema(
+  {
+    message: {
+      type: String,
+      required: true,
+    },
 
+    sender: {
+      type: String,
+      enum: ["user", "admin"],
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
 const supportSchema = new mongoose.Schema({
-  // user: {
-  //   type: mongoose.Schema.Types.ObjectId,
-  //   ref: 'user',
-  //   required: true,
-  // },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "user",
+    required: true,
+  },
   name: {
     type: String,
-    required: true,
+    default: "",
+  },
+  title: {
+    type: String,
+    default: "",
   },
   email: {
     type: String,
-    required: true,
+    default: "",
   },
-  msg: {
-    type: String,
-    required: true,
-  },
+  msg: [messageSchema],
   createdAt: {
     type: Date,
     default: Date.now,
-    index: true
+    index: true,
   },
   updated_at: {
     type: Date,
     default: Date.now,
-    index: true
+    index: true,
   },
   attended: {
     type: Boolean,
     default: false,
   },
+  isResolved: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-module.exports = mongoose.model('Support', supportSchema);
+module.exports = mongoose.model("Support", supportSchema);

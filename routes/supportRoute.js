@@ -1,11 +1,20 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const supportController = require('../controllers/supportController');
-const admin = require('../middleware/admin');
-const auth = require('../middleware/auth');
+const supportController = require("../controllers/supportController");
+const admin = require("../middleware/admin");
+const auth = require("../middleware/auth");
 
-router.post('/create',auth, supportController.create);
-router.get('/admin/:id/:search?', [auth, admin], supportController.getAdminnotifications);
-router.put('/attended/:id', [auth, admin], supportController.attendTheSupport);
+router.post("/create", auth, supportController.create);
+router.get(
+  "/admin/:id/:search?",
+  [auth, admin],
+  supportController.getAdminnotifications,
+);
+router.get(
+  "/specific/:id/:search?",
+  [auth],
+  supportController.getSpecificUserMessages,
+);
+router.put("/attended/:id", [auth, admin], supportController.attendTheSupport);
 
 module.exports = router;
