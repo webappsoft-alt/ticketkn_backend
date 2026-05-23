@@ -633,8 +633,8 @@ exports.adminResellEvents = async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit)
     const findEvents = await Resell.find({ resellTickets: { $exists: true } })
       .populate("user")
-      .populate("purchase_ticketId")
-      .populate("resellTickets")
+      .populate({ path: "purchase_ticketId", populate: "user" })
+      .populate({ path: "resellTickets", populate: "user" })
       .populate({ path: "event", populate: ["user", "purchase_by", "category"] })
       .sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean()
 
