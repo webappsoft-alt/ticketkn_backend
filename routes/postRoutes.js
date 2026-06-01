@@ -3,6 +3,7 @@ const router = express.Router();
 const postController = require("../controllers/postController");
 const optionalAuth = require("../middleware/optionalAuth");
 const authMiddleware = require("../middleware/auth");
+const { subUserAuth } = require("../middleware/auth");
 const admin = require("../middleware/admin");
 
 router.post("/create", authMiddleware, postController.createPost);
@@ -69,6 +70,11 @@ router.put(
   authMiddleware,
   postController.updatePurchaseScan,
 );
+router.put(
+  "/ticket/scan-by-subUser/:userId/:eventId/:purchaseId/:code",
+  subUserAuth,
+  postController.updatePurchaseScan,
+);
 // router.get('/ticket/:purchaseId/:code',authMiddleware, postController.getPurchaseTicket);
 router.get("/me/latest", authMiddleware, postController.latestEvent);
 router.get("/me/:id/:search?", authMiddleware, postController.getMyPosts);
@@ -116,6 +122,11 @@ router.delete(
 router.put(
   "/admin/scan-ticket/:id/:code/:eventId",
   authMiddleware,
+  postController.scanPrintTicket,
+);
+router.put(
+  "/admin/scan-ticket-by-subUser/:id/:code/:eventId",
+  subUserAuth,
   postController.scanPrintTicket,
 );
 module.exports = router;

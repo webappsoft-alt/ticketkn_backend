@@ -18,6 +18,10 @@ const ticketObj = {
   scanned: [Number],
   scannedAtLog: [
     {
+      scannedby: {
+        type: String,
+        default: "Owner",
+      },
       code: { type: mongoose.Schema.Types.Mixed },
       scannedAt: { type: Date },
     },

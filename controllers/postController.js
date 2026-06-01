@@ -1345,7 +1345,7 @@ exports.paymentDone = async (req, res) => {
 
 exports.updatePurchaseScan = async (req, res) => {
   try {
-    const ownerUser = req?.user?._id || "";
+    const ownerUser = req?.mainUser || req?.user?._id || "";
     console.log("user", req.params.userId);
     const userId = new mongoose.Types.ObjectId(req.params.userId);
     const eventId = new mongoose.Types.ObjectId(req.params.eventId);
@@ -1357,6 +1357,12 @@ exports.updatePurchaseScan = async (req, res) => {
       scannedAtRaw != null && !Number.isNaN(new Date(scannedAtRaw).getTime())
         ? new Date(scannedAtRaw)
         : new Date();
+    let scannedby = "";
+    if (req?.mainUser) {
+      scannedby = req.user.fullName;
+    } else {
+      scannedby = "Owner";
+    }
 
     const codeForLog = Number(purchaseCode);
     const logCode = Number.isNaN(codeForLog) ? purchaseCode : codeForLog;
@@ -1376,6 +1382,7 @@ exports.updatePurchaseScan = async (req, res) => {
         $addToSet: { "tickets_type_sale.scanned": purchaseCode },
         $push: {
           "tickets_type_sale.scannedAtLog": {
+            scannedby: scannedby,
             code: logCode,
             scannedAt,
           },
@@ -2290,7 +2297,7 @@ exports.deletePrintTicket = async (req, res) => {
 
 exports.scanPrintTicket = async (req, res) => {
   try {
-    const supplierId = req.user._id;
+    const supplierId = req?.mainUser || req.user._id;
     const eventId = req.params.eventId;
     const adminTicket = await AdminTicket.findOne({
       supplier: supplierId,
