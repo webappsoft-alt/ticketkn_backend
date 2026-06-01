@@ -1,11 +1,10 @@
 const { name } = require("ejs");
 const Support = require("../models/Support");
 const { sendNotification } = require("./notificationCreateService");
-
+const { User } = require("../models/user");
 exports.create = async (req, res) => {
   try {
     const { name, email, msg, title } = req.body;
-    console.log("Hit api");
     const userId = req.user._id;
     if (!userId)
       return res
@@ -29,17 +28,47 @@ exports.create = async (req, res) => {
         setDefaultsOnInsert: true,
       },
     );
-
+    const user = await User.findOne({ type: "admin" })
+      .select("fcmtoken _id")
+      .lean();
+    await sendNotification({
+      user: userId,
+      to_id: user._id,
+      description: msg,
+      type: "support",
+      title: `Support message from user`,
+      fcmtoken: user?.fcmtoken,
+      support: support._id.toString(),
+    });
     res.status(201).json({
       success: true,
       message: "Message has sent successfully",
       message: support,
     });
   } catch (error) {
+    console.log("error", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
+exports.getAdminnotificationsCount = async (req, res) => {
+  try {
+    const unRead = await Support.countDocuments({
+      attended: false,
+    });
+    const resolved = await Support.countDocuments({
+      isResolved: false,
+    });
+    res.status(200).json({
+      success: true,
+      unattended: unRead,
+      unresolved: resolved,
+      total: resolved + unRead,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 exports.getAdminnotifications = async (req, res) => {
   const lastId = parseInt(req.params.id);
 
@@ -64,19 +93,29 @@ exports.getAdminnotifications = async (req, res) => {
 
     const totalCount = await Support.find(query);
     const totalPages = Math.ceil(totalCount.length / pageSize);
-
+    const unRead = await Support.countDocuments({
+      attended: false,
+    });
     if (categories.length > 0) {
       res.status(200).json({
         success: true,
         Messages: categories,
-        count: { totalPage: totalPages, currentPageSize: categories.length },
+        count: {
+          totalPage: totalPages,
+          currentPageSize: categories.length,
+          unRead: unRead,
+        },
       });
     } else {
       res.status(200).json({
         success: false,
         message: "No more Messages found",
         Messages: categories,
-        count: { totalPage: totalPages, currentPageSize: 0 },
+        count: {
+          totalPage: totalPages,
+          currentPageSize: 0,
+          unRead: unRead,
+        },
       });
     }
   } catch (error) {
@@ -164,6 +203,7 @@ exports.attendTheSupport = async (req, res) => {
       type: "support",
       title: `Support message from admin`,
       fcmtoken: service.user.fcmtoken,
+      support: service._id.toString(),
     });
 
     res

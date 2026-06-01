@@ -11,6 +11,11 @@ router.get(
   supportController.getAdminnotifications,
 );
 router.get(
+  "/admin-count",
+  [auth, admin],
+  supportController.getAdminnotificationsCount,
+);
+router.get(
   "/specific/:id/:search?",
   [auth],
   supportController.getSpecificUserMessages,

@@ -53,6 +53,16 @@ router.put(
   authMiddleware,
   postController.transferTickets,
 );
+router.put(
+  "/accept-transfer/:transferId",
+  authMiddleware,
+  postController.acceptTransfer,
+);
+router.put(
+  "/reject-transfer/:transferId",
+  authMiddleware,
+  postController.rejectTransfer,
+);
 router.post("/payment", postController.paymentDone);
 router.put(
   "/ticket/scan/:userId/:eventId/:purchaseId/:code",

@@ -12,6 +12,8 @@ const { ticketCode, generateRandomString } = require("./generateCode");
 const { purchaseEmail } = require("./emailservice");
 const { AdminTicket, PrintTicket } = require("../models/AdminTicket");
 const mongoose = require("mongoose");
+const { TicketTransfer } = require("../models/TicketTransfer");
+const Notification = require("../models/Notification");
 exports.createPost = async (req, res) => {
   try {
     const {
@@ -96,7 +98,7 @@ exports.createPost = async (req, res) => {
       }));
       try {
         await admin.messaging().sendEach(messages);
-      } catch (error) { }
+      } catch (error) {}
     }
 
     await post.save();
@@ -162,7 +164,9 @@ exports.editPost = async (req, res) => {
     }
     const post = await Post.findOneAndUpdate({ _id: postId }, updateFields, {
       new: true,
-    }).populate("category").lean();
+    })
+      .populate("category")
+      .lean();
 
     if (!post)
       return res.status(404).send({
@@ -446,7 +450,14 @@ exports.getAdminPost = async (req, res) => {
     .populate({
       path: "purchase_by",
       // options: { limit: 300 }, // Limit to 3 users
-      populate: [{ path: "user", model: "user" }, { path: "resellpurchases", model: "Purchase", populate: { path: "user", model: "user" } }],
+      populate: [
+        { path: "user", model: "user" },
+        {
+          path: "resellpurchases",
+          model: "Purchase",
+          populate: { path: "user", model: "user" },
+        },
+      ],
     })
     .populate("category")
     .populate("coupon")
@@ -572,11 +583,11 @@ exports.filterPosts = async (req, res) => {
       post.TotalLikes = post?.likes?.length || 0;
       post.likes = userId
         ? Array.isArray(post.likes) &&
-        post.likes.some((like) => like.user.toString() === userId.toString())
+          post.likes.some((like) => like.user.toString() === userId.toString())
         : false;
       post.purchase_by = userId
         ? Array.isArray(post.purchase_by) &&
-        post.purchase_by.some((like) => like.toString() === userId.toString())
+          post.purchase_by.some((like) => like.toString() === userId.toString())
         : false;
     }
 
@@ -626,11 +637,11 @@ exports.filterPosts = async (req, res) => {
       post.TotalLikes = post?.likes?.length || 0;
       post.likes = userId
         ? Array.isArray(post.likes) &&
-        post.likes.some((like) => like.user.toString() === userId.toString())
+          post.likes.some((like) => like.user.toString() === userId.toString())
         : false;
       post.purchase_by = userId
         ? Array.isArray(post.purchase_by) &&
-        post.purchase_by.some((like) => like.toString() === userId.toString())
+          post.purchase_by.some((like) => like.toString() === userId.toString())
         : false;
     }
 
@@ -680,7 +691,7 @@ exports.filterPosts = async (req, res) => {
       post.TotalLikes = post?.likes?.length || 0;
       post.likes = userId
         ? Array.isArray(post.likes) &&
-        post.likes.some((like) => like.user.toString() === userId.toString())
+          post.likes.some((like) => like.user.toString() === userId.toString())
         : false;
     }
 
@@ -705,7 +716,7 @@ exports.filterPosts = async (req, res) => {
       post.TotalLikes = post?.likes?.length || 0;
       post.likes = userId
         ? Array.isArray(post.likes) &&
-        post.likes.some((like) => like.user.toString() === userId.toString())
+          post.likes.some((like) => like.user.toString() === userId.toString())
         : false;
     }
 
@@ -743,7 +754,7 @@ exports.getDetailsEvent = async (req, res) => {
   const TotalLikes = post?.likes?.length || 0;
   const likes = userId
     ? Array.isArray(post.likes) &&
-    post.likes.some((like) => like.user.toString() === userId.toString())
+      post.likes.some((like) => like.user.toString() === userId.toString())
     : false;
 
   res.send({ success: true, post: { ...post, TotalLikes, likes } });
@@ -1010,20 +1021,20 @@ exports.purchaseTicket = async (req, res) => {
       {
         $push: { purchase_by: post._id },
         $inc: {
-          total_tickets_sale: Number(tickets)
+          total_tickets_sale: Number(tickets),
         },
         $set: {
           tickets_sale: updateTicketAndTotal(
             findEvent.tickets_sale,
             tickets_type_sale[0].type,
-            Number(tickets)
-          )
-        }
+            Number(tickets),
+          ),
+        },
       },
       {
         new: true,
-        runValidators: true
-      }
+        runValidators: true,
+      },
     )
       .populate("user category")
       .lean();
@@ -1074,78 +1085,217 @@ exports.transferTickets = async (req, res) => {
   const ownerUser = req?.user?._id || "";
   const userId = req.params.userId;
   const purchaseId = req.params.purchaseId;
-  const purchaseCode = req.params.code;
-
+  const code = req.params.code;
+  console.log("Hit transferTickets");
   try {
-    const purchase = await Purchase.findOneAndUpdate(
-      {
-        user: ownerUser,
-        _id: purchaseId,
-        "tickets_type_sale.code": { $in: purchaseCode },
-        "tickets_type_sale.scanned": { $ne: purchaseCode },
-      },
-      { $addToSet: { "tickets_type_sale.scanned": purchaseCode } },
-      { new: true },
-    ).populate("user");
+    // 1. Validate that the ticket exists and is owned by the sender
+    const purchase = await Purchase.findOne({
+      _id: purchaseId,
+      user: ownerUser,
+      "tickets_type_sale.code": code, // code is in the available list
+      "tickets_type_sale.scanned": { $ne: code }, // not already scanned
+    }).populate("user");
 
-    if (!purchase)
-      return res
-        .status(404)
-        .json({ message: "Ticket did not found or has already been scanned." });
+    if (!purchase) {
+      return res.status(404).json({
+        message: "Ticket not found or already used.",
+      });
+    }
 
-    const post = new Purchase({
-      user: userId,
-      event: purchase.event,
-      tickets: 1,
-      totalPrice: Number(purchase.totalPrice),
-      remainig_ticket: 1,
-      tickets_type_sale: {
-        type: purchase.tickets_type_sale.type,
-        totalTicket: 1,
-        price: Number(purchase.tickets_type_sale.price),
-        code: ticketCode(),
-        scanned: [],
-      },
-      resel_by: ownerUser,
+    // 2. Check that there is no other pending transfer for this exact code
+    const existingPending = await TicketTransfer.findOne({
+      purchase: purchaseId,
+      recipient: userId,
+      status: "pending",
     });
 
-    await Purchase.findOneAndUpdate(
-      { _id: purchaseId },
-      {
-        $pull: { "tickets_type_sale.code": purchaseCode },
-        remainig_ticket: Number(purchase.remainig_ticket) - 1,
-      },
-    );
+    if (existingPending) {
+      return res.status(409).json({
+        message: "A pending transfer request already exists for this ticket.",
+      });
+    }
 
+    // 3. Create the pending transfer request
+    const transfer = await TicketTransfer.create({
+      sender: ownerUser,
+      recipient: userId,
+      purchase: purchaseId,
+      code,
+      event: purchase.event,
+    });
+
+    // 4. Send notification to recipient (with accept/reject deep‑link or actions)
+    const toUser = await User.findById(userId).select("fcmtoken").lean();
     const event = await Post.findById(purchase.event).lean();
-
-    if (!event) return res.status(404).json({ message: "Event not found." });
-
-    const to_User = await User.findById(userId).select("fcmtoken").lean();
 
     await sendNotification({
       user: ownerUser,
       to_id: userId,
-      description: `${purchase.user?.name} has transfer 1 ticket of ${event.name} event to you.`,
+      description: `${purchase.user?.name} wants to transfer 1 ticket of ${event.name} to you.`,
       type: "transfer",
-      title: "Ticket transfer",
-      fcmtoken: to_User?.fcmtoken,
+      title: "Ticket Transfer Request",
+      fcmtoken: toUser?.fcmtoken,
       event: purchase.event,
-      purchase: post._id,
+      transferId: transfer._id, // include this in data payload
     });
 
-    await post.save();
     res.status(201).json({
       success: true,
-      message: "Ticket purchase successfully",
-      ticket: post,
+      message: "Transfer request sent.",
+      transfer,
     });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+exports.acceptTransfer = async (req, res) => {
+  const transferId = req.params.transferId;
+  const userId = req.user._id;
+  console.log("Hit acceptTransfer");
+  try {
+    const transfer = await TicketTransfer.findOne({
+      _id: transferId,
+      recipient: userId,
+      status: "pending",
+    });
+    if (!transfer) {
+      return res
+        .status(404)
+        .json({ message: "Transfer request not found or already handled." });
+    }
+    // 1. Perform the actual ticket transfer atomically
+    //    Use a transaction to ensure consistency
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
+    try {
+      // a) Mark the original ticket code as scanned and remove it from code array
+      const originalPurchase = await Purchase.findOneAndUpdate(
+        {
+          _id: transfer.purchase,
+          "tickets_type_sale.code": transfer.code,
+          "tickets_type_sale.scanned": { $ne: transfer.code },
+        },
+        { $addToSet: { "tickets_type_sale.scanned": transfer.code } },
+        { new: true, session },
+      );
+
+      if (!originalPurchase) {
+        throw new Error("Ticket already transferred or invalid.");
+      }
+
+      // b) Remove the code from the code array and decrement remaining tickets
+      await Purchase.updateOne(
+        { _id: transfer.purchase },
+        {
+          $pull: { "tickets_type_sale.code": transfer.code },
+          $inc: { remainig_ticket: -1 },
+        },
+        { session },
+      );
+
+      // c) Create a new purchase for the recipient
+      const newPurchase = new Purchase({
+        user: transfer.recipient,
+        event: transfer.event,
+        tickets: 1,
+        totalPrice: originalPurchase.totalPrice, // or the single ticket price, adapt as needed
+        remainig_ticket: 1,
+        tickets_type_sale: {
+          type: originalPurchase.tickets_type_sale.type,
+          totalTicket: 1,
+          price: originalPurchase.tickets_type_sale.price,
+          code: ticketCode(), // generate a fresh code
+          scanned: [],
+        },
+        resel_by: transfer.sender,
+      });
+
+      await newPurchase.save({ session });
+
+      // d) Update the transfer request status
+      transfer.status = "accepted";
+      transfer.actionAt = new Date();
+      await Notification.findOneAndDelete({
+        transferId: transferId,
+      }).session(session);
+      await transfer.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // Notify the sender about the acceptance
+      // (Optional, but good for UX)
+
+      res.status(200).json({
+        success: true,
+        message: "Ticket accepted and transferred.",
+        newPurchase,
+      });
+    } catch (err) {
+      console.log(err);
+      await session.abortTransaction();
+      session.endSession();
+      throw err;
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+exports.rejectTransfer = async (req, res) => {
+  const transferId = req.params.transferId;
+  const userId = req.user._id;
+
+  try {
+    const transfer = await TicketTransfer.findOneAndUpdate(
+      {
+        _id: transferId,
+        recipient: userId,
+        status: "pending",
+      },
+      {
+        status: "rejected",
+        actionAt: new Date(),
+      },
+      { new: true },
+    ).populate([
+      { path: "sender", select: "name fcmtoken" },
+      { path: "recipient", select: "name fcmtoken" },
+      { path: "event", select: "name" },
+    ]);
+
+    if (!transfer) {
+      return res
+        .status(404)
+        .json({ message: "Transfer request not found or already handled." });
+    }
+    await Notification.findOneAndDelete({
+      transferId: transferId,
+    });
+    // Optionally notify sender of rejection
+    await sendNotification({
+      user: transfer.recipient._id,
+      to_id: transfer.sender._id,
+      description: `${transfer.recipient?.name} has rejected your transfer request.`,
+      type: "transfer",
+      title: "Transfer Request Rejected",
+      fcmtoken: transfer.sender?.fcmtoken,
+      event: transfer.event._id,
+      // transferId: transfer._id,
+    });
+    res.status(200).json({
+      success: true,
+      message: "Transfer request rejected.",
+      transfer,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
 exports.paymentDone = async (req, res) => {
   try {
     const body = {
