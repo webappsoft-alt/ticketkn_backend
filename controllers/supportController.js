@@ -201,7 +201,9 @@ exports.attendTheSupport = async (req, res) => {
       to_id: service.user._id,
       description: msg,
       type: "support",
-      title: `Support message from admin`,
+      title: isResolved
+        ? "Your Support ticket has been resolved"
+        : `Support message from admin`,
       fcmtoken: service.user.fcmtoken,
       support: service._id.toString(),
     });

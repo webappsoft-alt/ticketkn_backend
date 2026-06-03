@@ -36,8 +36,7 @@ const subUserAuth = async function (req, res, next) {
 
   try {
     const decoded = jwt.verify(token, config.get("jwtPrivateKey")); //JWT need to be defined somewherelese
-    const user = await subUser.findById(decoded._id).select("status");
-
+    const user = await subUser.findById(decoded.subUser).lean();
     if (user.status == "active") {
       req.mainUser = user.mainUser;
       req.user = user;

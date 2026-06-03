@@ -682,6 +682,76 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
   });
 });
 
+const getDailyData = (purchases, daysCount) => {
+  const data = [];
+  const start = moment().subtract(daysCount - 1, "days").startOf("day");
+  const end = moment().endOf("day");
+
+  const dailyMap = {};
+  for (let i = 0; i < daysCount; i++) {
+    const dateObj = moment(start).add(i, "days");
+    const dayStr = dateObj.format("YYYY-MM-DD");
+    dailyMap[dayStr] = {
+      x: dateObj.format("DD MMM"),
+      y: 0,
+    };
+  }
+
+  purchases.forEach((p) => {
+    if (!p.createdAt) return;
+    const purchaseDate = moment(p.createdAt);
+    if (purchaseDate.isBetween(start, end, null, "[]")) {
+      const dayStr = purchaseDate.format("YYYY-MM-DD");
+      if (dailyMap[dayStr]) {
+        dailyMap[dayStr].y += Number(p.ownerPrice || 0);
+      }
+    }
+  });
+
+  for (let i = 0; i < daysCount; i++) {
+    const dayStr = moment(start).add(i, "days").format("YYYY-MM-DD");
+    dailyMap[dayStr].y = Math.round(dailyMap[dayStr].y * 100) / 100;
+    data.push(dailyMap[dayStr]);
+  }
+
+  return data;
+};
+
+const getMonthlyData = (purchases) => {
+  const data = [];
+  const start = moment().subtract(11, "months").startOf("month");
+  const end = moment().endOf("month");
+
+  const monthlyMap = {};
+  for (let i = 0; i < 12; i++) {
+    const dateObj = moment(start).add(i, "months");
+    const monthStr = dateObj.format("YYYY-MM");
+    monthlyMap[monthStr] = {
+      x: dateObj.format("MMM YY"),
+      y: 0,
+    };
+  }
+
+  purchases.forEach((p) => {
+    if (!p.createdAt) return;
+    const purchaseDate = moment(p.createdAt);
+    if (purchaseDate.isBetween(start, end, null, "[]")) {
+      const monthStr = purchaseDate.format("YYYY-MM");
+      if (monthlyMap[monthStr]) {
+        monthlyMap[monthStr].y += Number(p.ownerPrice || 0);
+      }
+    }
+  });
+
+  for (let i = 0; i < 12; i++) {
+    const monthStr = moment(start).add(i, "months").format("YYYY-MM");
+    monthlyMap[monthStr].y = Math.round(monthlyMap[monthStr].y * 100) / 100;
+    data.push(monthlyMap[monthStr]);
+  }
+
+  return data;
+};
+
 router.get("/owner-dashboard", auth, async (req, res) => {
   const userId = req.user._id;
 
@@ -785,6 +855,26 @@ router.get("/owner-dashboard", auth, async (req, res) => {
       100;
   }
 
+  // Get all active events of the owner to compute historical graph correctly
+  const allOwnerEvents = await Event.find({
+    user: userId,
+    status: "active",
+  }).distinct("_id");
+
+  const cutoffDate = moment().subtract(365, "days").startOf("day").toDate();
+  const ownerPurchases = await Purchase.find({
+    event: { $in: allOwnerEvents },
+    resel_by: { $exists: false },
+    createdAt: { $gte: cutoffDate },
+  })
+    .select("ownerPrice createdAt")
+    .lean();
+
+  const graph7 = getDailyData(ownerPurchases, 7);
+  const graph30 = getDailyData(ownerPurchases, 30);
+  const graph90 = getDailyData(ownerPurchases, 90);
+  const graph365 = getMonthlyData(ownerPurchases);
+
   res.send({
     success: true,
     events: {
@@ -802,11 +892,16 @@ router.get("/owner-dashboard", auth, async (req, res) => {
       growth: growthEarnings.toFixed(2),
       status: growthEarnings >= 0 ? "positive" : "negative",
     },
-
     upcomingevents: {
       total: totalUpcomingEvents,
       growth: growthUpcoming.toFixed(2),
       status: growthUpcoming >= 0 ? "positive" : "negative",
+    },
+    graph: {
+      "7": graph7,
+      "30": graph30,
+      "90": graph90,
+      "365": graph365,
     },
   });
 });

@@ -271,8 +271,15 @@ exports.getMyPosts = async (req, res) => {
     .populate("likes")
     .populate({
       path: "purchase_by",
-      // options: { limit: 3 }, // Limit to 3 users
-      populate: [{ path: "user", model: "user" }],
+      populate: [
+        { path: "user", model: "user" },
+        { path: "resel_by", model: "user" },
+        {
+          path: "resellpurchases",
+          model: "Purchase",
+          populate: [{ path: "user", model: "user" }],
+        },
+      ],
     })
     .populate("coupon")
     .populate("category")
@@ -377,13 +384,21 @@ exports.latestEvent = async (req, res) => {
 
   const users = await Post.find(query)
     .populate("user")
+    .populate("likes")
     .populate({
       path: "purchase_by",
-      options: { limit: 3 }, // Limit to 3 users
-      populate: [{ path: "user", model: "user" }],
+      populate: [
+        { path: "user", model: "user" },
+        { path: "resel_by", model: "user" },
+        {
+          path: "resellpurchases",
+          model: "Purchase",
+          populate: [{ path: "user", model: "user" }],
+        },
+      ],
     })
-    .populate("category")
     .populate("coupon")
+    .populate("category")
     .sort({ start_Date: 1 })
     .limit(10)
     .lean();
@@ -1402,8 +1417,16 @@ exports.updatePurchaseScan = async (req, res) => {
           {
             path: "purchase_by",
             model: "Purchase",
-            options: { limit: 3 },
-            populate: [{ path: "user", model: "user" }],
+            // options: { limit: 3 },
+            populate: [
+              { path: "user", model: "user" },
+              { path: "resel_by", model: "user" },
+              {
+                path: "resellpurchases",
+                model: "Purchase",
+                populate: [{ path: "user", model: "user" }],
+              },
+            ],
           },
         ],
       });
