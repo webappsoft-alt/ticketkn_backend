@@ -482,12 +482,14 @@ exports.getAdminPost = async (req, res) => {
     .lean();
 
   for (let post of users) {
+    // ── Regular purchases (no resel_by) ──────────────────────────────────────
     const purchases = await Purchase.find({
       event: post._id,
       resel_by: { $exists: false },
     })
-      .select("totalPrice")
+      .select("totalPrice createdAt")
       .lean();
+
     const totalPayments = purchases.reduce(
       (a, b) => a + Number(b.totalPrice),
       0,
@@ -499,6 +501,96 @@ exports.getAdminPost = async (req, res) => {
       event: post._id,
       resellTickets: { $exists: false },
     });
+
+    // ── Resell purchases (resel_by exists) ───────────────────────────────────
+    const resellPurchases = await Purchase.find({
+      event: post._id,
+      resel_by: { $exists: true },
+    })
+      .select("totalPrice createdAt")
+      .lean();
+
+    // ── Helper: format a Date as "June 1st, 2026 - 10am" ────────────────────
+    const formatEntry = (date) => {
+      const d = new Date(date);
+      const monthNames = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      const day = d.getDate();
+      const suffix =
+        day % 10 === 1 && day !== 11
+          ? "st"
+          : day % 10 === 2 && day !== 12
+            ? "nd"
+            : day % 10 === 3 && day !== 13
+              ? "rd"
+              : "th";
+      const month = monthNames[d.getMonth()];
+      const year = d.getFullYear();
+      const hours = d.getHours();
+      const ampm = hours >= 12 ? "pm" : "am";
+      const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+      return `${month} ${day}${suffix}, ${year} - ${hour12}${ampm}`;
+    };
+
+    // ── Build ledger entries ──────────────────────────────────────────────────
+    // Regular purchase: admin earns 8% of gross buyer price.
+    // Stored totalPrice = gross * 0.92, so gross = totalPrice / 0.92
+    const regularEntries = purchases.map((p) => {
+      const gross = Number(p.totalPrice) / 0.92;
+      const adminCommission = gross * 0.08;
+      return {
+        _id: p._id,
+        date: formatEntry(p.createdAt),
+        type: "ticket sale",
+        amount: parseFloat(adminCommission.toFixed(2)),
+        rawDate: p.createdAt,
+      };
+    });
+
+    // Resell purchase: admin earns 20% of the resell price (stored as totalPrice).
+    const resellEntries = resellPurchases.map((p) => {
+      const adminCommission = Number(p.totalPrice) * 0.2;
+      return {
+        _id: p._id,
+        date: formatEntry(p.createdAt),
+        type: "resell ticket",
+        amount: parseFloat(adminCommission.toFixed(2)),
+        rawDate: p.createdAt,
+      };
+    });
+
+    // ── Merge, sort chronologically, compute total ────────────────────────────
+    const allEntries = [...regularEntries, ...resellEntries].sort(
+      (a, b) => new Date(a.rawDate) - new Date(b.rawDate),
+    );
+
+    const totalAdminEarnings = parseFloat(
+      allEntries.reduce((sum, e) => sum + e.amount, 0).toFixed(2),
+    );
+
+    // Remove rawDate before sending (used only for sorting)
+    const ledger = allEntries.map(({ _id, date, type, amount }) => ({
+      _id,
+      date,
+      type,
+      amount,
+      label: `${date} - ${type} - $${amount}`,
+    }));
+
+    post.adminEarningsLedger = ledger;
+    post.totalAdminEarnings = totalAdminEarnings;
   }
 
   const totalCount = await Post.find(query);
