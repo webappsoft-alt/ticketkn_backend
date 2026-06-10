@@ -83,7 +83,7 @@ router.get("/my-details", subUserAuth, async (req, res) => {
   try {
     const user = await subUser
       .findById(req.user._id)
-      .populate(accessEventsPopulate)
+      .populate(accessEventsPopulate).populate({ path: "mainUser", model: "user" })
       .lean();
     res.status(200).json({ success: true, subUser: user });
   } catch (error) {
@@ -265,7 +265,7 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
     const user = await subUser
       .findOne({ email })
-      .populate(accessEventsPopulate)
+      .populate(accessEventsPopulate).populate({ path: "mainUser", model: "user" })
       .lean();
     if (!user) {
       return res

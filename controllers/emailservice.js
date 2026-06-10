@@ -19,8 +19,8 @@ exports.sendEmail = async (email, code) => {
   const mailOptions = {
     from: "Support@ticketkn.com",
     to: email, // Replace with the recipient's email address
-    subject: "TicketKN app Verification",
-    text: "Your TicketKN app verification code is " + code,
+    subject: "Tickitts app Verification",
+    text: "Your Tickitts app verification code is " + code,
   };
 
   // Send the email
@@ -189,7 +189,7 @@ exports.purchaseEmail = async (
   const mailOptions = {
     from: "Support@ticketkn.com",
     to: email, // Replace with the recipient's email address
-    subject: "TicketKN ticekt purchase",
+    subject: "Tickitts ticekt purchase",
     html: html,
   };
 
@@ -230,7 +230,7 @@ const subUserEmailTemplate = (email, password) => {
           <!-- Header with logo -->
           <tr>
             <td style="padding: 30px 40px 20px; text-align: center; border-bottom: 1px solid #eef1f5;">
-              <img src="https://admin.ticketkn.com/assets/Logo-C8CE8f4J.png" alt="TicketKN" width="150" style="display: block; margin: 0 auto; max-width: 150px; height: auto;" />
+              <img src="https://admin.ticketkn.com/newlogo.png" alt="Tickitts" width="150" style="display: block; margin: 0 auto; max-width: 150px; height: auto;" />
             </td>
           </tr>
           <!-- Body -->
@@ -238,7 +238,7 @@ const subUserEmailTemplate = (email, password) => {
             <td style="padding: 40px 40px 30px;">
               <h2 style="margin: 0 0 16px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 22px; color: #2c3e50; font-weight: 600;">Welcome to the team!</h2>
               <p style="margin: 0 0 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.5; color: #5a6a7e;">
-                A sub‑user account has been created for you on the <strong>TicketKN</strong> platform. Use the credentials below to log in.
+                A sub‑user account has been created for you on the <strong>Tickitts</strong> platform. Use the credentials below to log in.
               </p>
 
               <!-- Credentials box -->
@@ -280,7 +280,7 @@ const subUserEmailTemplate = (email, password) => {
           <tr>
             <td style="padding: 20px 40px 30px; border-top: 1px solid #eef1f5; text-align: center;">
               <p style="margin: 0 0 8px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; color: #94a3b8;">
-                &copy; ${new Date().getFullYear()} TicketKN. All rights reserved.
+                &copy; ${new Date().getFullYear()} Tickitts. All rights reserved.
               </p>
               <p style="margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; color: #94a3b8;">
                 Need help? <a href="mailto:support@ticketkn.com" style="color: #2196f3; text-decoration: none;">Contact Support</a>
@@ -314,7 +314,7 @@ exports.sendSubUserEmail = async (email, password) => {
   const mailOptions = {
     from: "Support@ticketkn.com",
     to: email, // Replace with the recipient's email address
-    subject: "TicketKN ticekt purchase",
+    subject: "Tickitts ticekt purchase",
     html: html,
   };
 

@@ -421,7 +421,7 @@ router.delete("/:id", [auth, admin], async (req, res) => {
 router.get("/admin/:type/:id", [auth, admin], async (req, res) => {
   try {
     const lastId = parseInt(req.params.id) || 1;
-    const { status = "online" } = req.query;
+    const { status = "online", unpaid = false, paid = false } = req.query;
 
     // Check if lastId is a valid number
     if (isNaN(lastId) || lastId < 0) {
@@ -438,6 +438,12 @@ router.get("/admin/:type/:id", [auth, admin], async (req, res) => {
       query.type = req.params.type;
     }
 
+    if (unpaid) {
+      query.balance = { $gt: 0 };
+    }
+    if (paid) {
+      query.balance = { $lte: 0 };
+    }
     const pageSize = 10;
 
     const skip = Math.max(0, lastId - 1) * pageSize;
@@ -552,6 +558,7 @@ function findDateIndex(createdAt, dates) {
 }
 
 router.get("/dashboard", [auth, admin], async (req, res) => {
+
   const totalUsers = await User.countDocuments({ type: "customer" });
 
   // Get users registered yesterday
@@ -622,42 +629,52 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
   const twentPerc = Number(totalOtherPayments) * 0.2;
   const eightResel = Number(totalOtherPayments) * 0.08;
 
-  const now = new Date();
+  const queryStart = req.query.startDate
+    ? moment(req.query.startDate).startOf("day")
+    : moment().subtract(11, "months").startOf("month");
+  const queryEnd = req.query.endDate
+    ? moment(req.query.endDate).endOf("day")
+    : moment().endOf("day");
+
   let dates = [];
-  for (let i = 0; i < 12; i++) {
-    let date = new Date(now);
-    date.setMonth(now.getMonth() - i);
-    dates.unshift(date.toISOString());
+  const monthCursor = queryStart.clone().startOf("month");
+  const monthEnd = queryEnd.clone().endOf("month");
+  while (monthCursor.isSameOrBefore(monthEnd, "month")) {
+    dates.push(monthCursor.toISOString());
+    monthCursor.add(1, "month");
   }
-  const startDate = moment().startOf("year");
-  const todayEnd = moment().endOf("day");
 
   const orders = await Purchase.find({
-    createdAt: { $gte: startDate, $lte: todayEnd },
+    createdAt: { $gte: queryStart.toDate(), $lte: queryEnd.toDate() },
   })
-    .select("totalPrice createdAt resel_by")
+    .select("totalPrice ownerPrice createdAt resel_by")
     .lean();
 
-  // Initialize the graph array
-  let graph = dates.map((date) => ({ x: date, earnings: 0 }));
+  let graph = dates.map((date) => ({
+    x: date,
+    earnings: 0,
+    adminCommission: 0,
+  }));
 
-  // Increment the y value for the correct date ranges
   orders.forEach((order) => {
     const index = findDateIndex(order.createdAt, dates);
     if (index !== -1 && index < graph.length) {
-      let earnings = 0;
+      let adminCommission = 0;
       if (order.resel_by == undefined) {
-        earnings = Number(order.totalPrice) * 0.1;
+        adminCommission = Number(order.totalPrice) * 0.08;
       } else {
-        earnings = Number(order.totalPrice) * 0.28;
+        adminCommission = Number(order.totalPrice) * 0.28;
       }
-      graph[index].earnings = graph[index].earnings + earnings;
+      graph[index].earnings += Number(order.ownerPrice || 0);
+      graph[index].adminCommission += adminCommission;
     }
   });
 
-  let newGraph = graph.map((obj) => {
-    return { ["x"]: moment(obj.x).format("MMM"), ["y"]: obj.earnings };
-  });
+  let newGraph = graph.map((obj) => ({
+    x: moment(obj.x).format("MMM"),
+    earnings: Math.round(obj.earnings * 100) / 100,
+    adminCommission: Math.round(obj.adminCommission * 100) / 100,
+  }));
 
   res.send({
     success: true,

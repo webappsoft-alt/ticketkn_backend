@@ -1,6 +1,7 @@
 const express = require("express");
 const { User } = require("../models/user");
 const Transaction = require("../models/Transaction");
+const Resell = require("../models/Resell");
 const router = express.Router();
 
 router.put("/purchase", async (req, res) => {
@@ -118,7 +119,7 @@ router.get("/transactions/:type/:id?", async (req, res) => {
 
 router.post("/admin/transaction/deposit", async (req, res) => {
   try {
-    const { userId, amount, reason } = req.body;
+    const { userId, amount, reason, resellId } = req.body;
     const user = await User.findById(userId);
 
     if (!user) {
@@ -146,7 +147,9 @@ router.post("/admin/transaction/deposit", async (req, res) => {
     transaction.type = "deposit";
     transaction.reason = reason;
     await transaction.save();
-
+    if (resellId) {
+      await Resell.findByIdAndUpdate(resellId, { $set: { isPaid: true }, }, { new: true });
+    }
     res.send({ success: true, message: "Deposit successfully" });
   } catch (error) {
     console.error(error);

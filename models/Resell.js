@@ -27,6 +27,10 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Purchase'
   },
+  isPaid: {
+    type: Boolean,
+    default: false
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Resell', productSchema);

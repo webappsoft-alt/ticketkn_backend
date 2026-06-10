@@ -283,9 +283,9 @@ exports.getMyResellTickets = async (req, res) => {
           purchase.event.TotalLikes = purchase.event.likes?.length || 0;
           purchase.event.likes = userId
             ? Array.isArray(purchase.event.likes) &&
-              purchase.event.likes.some(
-                (like) => like.user.toString() === userId.toString(),
-              )
+            purchase.event.likes.some(
+              (like) => like.user.toString() === userId.toString(),
+            )
             : false;
         }
       }
@@ -528,9 +528,9 @@ exports.otherResellEvents = async (req, res) => {
           purchase.event.TotalLikes = purchase.event.likes?.length || 0;
           purchase.event.likes = userId
             ? Array.isArray(purchase.event.likes) &&
-              purchase.event.likes.some(
-                (like) => like.user.toString() === userId.toString(),
-              )
+            purchase.event.likes.some(
+              (like) => like.user.toString() === userId.toString(),
+            )
             : false;
         }
       }
@@ -712,9 +712,17 @@ exports.deleteResellTicket = async (req, res) => {
 
 exports.adminResellEvents = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, unpaid = false, paid = false } = req.query;
+    let query = {};
+    if (unpaid) {
+      query.$or = [{ isPaid: false }, { isPaid: { $exists: false } }];
+    }
+    if (paid) {
+      query.isPaid = true;
+    }
+    // console.log(query);
     const skip = (Number(page) - 1) * Number(limit);
-    const findEvents = await Resell.find({ resellTickets: { $exists: true } })
+    const findEvents = await Resell.find({ resellTickets: { $exists: true }, ...query })
       .populate("user")
       .populate({ path: "purchase_ticketId", populate: "user" })
       .populate({ path: "resellTickets", populate: "user" })
@@ -729,6 +737,7 @@ exports.adminResellEvents = async (req, res) => {
 
     const totalCount = await Resell.countDocuments({
       resellTickets: { $exists: true },
+      ...query,
     });
     const totalPages = Math.ceil(totalCount / Number(limit));
     for (const item of findEvents) {
