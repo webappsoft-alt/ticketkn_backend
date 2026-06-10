@@ -15,8 +15,20 @@ const printTicketSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    scannedBy: {
+      type: String,
+      default: "Owner",
+    },
+    subUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "subUser",
+    },
+    scannedAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const PrintTicket = mongoose.model("PrintTicket", printTicketSchema);
@@ -42,7 +54,7 @@ const adminTicketSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const AdminTicket = mongoose.model("AdminTicket", adminTicketSchema);

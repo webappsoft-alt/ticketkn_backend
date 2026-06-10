@@ -1,23 +1,61 @@
-const jwt = require('jsonwebtoken');
-const config = require('config');
-const { User } = require('../models/user');
-
-module.exports =async function (req, res, next) {
-  const token = req.header('x-auth-token');
-  if (!token) return res.status(401).send({message:'Access denied. No token provided.'});
+const jwt = require("jsonwebtoken");
+const config = require("config");
+const { User } = require("../models/user");
+const { subUser } = require("../models/subUser");
+const auth = async function (req, res, next) {
+  const token = req.header("x-auth-token");
+  if (!token)
+    return res
+      .status(401)
+      .send({ message: "Access denied. No token provided." });
 
   try {
-    const decoded = jwt.verify(token, config.get('jwtPrivateKey'));//JWT need to be defined somewherelese
-    const user = await User.findById(decoded._id).select('status');
+    const decoded = jwt.verify(token, config.get("jwtPrivateKey")); //JWT need to be defined somewherelese
+    const user = await User.findById(decoded._id).select("status");
 
-    if (user.status=='online') {
+    if (user.status == "online") {
       req.user = decoded;
       next();
-    }else{
-     return res.status(440).send({"message":'User has been deactivated. Contact admin for further support.'});
+    } else {
+      return res.status(440).send({
+        message:
+          "User has been deactivated. Contact admin for further support.",
+      });
     }
+  } catch (ex) {
+    res.status(400).send({ message: "Invalid token." });
   }
-  catch (ex) {
-    res.status(400).send({message:'Invalid token.'});
+};
+
+const subUserAuth = async function (req, res, next) {
+  const token = req.header("x-auth-token");
+  if (!token)
+    return res
+      .status(401)
+      .send({ message: "Access denied. No token provided." });
+
+  try {
+    const decoded = jwt.verify(token, config.get("jwtPrivateKey")); //JWT need to be defined somewherelese
+    const user = await subUser.findById(decoded.subUser).lean();
+    if (user.accessEvents.includes(req.params.eventId)) {
+      return res.status(400).send({
+        message: "You are not authorized to Scan this event.",
+      });
+    }
+    if (user.status == "active") {
+      req.mainUser = user.mainUser;
+      req.user = user;
+      next();
+    } else {
+      return res.status(440).send({
+        message:
+          "User has been deactivated. Contact admin for further support.",
+      });
+    }
+  } catch (ex) {
+    res.status(400).send({ message: "Invalid token." });
   }
-}
+};
+
+module.exports = auth;
+module.exports.subUserAuth = subUserAuth;

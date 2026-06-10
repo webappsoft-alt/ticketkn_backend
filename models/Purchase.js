@@ -18,89 +18,99 @@ const ticketObj = {
   scanned: [Number],
   scannedAtLog: [
     {
+      scannedby: {
+        type: String,
+        default: "Owner",
+      },
+      subUser: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "subUser",
+      },
       code: { type: mongoose.Schema.Types.Mixed },
       scannedAt: { type: Date },
     },
   ],
 };
 
-const joinUserSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "user",
-    required: true,
-  },
-  event: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Event",
-  },
-  tickets: {
-    type: Number,
-    default: 0,
-  },
-  tickets_type_sale: ticketObj,
-  totalPrice: {
-    type: Number,
-    default: 0,
-  },
-  ownerPrice: {
-    type: Number,
-    default: 0,
-  },
-  resellticket: {
-    type: Number,
-    default: 0,
-  },
-  remainig_ticket: {
-    type: Number,
-    default: 0,
-  },
-  paymentDone: {
-    type: Boolean,
-    default: false,
-  },
-  scanner: {
-    type: Boolean,
-    default: false,
-  },
-  code: {
-    type: Number,
-    default: 0,
-  },
-  isinstallment: {
-    type: Boolean,
-    default: false,
-  },
-  installmentPlans: [
-    {
-      type: mongoose.Schema.Types.Mixed,
-    },
-  ],
-  resellpurchases: [
-    {
+const joinUserSchema = new mongoose.Schema(
+  {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Purchase",
+      ref: "user",
+      required: true,
     },
-  ],
-  ResellTickets: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Resell",
-  },
-  resel_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "user",
-  },
-  addOns: [
-    {
-      type: mongoose.Schema.Types.Mixed,
+    event: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Event",
     },
-  ],
-  createdAt: { type: Date, default: Date.now, index: true }, // Timestamp for post creation
-  type: {
-    type: String,
-    default: "show",
-    enum: ["show", "unshow"],
+    tickets: {
+      type: Number,
+      default: 0,
+    },
+    tickets_type_sale: ticketObj,
+    totalPrice: {
+      type: Number,
+      default: 0,
+    },
+    ownerPrice: {
+      type: Number,
+      default: 0,
+    },
+    resellticket: {
+      type: Number,
+      default: 0,
+    },
+    remainig_ticket: {
+      type: Number,
+      default: 0,
+    },
+    paymentDone: {
+      type: Boolean,
+      default: false,
+    },
+    scanner: {
+      type: Boolean,
+      default: false,
+    },
+    code: {
+      type: Number,
+      default: 0,
+    },
+    isinstallment: {
+      type: Boolean,
+      default: false,
+    },
+    installmentPlans: [
+      {
+        type: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    resellpurchases: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Purchase",
+      },
+    ],
+    ResellTickets: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Resell",
+    },
+    resel_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+    },
+    addOns: [
+      {
+        type: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    type: {
+      type: String,
+      default: "show",
+      enum: ["show", "unshow"],
+    },
   },
-});
+  { timestamps: true },
+);
 
 module.exports = mongoose.model("Purchase", joinUserSchema);

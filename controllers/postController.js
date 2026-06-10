@@ -2,6 +2,7 @@ const { default: axios } = require("axios");
 const Post = require("../models/Event");
 const like = require("../models/like");
 const Purchase = require("../models/Purchase");
+const Resell = require("../models/Resell");
 const { sendNotification } = require("./notificationCreateService");
 const { User } = require("../models/user");
 const admin = require("firebase-admin");
@@ -10,6 +11,9 @@ const Category = require("../models/Category");
 const { ticketCode, generateRandomString } = require("./generateCode");
 const { purchaseEmail } = require("./emailservice");
 const { AdminTicket, PrintTicket } = require("../models/AdminTicket");
+const mongoose = require("mongoose");
+const { TicketTransfer } = require("../models/TicketTransfer");
+const Notification = require("../models/Notification");
 exports.createPost = async (req, res) => {
   try {
     const {
@@ -68,7 +72,7 @@ exports.createPost = async (req, res) => {
       ...new Set(
         users
           .map((item) => item.fcmtoken)
-          .filter((item) => item !== undefined || item !== "")
+          .filter((item) => item !== undefined || item !== ""),
       ),
     ];
     if (fcmTokens.length > 0) {
@@ -148,7 +152,7 @@ exports.editPost = async (req, res) => {
         refund_policy,
         location,
         type,
-      }).filter(([key, value]) => value !== undefined)
+      }).filter(([key, value]) => value !== undefined),
     );
 
     // Check if there are any fields to update
@@ -160,7 +164,9 @@ exports.editPost = async (req, res) => {
     }
     const post = await Post.findOneAndUpdate({ _id: postId }, updateFields, {
       new: true,
-    });
+    })
+      .populate("category")
+      .lean();
 
     if (!post)
       return res.status(404).send({
@@ -188,7 +194,7 @@ exports.makePopularEvent = async (req, res) => {
     let updateFields = Object.fromEntries(
       Object.entries({
         popular,
-      }).filter(([key, value]) => value !== undefined)
+      }).filter(([key, value]) => value !== undefined),
     );
 
     // Check if there are any fields to update
@@ -237,7 +243,7 @@ exports.getMyPosts = async (req, res) => {
   let query = {};
   query.status = "active";
   query.user = userId;
-  console.log(type);
+  // console.log(type);
   if (type) {
     query.type = type;
   }
@@ -265,8 +271,15 @@ exports.getMyPosts = async (req, res) => {
     .populate("likes")
     .populate({
       path: "purchase_by",
-      // options: { limit: 3 }, // Limit to 3 users
-      populate: [{ path: "user", model: "user" }],
+      populate: [
+        { path: "user", model: "user" },
+        { path: "resel_by", model: "user" },
+        {
+          path: "resellpurchases",
+          model: "Purchase",
+          populate: [{ path: "user", model: "user" }],
+        },
+      ],
     })
     .populate("coupon")
     .populate("category")
@@ -301,7 +314,7 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
     const post = await Post.findOneAndUpdate(
       { _id: postId },
       { paymentDone: paymentDone, $push: { payment: payemntObject } },
-      { new: true }
+      { new: true },
     );
 
     if (!post)
@@ -338,7 +351,7 @@ exports.getAdminPurchases = async (req, res) => {
   const totalPayments = users.reduce((a, b) => a + Number(b.totalPrice), 0);
   const totalOtherPayments = totalPurchase.reduce(
     (a, b) => a + Number(b.totalPrice),
-    0
+    0,
   );
   const totalOwnerTax = users.reduce((a, b) => a + Number(b.ownerPrice), 0);
 
@@ -371,19 +384,27 @@ exports.latestEvent = async (req, res) => {
 
   const users = await Post.find(query)
     .populate("user")
+    .populate("likes")
     .populate({
       path: "purchase_by",
-      options: { limit: 3 }, // Limit to 3 users
-      populate: [{ path: "user", model: "user" }],
+      populate: [
+        { path: "user", model: "user" },
+        { path: "resel_by", model: "user" },
+        {
+          path: "resellpurchases",
+          model: "Purchase",
+          populate: [{ path: "user", model: "user" }],
+        },
+      ],
     })
-    .populate("category")
     .populate("coupon")
+    .populate("category")
     .sort({ start_Date: 1 })
     .limit(10)
     .lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0;
-    console.log(posts.likes);
+    // console.log(posts.likes);
     posts.likes =
       Array.isArray(posts.likes) &&
       posts.likes.some((like) => like.user?.toString() === userId?.toString());
@@ -394,7 +415,8 @@ exports.latestEvent = async (req, res) => {
 
 exports.getAdminPost = async (req, res) => {
   const lastId = parseInt(req.params.id) || 1;
-
+  const userId = req.query?.user_id;
+  // console.log(req.query);
   // Check if lastId is a valid number
   if (isNaN(lastId) || lastId < 0) {
     return res.status(400).json({ error: "Invalid last_id" });
@@ -405,7 +427,9 @@ exports.getAdminPost = async (req, res) => {
   const skip = Math.max(0, lastId - 1) * pageSize;
   let query = {};
   query.status = "active";
-
+  if (userId) {
+    query.user = new mongoose.Types.ObjectId(userId);
+  }
   if (req.params.type !== "all") {
     query.category = req.params.type;
   }
@@ -440,8 +464,15 @@ exports.getAdminPost = async (req, res) => {
     .populate("user")
     .populate({
       path: "purchase_by",
-      options: { limit: 3 }, // Limit to 3 users
-      populate: [{ path: "user", model: "user" }],
+      // options: { limit: 300 }, // Limit to 3 users
+      populate: [
+        { path: "user", model: "user" },
+        {
+          path: "resellpurchases",
+          model: "Purchase",
+          populate: { path: "user", model: "user" },
+        },
+      ],
     })
     .populate("category")
     .populate("coupon")
@@ -451,18 +482,115 @@ exports.getAdminPost = async (req, res) => {
     .lean();
 
   for (let post of users) {
+    // ── Regular purchases (no resel_by) ──────────────────────────────────────
     const purchases = await Purchase.find({
       event: post._id,
       resel_by: { $exists: false },
     })
-      .select("totalPrice")
+      .select("totalPrice createdAt")
       .lean();
+
     const totalPayments = purchases.reduce(
       (a, b) => a + Number(b.totalPrice),
-      0
+      0,
     );
     post.totalPayments = totalPayments;
     post.paidAmount = post.payment.reduce((a, b) => a + Number(b.amount), 0);
+
+    post.ResellTicketsCount = await Resell.countDocuments({
+      event: post._id,
+      resellTickets: { $exists: false },
+    });
+
+    // ── Resell purchases (resel_by exists) ───────────────────────────────────
+    const resellPurchases = await Purchase.find({
+      event: post._id,
+      resel_by: { $exists: true },
+    })
+      .select("totalPrice createdAt")
+      .lean();
+
+    // ── Helper: format a Date as "June 1st, 2026 - 10am" ────────────────────
+    const formatEntry = (date) => {
+      const d = new Date(date);
+      const monthNames = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      const day = d.getDate();
+      const suffix =
+        day % 10 === 1 && day !== 11
+          ? "st"
+          : day % 10 === 2 && day !== 12
+            ? "nd"
+            : day % 10 === 3 && day !== 13
+              ? "rd"
+              : "th";
+      const month = monthNames[d.getMonth()];
+      const year = d.getFullYear();
+      const hours = d.getHours();
+      const ampm = hours >= 12 ? "pm" : "am";
+      const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+      return `${month} ${day}${suffix}, ${year} - ${hour12}${ampm}`;
+    };
+
+    // ── Build ledger entries ──────────────────────────────────────────────────
+    // Regular purchase: admin earns 8% of gross buyer price.
+    // Stored totalPrice = gross * 0.92, so gross = totalPrice / 0.92
+    const regularEntries = purchases.map((p) => {
+      const gross = Number(p.totalPrice) / 0.92;
+      const adminCommission = gross * 0.08;
+      return {
+        _id: p._id,
+        date: formatEntry(p.createdAt),
+        type: "ticket sale",
+        amount: parseFloat(adminCommission.toFixed(2)),
+        rawDate: p.createdAt,
+      };
+    });
+
+    // Resell purchase: admin earns 20% of the resell price (stored as totalPrice).
+    const resellEntries = resellPurchases.map((p) => {
+      const adminCommission = Number(p.totalPrice) * 0.2;
+      return {
+        _id: p._id,
+        date: formatEntry(p.createdAt),
+        type: "resell ticket",
+        amount: parseFloat(adminCommission.toFixed(2)),
+        rawDate: p.createdAt,
+      };
+    });
+
+    // ── Merge, sort chronologically, compute total ────────────────────────────
+    const allEntries = [...regularEntries, ...resellEntries].sort(
+      (a, b) => new Date(a.rawDate) - new Date(b.rawDate),
+    );
+
+    const totalAdminEarnings = parseFloat(
+      allEntries.reduce((sum, e) => sum + e.amount, 0).toFixed(2),
+    );
+
+    // Remove rawDate before sending (used only for sorting)
+    const ledger = allEntries.map(({ _id, date, type, amount }) => ({
+      _id,
+      date,
+      type,
+      amount,
+      label: `${date} - ${type} - $${amount}`,
+    }));
+
+    post.adminEarningsLedger = ledger;
+    post.totalAdminEarnings = totalAdminEarnings;
   }
 
   const totalCount = await Post.find(query);
@@ -531,7 +659,7 @@ exports.filterPosts = async (req, res) => {
     const startOfDay = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate()
+      now.getDate(),
     );
     // Only retrieve upcoming events (those with start_Date in the future)
     query.start_Date = { $gte: startOfDay };
@@ -752,18 +880,20 @@ exports.deletePostById = async (req, res) => {
       });
     }
 
-    const findPurcahse = await Purchase.findOne({ event: postId });
+    // const findPurcahse = await Purchase.findOne({ event: postId });
 
-    if (findPurcahse)
-      return res.status(404).json({
-        message:
-          "Event cann't deleted as someone has purchased a ticket of it.",
-      });
+    // if (findPurcahse)
+    //   return res.status(404).json({
+    //     message:
+    //       "Event cann't deleted as someone has purchased a ticket of it.",
+    //   });
 
     deletedPost.status = "deleted";
     await deletedPost.save();
 
     await like.deleteMany({ event: postId });
+    await AdminTicket.deleteMany({ event: postId });
+    await PrintTicket.deleteMany({ event: postId });
 
     res
       .status(200)
@@ -779,6 +909,10 @@ exports.likePost = async (req, res) => {
     const postId = req.params.id;
     const userId = req.user._id;
 
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+
     const existingLike = await like.findOne({ user: userId, event: postId });
 
     if (existingLike) {
@@ -792,7 +926,7 @@ exports.likePost = async (req, res) => {
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
       { $push: { likes: likePost._id } },
-      { new: true }
+      { new: true },
     ).populate("user");
 
     if (!updatedPost) {
@@ -824,7 +958,7 @@ const dislike = async (postId, res, userId) => {
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
       { $pull: { likes: deletedLike._id } },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedPost) {
@@ -942,7 +1076,7 @@ exports.purchaseTicket = async (req, res) => {
     } = req.body;
 
     const findEvent = await Post.findById(eventId).lean();
-
+    // console.log(findEvent._id)
     if (
       Number(findEvent.total_tickets_sale + Number(tickets)) >
       Number(findEvent.join_people)
@@ -951,11 +1085,13 @@ exports.purchaseTicket = async (req, res) => {
         .status(404)
         .json({ message: "Event's tickets are fully sold" });
     }
+    // console.log("Hit purchaseTicket")
 
     const eightPerc = Number(totalPrice) * 0.08;
 
     const totalPriceValue = Number(totalPrice) - Number(eightPerc);
     const twoPer = Number(totalPriceValue) * 0.02;
+    // console.log("Hit purchaseTicket")
 
     let codeArray = [];
 
@@ -966,6 +1102,7 @@ exports.purchaseTicket = async (req, res) => {
     ) {
       codeArray.push(ticketCode());
     }
+    // console.log("Code", codeArray)
 
     const post = new Purchase({
       user: userId,
@@ -984,20 +1121,27 @@ exports.purchaseTicket = async (req, res) => {
       installmentPlans,
       addOns,
     });
+    // console.log("Event", eventId)
 
     const event = await Post.findByIdAndUpdate(
       eventId,
       {
-        $addToSet: { purchase_by: post._id },
-        total_tickets_sale:
-          Number(findEvent.total_tickets_sale) + Number(tickets),
-        tickets_sale: updateTicketAndTotal(
-          findEvent.tickets_sale,
-          tickets_type_sale[0].type,
-          Number(tickets)
-        ),
+        $push: { purchase_by: post._id },
+        $inc: {
+          total_tickets_sale: Number(tickets),
+        },
+        $set: {
+          tickets_sale: updateTicketAndTotal(
+            findEvent.tickets_sale,
+            tickets_type_sale[0].type,
+            Number(tickets),
+          ),
+        },
       },
-      { new: true }
+      {
+        new: true,
+        runValidators: true,
+      },
     )
       .populate("user category")
       .lean();
@@ -1030,7 +1174,7 @@ exports.purchaseTicket = async (req, res) => {
       event.name,
       ukFormattedDate,
       event.category.name,
-      tickets_type_sale[0].type
+      tickets_type_sale[0].type,
     );
 
     await post.save();
@@ -1048,78 +1192,217 @@ exports.transferTickets = async (req, res) => {
   const ownerUser = req?.user?._id || "";
   const userId = req.params.userId;
   const purchaseId = req.params.purchaseId;
-  const purchaseCode = req.params.code;
-
+  const code = req.params.code;
+  // console.log("Hit transferTickets");
   try {
-    const purchase = await Purchase.findOneAndUpdate(
-      {
-        user: ownerUser,
-        _id: purchaseId,
-        "tickets_type_sale.code": { $in: purchaseCode },
-        "tickets_type_sale.scanned": { $ne: purchaseCode },
-      },
-      { $addToSet: { "tickets_type_sale.scanned": purchaseCode } },
-      { new: true }
-    ).populate("user");
+    // 1. Validate that the ticket exists and is owned by the sender
+    const purchase = await Purchase.findOne({
+      _id: purchaseId,
+      user: ownerUser,
+      "tickets_type_sale.code": code, // code is in the available list
+      "tickets_type_sale.scanned": { $ne: code }, // not already scanned
+    }).populate("user");
 
-    if (!purchase)
-      return res
-        .status(404)
-        .json({ message: "Ticket did not found or has already been scanned." });
+    if (!purchase) {
+      return res.status(404).json({
+        message: "Ticket not found or already used.",
+      });
+    }
 
-    const post = new Purchase({
-      user: userId,
-      event: purchase.event,
-      tickets: 1,
-      totalPrice: Number(purchase.totalPrice),
-      remainig_ticket: 1,
-      tickets_type_sale: {
-        type: purchase.tickets_type_sale.type,
-        totalTicket: 1,
-        price: Number(purchase.tickets_type_sale.price),
-        code: ticketCode(),
-        scanned: [],
-      },
-      resel_by: ownerUser,
+    // 2. Check that there is no other pending transfer for this exact code
+    const existingPending = await TicketTransfer.findOne({
+      purchase: purchaseId,
+      recipient: userId,
+      status: "pending",
     });
 
-    await Purchase.findOneAndUpdate(
-      { _id: purchaseId },
-      {
-        $pull: { "tickets_type_sale.code": purchaseCode },
-        remainig_ticket: Number(purchase.remainig_ticket) - 1,
-      }
-    );
+    if (existingPending) {
+      return res.status(409).json({
+        message: "A pending transfer request already exists for this ticket.",
+      });
+    }
 
+    // 3. Create the pending transfer request
+    const transfer = await TicketTransfer.create({
+      sender: ownerUser,
+      recipient: userId,
+      purchase: purchaseId,
+      code,
+      event: purchase.event,
+    });
+
+    // 4. Send notification to recipient (with accept/reject deep‑link or actions)
+    const toUser = await User.findById(userId).select("fcmtoken").lean();
     const event = await Post.findById(purchase.event).lean();
-
-    if (!event) return res.status(404).json({ message: "Event not found." });
-
-    const to_User = await User.findById(userId).select("fcmtoken").lean();
 
     await sendNotification({
       user: ownerUser,
       to_id: userId,
-      description: `${purchase.user?.name} has transfer 1 ticket of ${event.name} event to you.`,
+      description: `${purchase.user?.name} wants to transfer 1 ticket of ${event.name} to you.`,
       type: "transfer",
-      title: "Ticket transfer",
-      fcmtoken: to_User?.fcmtoken,
+      title: "Ticket Transfer Request",
+      fcmtoken: toUser?.fcmtoken,
       event: purchase.event,
-      purchase: post._id,
+      transferId: transfer._id, // include this in data payload
     });
 
-    await post.save();
     res.status(201).json({
       success: true,
-      message: "Ticket purchase successfully",
-      ticket: post,
+      message: "Transfer request sent.",
+      transfer,
     });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+exports.acceptTransfer = async (req, res) => {
+  const transferId = req.params.transferId;
+  const userId = req.user._id;
+  // console.log("Hit acceptTransfer");
+  try {
+    const transfer = await TicketTransfer.findOne({
+      _id: transferId,
+      recipient: userId,
+      status: "pending",
+    });
+    if (!transfer) {
+      return res
+        .status(404)
+        .json({ message: "Transfer request not found or already handled." });
+    }
+    // 1. Perform the actual ticket transfer atomically
+    //    Use a transaction to ensure consistency
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
+    try {
+      // a) Mark the original ticket code as scanned and remove it from code array
+      const originalPurchase = await Purchase.findOneAndUpdate(
+        {
+          _id: transfer.purchase,
+          "tickets_type_sale.code": transfer.code,
+          "tickets_type_sale.scanned": { $ne: transfer.code },
+        },
+        { $addToSet: { "tickets_type_sale.scanned": transfer.code } },
+        { new: true, session },
+      );
+
+      if (!originalPurchase) {
+        throw new Error("Ticket already transferred or invalid.");
+      }
+
+      // b) Remove the code from the code array and decrement remaining tickets
+      await Purchase.updateOne(
+        { _id: transfer.purchase },
+        {
+          $pull: { "tickets_type_sale.code": transfer.code },
+          $inc: { remainig_ticket: -1 },
+        },
+        { session },
+      );
+
+      // c) Create a new purchase for the recipient
+      const newPurchase = new Purchase({
+        user: transfer.recipient,
+        event: transfer.event,
+        tickets: 1,
+        totalPrice: originalPurchase.totalPrice, // or the single ticket price, adapt as needed
+        remainig_ticket: 1,
+        tickets_type_sale: {
+          type: originalPurchase.tickets_type_sale.type,
+          totalTicket: 1,
+          price: originalPurchase.tickets_type_sale.price,
+          code: ticketCode(), // generate a fresh code
+          scanned: [],
+        },
+        resel_by: transfer.sender,
+      });
+
+      await newPurchase.save({ session });
+
+      // d) Update the transfer request status
+      transfer.status = "accepted";
+      transfer.actionAt = new Date();
+      await Notification.findOneAndDelete({
+        transferId: transferId,
+      }).session(session);
+      await transfer.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // Notify the sender about the acceptance
+      // (Optional, but good for UX)
+
+      res.status(200).json({
+        success: true,
+        message: "Ticket accepted and transferred.",
+        newPurchase,
+      });
+    } catch (err) {
+      console.log(err);
+      await session.abortTransaction();
+      session.endSession();
+      throw err;
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+exports.rejectTransfer = async (req, res) => {
+  const transferId = req.params.transferId;
+  const userId = req.user._id;
+
+  try {
+    const transfer = await TicketTransfer.findOneAndUpdate(
+      {
+        _id: transferId,
+        recipient: userId,
+        status: "pending",
+      },
+      {
+        status: "rejected",
+        actionAt: new Date(),
+      },
+      { new: true },
+    ).populate([
+      { path: "sender", select: "name fcmtoken" },
+      { path: "recipient", select: "name fcmtoken" },
+      { path: "event", select: "name" },
+    ]);
+
+    if (!transfer) {
+      return res
+        .status(404)
+        .json({ message: "Transfer request not found or already handled." });
+    }
+    await Notification.findOneAndDelete({
+      transferId: transferId,
+    });
+    // Optionally notify sender of rejection
+    await sendNotification({
+      user: transfer.recipient._id,
+      to_id: transfer.sender._id,
+      description: `${transfer.recipient?.name} has rejected your transfer request.`,
+      type: "transfer",
+      title: "Transfer Request Rejected",
+      fcmtoken: transfer.sender?.fcmtoken,
+      event: transfer.event._id,
+      // transferId: transfer._id,
+    });
+    res.status(200).json({
+      success: true,
+      message: "Transfer request rejected.",
+      transfer,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
 exports.paymentDone = async (req, res) => {
   try {
     const body = {
@@ -1147,7 +1430,7 @@ exports.paymentDone = async (req, res) => {
       "6EF4CAFCD82E689DECA28EDFDE15ADB35D12BF5982B182E468758A9F8DD072DF";
 
     const response = await axios.get(
-      `https://jad.cash/HAPI/token?apikey=${clientId}&secret=${apiSecret}&grant_type=credentials`
+      `https://jad.cash/HAPI/token?apikey=${clientId}&secret=${apiSecret}&grant_type=credentials`,
     );
     const result = await axios.post(
       "https://jad.cash/HAPI/cardpayment",
@@ -1159,7 +1442,7 @@ exports.paymentDone = async (req, res) => {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     res.status(201).json({ success: true, response: result.data });
   } catch (error) {
@@ -1169,18 +1452,26 @@ exports.paymentDone = async (req, res) => {
 
 exports.updatePurchaseScan = async (req, res) => {
   try {
-    const ownerUser = req?.user?._id || "";
-    const userId = req.params.userId;
-    const eventId = req.params.eventId;
-    const purchaseId = req.params.purchaseId;
+    const ownerUser = req?.mainUser || req?.user?._id || "";
+    // console.log("user", req.params.userId);
+    const userId = new mongoose.Types.ObjectId(req.params.userId);
+    const eventId = new mongoose.Types.ObjectId(req.params.eventId);
+    const purchaseId = new mongoose.Types.ObjectId(req.params.purchaseId);
     const purchaseCode = req.params.code;
 
     const scannedAtRaw = req.body?.scannedAt;
     const scannedAt =
-      scannedAtRaw != null &&
-      !Number.isNaN(new Date(scannedAtRaw).getTime())
+      scannedAtRaw != null && !Number.isNaN(new Date(scannedAtRaw).getTime())
         ? new Date(scannedAtRaw)
         : new Date();
+    let scannedby = "";
+    let subUser = null;
+    if (req?.mainUser) {
+      scannedby = req.user.fullName;
+      subUser = req.user._id;
+    } else {
+      scannedby = "Owner";
+    }
 
     const codeForLog = Number(purchaseCode);
     const logCode = Number.isNaN(codeForLog) ? purchaseCode : codeForLog;
@@ -1200,12 +1491,14 @@ exports.updatePurchaseScan = async (req, res) => {
         $addToSet: { "tickets_type_sale.scanned": purchaseCode },
         $push: {
           "tickets_type_sale.scannedAtLog": {
+            scannedby: scannedby,
             code: logCode,
+            subUser: subUser,
             scannedAt,
           },
         },
       },
-      { new: true }
+      { new: true },
     )
       .populate("ResellTickets")
       .populate("resellpurchases")
@@ -1219,8 +1512,16 @@ exports.updatePurchaseScan = async (req, res) => {
           {
             path: "purchase_by",
             model: "Purchase",
-            options: { limit: 3 },
-            populate: [{ path: "user", model: "user" }],
+            // options: { limit: 3 },
+            populate: [
+              { path: "user", model: "user" },
+              { path: "resel_by", model: "user" },
+              {
+                path: "resellpurchases",
+                model: "Purchase",
+                populate: [{ path: "user", model: "user" }],
+              },
+            ],
           },
         ],
       });
@@ -1232,6 +1533,7 @@ exports.updatePurchaseScan = async (req, res) => {
 
     res.status(200).json({ success: true, post: purchase });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -1282,8 +1584,8 @@ exports.getPurchaseTicket = async (req, res) => {
   }
 };
 
-exports.getPurchase = async (req, res) => {
-  const userId = req.user._id;
+exports.getPurchaseAdminSide = async (req, res) => {
+  const userId = req.query.user_id;
   const lastId = parseInt(req.params.id) || 1;
 
   // Check if lastId is a valid number
@@ -1295,8 +1597,12 @@ exports.getPurchase = async (req, res) => {
   const pageSize = 10;
 
   const skip = Math.max(0, lastId - 1) * pageSize;
-  query.user = userId;
-
+  if (userId) {
+    // if (!mongoose.Types.ObjectId.isValid(userId)) {
+    //   return res.status(400).json({ error: "Invalid user_id" });
+    // }
+    query.user = new mongoose.Types.ObjectId(userId);
+  }
   query.remainig_ticket = { $gt: 0 };
   try {
     const likedJobs = await Purchase.find(query)
@@ -1315,6 +1621,7 @@ exports.getPurchase = async (req, res) => {
           },
         ],
       })
+      .populate("user")
       .populate("ResellTickets")
       .populate("resellpurchases")
       .sort({ _id: -1 })
@@ -1326,15 +1633,15 @@ exports.getPurchase = async (req, res) => {
     const totalPages = Math.ceil(totalCount / pageSize);
 
     if (likedJobs.length > 0) {
-      for (let purchase of likedJobs) {
-        purchase.event.TotalLikes = purchase.event.likes?.length;
-        purchase.event.likes = userId
-          ? Array.isArray(purchase.event.likes) &&
-            purchase.event.likes.some(
-              (like) => like.user.toString() === userId.toString()
-            )
-          : false;
-      }
+      // for (let purchase of likedJobs) {
+      //   // purchase.event.TotalLikes = purchase.event?.likes?.length;
+      //   purchase.event.likes = userId
+      //     ? Array.isArray(purchase.event?.likes) &&
+      //       purchase.event.likes.some(
+      //         (like) => like.user.toString() === userId.toString(),
+      //       )
+      //     : false;
+      // }
       res.status(200).json({
         success: true,
         posts: likedJobs,
@@ -1349,6 +1656,235 @@ exports.getPurchase = async (req, res) => {
       });
     }
   } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+exports.getPurchase = async (req, res) => {
+  const userId = req.user._id;
+  const lastId = parseInt(req.params.id) || 1;
+
+  // Check if lastId is a valid number
+  if (isNaN(lastId) || lastId < 0) {
+    return res.status(400).json({ error: "Invalid last_id" });
+  }
+  let query = { event: { $exists: true, $ne: null } };
+
+  const pageSize = 10;
+
+  const skip = Math.max(0, lastId - 1) * pageSize;
+  query.user = new mongoose.Types.ObjectId(userId);
+
+  query.remainig_ticket = { $gt: 0 };
+  try {
+    const likedJobs = await Purchase.aggregate([
+      // 1. Initial Query Filter
+      { $match: query },
+
+      // 2. Filter out records where Event does not exist in DB
+      {
+        $lookup: {
+          from: "events",
+          localField: "event",
+          foreignField: "_id",
+          as: "eventCheck",
+        },
+      },
+      { $match: { "eventCheck.0": { $exists: true } } },
+
+      // 3. Sorting & Pagination
+      { $sort: { _id: -1 } },
+      { $skip: skip },
+      { $limit: pageSize },
+
+      // 4. Populate: ResellTickets (Refs Resell model -> resells collection)
+      {
+        $lookup: {
+          from: "resells",
+          localField: "ResellTickets",
+          foreignField: "_id",
+          as: "ResellTickets",
+        },
+      },
+      { $unwind: { path: "$ResellTickets", preserveNullAndEmptyArrays: true } },
+
+      // 5. Populate: resellpurchases (Refs Purchase model -> purchases collection)
+      {
+        $lookup: {
+          from: "purchases",
+          localField: "resellpurchases",
+          foreignField: "_id",
+          as: "resellpurchases",
+        },
+      },
+
+      // 6. Populate top-level user
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+      // 7. Populate: event
+      { $addFields: { event: { $arrayElemAt: ["$eventCheck", 0] } } },
+
+      // 8. Populate deeply nested fields inside event
+      {
+        $lookup: {
+          from: "users",
+          localField: "event.user",
+          foreignField: "_id",
+          as: "eventUser",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "event.category",
+          foreignField: "_id",
+          as: "eventCategory",
+        },
+      },
+      {
+        $lookup: {
+          from: "likes",
+          localField: "event.likes",
+          foreignField: "_id",
+          as: "eventLikes",
+        },
+      },
+      {
+        $lookup: {
+          from: "coupons",
+          localField: "event.coupon",
+          foreignField: "_id",
+          as: "eventCoupon",
+        },
+      },
+      {
+        $lookup: {
+          from: "purchases",
+          localField: "event.purchase_by",
+          foreignField: "_id",
+          as: "eventPurchases",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "eventPurchases.user",
+          foreignField: "_id",
+          as: "purchaseUsers",
+        },
+      },
+
+      // 9. Final Structure Reconstruction
+      {
+        $addFields: {
+          "event.user": { $arrayElemAt: ["$eventUser", 0] },
+          "event.category": { $arrayElemAt: ["$eventCategory", 0] },
+          "event.TotalLikes": { $size: { $ifNull: ["$eventLikes", []] } },
+          "event.likes": {
+            $cond: {
+              if: {
+                $and: [
+                  { $ne: [userId, null] },
+                  {
+                    $gt: [
+                      {
+                        $size: {
+                          $filter: {
+                            input: { $ifNull: ["$eventLikes", []] },
+                            as: "l",
+                            cond: {
+                              $eq: [
+                                "$$l.user",
+                                new mongoose.Types.ObjectId(userId),
+                              ],
+                            },
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                ],
+              },
+              then: true,
+              else: false,
+            },
+          },
+          "event.coupon": { $arrayElemAt: ["$eventCoupon", 0] },
+          "event.purchase_by": {
+            $slice: [
+              {
+                $map: {
+                  input: "$eventPurchases",
+                  as: "p",
+                  in: {
+                    $mergeObjects: [
+                      "$$p",
+                      {
+                        user: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$purchaseUsers",
+                                as: "pu",
+                                cond: { $eq: ["$$pu._id", "$$p.user"] },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              3,
+            ],
+          },
+        },
+      },
+
+      // 10. Cleanup
+      {
+        $project: {
+          eventCheck: 0,
+          eventUser: 0,
+          eventCategory: 0,
+          eventLikes: 0,
+          eventCoupon: 0,
+          eventPurchases: 0,
+          purchaseUsers: 0,
+        },
+      },
+    ]);
+
+    const totalCount = await Purchase.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    if (likedJobs.length > 0) {
+      res.status(200).json({
+        success: true,
+        posts: likedJobs,
+        count: { totalPage: totalPages, currentPageSize: likedJobs.length },
+      });
+    } else {
+      res.status(200).json({
+        success: false,
+        message: "No more purchase events found",
+        posts: [],
+        count: { totalPage: totalPages, currentPageSize: likedJobs.length },
+      });
+    }
+  } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -1432,7 +1968,7 @@ exports.getMyPurchases = async (req, res) => {
   const skip = Math.max(0, lastId - 1) * pageSize;
 
   const events = await Post.find({ user: userId, status: "active" }).select(
-    "status"
+    "status",
   );
 
   const totalEvents = events.map((item) => item._id);
@@ -1491,7 +2027,7 @@ exports.getMyPurchases = async (req, res) => {
 
 exports.createAdminTicket = async (req, res) => {
   try {
-    console.log("createAdminTicket", req.body);
+    // console.log("createAdminTicket", req.body);
     const { eventId, tickets, supplierId } = req.body;
 
     if (
@@ -1581,7 +2117,7 @@ exports.createAdminTicket = async (req, res) => {
 
 exports.updateAdminTicket = async (req, res) => {
   try {
-    console.log("updateAdminTicket", req.body);
+    // console.log("updateAdminTicket", req.body);
     const { tickets } = req.body;
 
     if (!Array.isArray(tickets) || tickets.length === 0) {
@@ -1634,7 +2170,7 @@ exports.updateAdminTicket = async (req, res) => {
         tickets: printTickets,
         totalTicket: totalTicketCount,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     const adminTicketWithTickets = await AdminTicket.findById(adminTicket._id)
@@ -1672,10 +2208,7 @@ function enrichPurchaseWithScannedAt(purchase) {
     const t = new Date(row.scannedAt).getTime();
     if (Number.isNaN(t)) continue;
     const prev = latestByCode[key];
-    if (
-      prev == null ||
-      t >= new Date(prev).getTime()
-    ) {
+    if (prev == null || t >= new Date(prev).getTime()) {
       latestByCode[key] = row.scannedAt;
     }
   }
@@ -1737,7 +2270,7 @@ exports.getAdminTickets = async (req, res) => {
           },
         },
         { $unwind: "$event" },
-        { $unwind: "$supplier" }
+        { $unwind: "$supplier" },
       );
 
       // Add search filter if provided
@@ -1787,6 +2320,7 @@ exports.getAdminTickets = async (req, res) => {
         AdminTicket.find(baseFilter)
           .skip(skip)
           .limit(limit)
+          .sort({ createdAt: -1 })
           .populate(["event", "supplier", "tickets"]),
         AdminTicket.countDocuments(baseFilter),
       ]);
@@ -1795,10 +2329,7 @@ exports.getAdminTickets = async (req, res) => {
     let purchases = [];
     if (eventId && userId) {
       const eventDoc = await Post.findById(eventId).select("user").lean();
-      if (
-        eventDoc &&
-        String(eventDoc.user) === String(userId)
-      ) {
+      if (eventDoc && String(eventDoc.user) === String(userId)) {
         const purchaseDocs = await Purchase.find({ event: eventId })
           .populate("user", "name email phone")
           .sort({ createdAt: -1 })
@@ -1870,7 +2401,7 @@ exports.deletePrintTicket = async (req, res) => {
     }
     await AdminTicket.updateOne(
       { tickets: { $in: [printTicket._id] } },
-      { $pull: { tickets: printTicket._id } }
+      { $pull: { tickets: printTicket._id } },
     );
 
     res.status(200).json({ message: "Print ticket deleted successfully" });
@@ -1884,7 +2415,7 @@ exports.deletePrintTicket = async (req, res) => {
 
 exports.scanPrintTicket = async (req, res) => {
   try {
-    const supplierId = req.user._id;
+    const supplierId = req?.mainUser || req.user._id;
     const eventId = req.params.eventId;
     const adminTicket = await AdminTicket.findOne({
       supplier: supplierId,
@@ -1894,9 +2425,7 @@ exports.scanPrintTicket = async (req, res) => {
       .populate("event")
       .populate({
         path: "event",
-        populate: {
-          path: "user",
-        },
+        populate: [{ path: "user" }, { path: "purchase_by", populate: "user" }],
       });
     if (!adminTicket) {
       return res.status(404).json({
@@ -1919,6 +2448,12 @@ exports.scanPrintTicket = async (req, res) => {
         success: false,
         message: "Print ticket already scanned",
       });
+    }
+    if (req?.mainUser) {
+      printTicket.scannedBy = req.user.fullName;
+      printTicket.subUser = req.user._id;
+    } else {
+      printTicket.scannedBy = "Owner";
     }
     printTicket.scanned = true;
     await printTicket.save();
@@ -2005,10 +2540,10 @@ exports.purchaseInstallment = async (req, res) => {
         tickets_sale: updateTicketAndTotal(
           findEvent.tickets_sale,
           tickets_type_sale[0].type,
-          Number(tickets)
+          Number(tickets),
         ),
       },
-      { new: true }
+      { new: true },
     )
       .populate("user category")
       .lean();
@@ -2041,7 +2576,7 @@ exports.purchaseInstallment = async (req, res) => {
       event.name,
       ukFormattedDate,
       event.category.name,
-      tickets_type_sale[0].type
+      tickets_type_sale[0].type,
     );
 
     await post.save();
@@ -2060,6 +2595,13 @@ exports.payInstallment = async (req, res) => {
   try {
     const { purchaseId } = req.params;
     const { installmentPlans, isinstallment } = req.body;
+
+    if (!Array.isArray(installmentPlans) || installmentPlans.length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "installmentPlans is required" });
+    }
+
     const purchase = await Purchase.findById(purchaseId);
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
@@ -2068,10 +2610,41 @@ exports.payInstallment = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    const isInstallmentPaid = (plan) =>
+      plan?.payment === true ||
+      plan?.payment === "true" ||
+      plan?.paid === true ||
+      plan?.isPaid === true ||
+      plan?.paymentDone === true ||
+      plan?.status === "paid" ||
+      plan?.status === "completed";
+
+    const getInstallmentAmount = (plan) => {
+      const amount = Number(plan?.price ?? plan?.amount ?? plan?.total ?? 0);
+      return Number.isNaN(amount) ? 0 : amount;
+    };
+
+    const grossPaid = installmentPlans.reduce(
+      (sum, plan) =>
+        sum + (isInstallmentPaid(plan) ? getInstallmentAmount(plan) : 0),
+      0,
+    );
+    const netPaid = Number((grossPaid - grossPaid * 0.08).toFixed(4));
+    const allInstallmentsPaid = installmentPlans.every(isInstallmentPaid);
+
     purchase.installmentPlans = installmentPlans;
-    if (isinstallment === false) {
-      purchase.isinstallment = isinstallment;
+    purchase.ownerPrice = netPaid;
+    purchase.totalPrice = netPaid;
+    purchase.markModified("installmentPlans");
+
+    if (allInstallmentsPaid || isinstallment === false || isinstallment === "false") {
+      purchase.isinstallment = false;
+      purchase.paymentDone = true;
+    } else {
+      purchase.isinstallment = true;
     }
+
     await purchase.save();
     res
       .status(200)

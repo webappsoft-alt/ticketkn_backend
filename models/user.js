@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
       required: true,
       default: [0, 0],
     },
+    address: String,
   },
   address: String,
   interests: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
@@ -93,6 +94,21 @@ function validateUser(user) {
     email: Joi.string().min(5).max(255).email(),
     fcmtoken: Joi.string().min(0).max(1024).optional(),
     code: Joi.string().min(0).max(1024).optional(),
+    address: Joi.string().optional().allow(""),
+    location: Joi.object({
+      type: Joi.string()
+        .valid("Point")
+        .default("Point")
+        .messages({ "any.only": "Invalid location type" }),
+      coordinates: Joi.array()
+        .length(2)
+        .items(Joi.number())
+        .required()
+        .messages({
+          "array.length": "Coordinates must be an array of exactly 2 numbers",
+        }),
+      address: Joi.string().optional().allow(""),
+    }).optional(),
   };
 
   const schema = Joi.object({
