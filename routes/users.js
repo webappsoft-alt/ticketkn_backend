@@ -441,17 +441,103 @@ router.get('/search/:id/:search?', auth , async (req, res) => {
   res.send({ success: true, users: users,count: { totalPage: totalPages, currentPageSize: users.length } });
 });
 
-function findDateIndex(createdAt,dates) {
-  for (let i = 0; i < dates.length - 1; i++) {
-    if (moment(createdAt).isBetween(dates[i], dates[i + 1], null, '[)')) {
-      return i + 1; // Increment y value of the next date
-    }
+function getPurchaseGraphSplit(order) {
+  const price = Number(order.totalPrice) || 0;
+  if (order.resel_by == null) {
+    return {
+      adminCommission: price * 0.08,
+      earnings: price * 0.02,
+    };
   }
-  // If the date is after the last date in the array
-  if (moment(createdAt).isSameOrAfter(dates[dates.length - 1])) {
-    return dates.length - 1;
-  }
-  return -1;
+  return {
+    adminCommission: price * 0.28,
+    earnings: 0,
+  };
+}
+
+function roundMoney(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function addToGraphBucket(bucket, order) {
+  const split = getPurchaseGraphSplit(order);
+  bucket.adminCommission += split.adminCommission;
+  bucket.earnings += split.earnings;
+}
+
+function formatGraphPoint(bucket) {
+  return {
+    x: bucket.x,
+    adminCommission: roundMoney(bucket.adminCommission),
+    earnings: roundMoney(bucket.earnings),
+  };
+}
+
+function buildTodayGraph(orders) {
+  const dayStart = moment().startOf("day");
+  const dayEnd = moment().endOf("day");
+  const buckets = Array.from({ length: 24 }, (_, hour) => ({
+    x: moment().startOf("day").add(hour, "hours").format("h A"),
+    adminCommission: 0,
+    earnings: 0,
+  }));
+
+  orders.forEach((order) => {
+    const createdAt = moment(order.createdAt);
+    if (!createdAt.isBetween(dayStart, dayEnd, null, "[]")) return;
+    addToGraphBucket(buckets[createdAt.hour()], order);
+  });
+
+  return buckets.map(formatGraphPoint);
+}
+
+function buildLast7DaysGraph(orders) {
+  const rangeStart = moment().subtract(6, "days").startOf("day");
+  const rangeEnd = moment().endOf("day");
+  const buckets = Array.from({ length: 7 }, (_, index) => {
+    const day = moment().subtract(6 - index, "days").startOf("day");
+    return {
+      x: day.format("ddd M/D"),
+      adminCommission: 0,
+      earnings: 0,
+    };
+  });
+
+  orders.forEach((order) => {
+    const createdAt = moment(order.createdAt);
+    if (!createdAt.isBetween(rangeStart, rangeEnd, null, "[]")) return;
+    const dayIndex = createdAt.clone().startOf("day").diff(rangeStart, "days");
+    if (dayIndex < 0 || dayIndex >= buckets.length) return;
+    addToGraphBucket(buckets[dayIndex], order);
+  });
+
+  return buckets.map(formatGraphPoint);
+}
+
+function buildMonthlyGraph(orders) {
+  const buckets = Array.from({ length: 12 }, (_, index) => {
+    const month = moment()
+      .subtract(11 - index, "months")
+      .startOf("month");
+    return {
+      x: month.format("MMM"),
+      monthStart: month.clone(),
+      monthEnd: month.clone().endOf("month"),
+      adminCommission: 0,
+      earnings: 0,
+    };
+  });
+
+  orders.forEach((order) => {
+    const createdAt = moment(order.createdAt);
+    const bucket = buckets.find((item) =>
+      createdAt.isBetween(item.monthStart, item.monthEnd, null, "[]")
+    );
+    if (!bucket) return;
+    addToGraphBucket(bucket, order);
+  });
+
+  return buckets.map(formatGraphPoint);
 }
 
 
@@ -515,44 +601,27 @@ router.get('/dashboard',[auth, admin],async (req, res) => {
    const twentPerc=Number(totalOtherPayments) * 0.20
    const eightResel=Number(totalOtherPayments) * 0.08
 
-   const now = new Date();
-   let dates = [];
-   for (let i = 0; i < 12; i++) {
-    let date = new Date(now);
-    date.setMonth(now.getMonth() - i);
-    dates.unshift(date.toISOString());
-  }
-  const startDate = moment().startOf('year');
-  const todayEnd = moment().endOf('day');
- 
-  const orders = await Purchase.find({createdAt: { $gte: startDate, $lte: todayEnd }}).select("totalPrice createdAt resel_by").lean()
- 
-   // Initialize the graph array
-   let graph = dates.map(date => ({ x: date, earnings:0 }));
-  
-   // Increment the y value for the correct date ranges
-   orders.forEach(order => {
-     const index = findDateIndex(order.createdAt,dates);
-     if (index !== -1 && index < graph.length) {
-       let earnings=0
-       if (order.resel_by==undefined) {
-        earnings=Number(order.totalPrice) * 0.10
-      }else{
-        earnings=Number(order.totalPrice) * 0.28
-      }
-      graph[index].earnings = graph[index].earnings+earnings;
-     }
-   });
- 
-   let newGraph = graph.map(obj => {
-     return { ["x"]: moment(obj.x).format('MMM'), ["y"]: obj.earnings};
-   });
+  const graphStart = moment().subtract(11, "months").startOf("month");
+  const graphEnd = moment().endOf("day");
+
+  const orders = await Purchase.find({
+    createdAt: { $gte: graphStart.toDate(), $lte: graphEnd.toDate() },
+  })
+    .select("totalPrice createdAt resel_by")
+    .lean();
+
+  const graph = {
+    today: buildTodayGraph(orders),
+    last7Days: buildLast7DaysGraph(orders),
+    monthly: buildMonthlyGraph(orders),
+  };
+
  
   
   res.send({ success: true, 
     totalEarnings:eightPerc+twentPerc+eightResel,
     totalPayments:totalPayments,
-    graph:newGraph,
+    graph,
     rentee:{
       totalUsers,
       growth: growth.toFixed(2),
