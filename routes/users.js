@@ -544,25 +544,17 @@ router.get("/search/:id/:search?", auth, async (req, res) => {
   });
 });
 
-<<<<<<< HEAD
 function getPurchaseGraphSplit(order) {
   const price = Number(order.totalPrice) || 0;
+  let adminCommission = 0;
   if (order.resel_by == null) {
-    return {
-      adminCommission: price * 0.08,
-      earnings: price * 0.02,
-    };
-=======
-function findDateIndex(createdAt, dates) {
-  for (let i = 0; i < dates.length - 1; i++) {
-    if (moment(createdAt).isBetween(dates[i], dates[i + 1], null, "[)")) {
-      return i + 1; // Increment y value of the next date
-    }
->>>>>>> e736a652ef6d0fd73adecf1f10710e2a65eb28ef
+    adminCommission = price * 0.08;
+  } else {
+    adminCommission = price * 0.28;
   }
   return {
-    adminCommission: price * 0.28,
-    earnings: 0,
+    adminCommission,
+    earnings: Number(order.ownerPrice || 0),
   };
 }
 
@@ -652,95 +644,16 @@ function buildMonthlyGraph(orders) {
 }
 
 router.get("/dashboard", [auth, admin], async (req, res) => {
-
   const totalUsers = await User.countDocuments({ type: "customer" });
 
-  // Get users registered yesterday
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
   const yesterdayUsers = await User.countDocuments({
     createdAt: { $gte: yesterday, $lt: today },
-<<<<<<< HEAD
-       type:"customer"
-   });
-   // Get the number of users until yesterday
-   const totalUsersYesterday = totalUsers - yesterdayUsers;
-   // Calculate growth percentage
-   let growth = 0;
-   if (totalUsersYesterday > 0) {
-       growth = ((totalUsers - totalUsersYesterday) / totalUsersYesterday) * 100;
-   }
-
-  const totalownerUsers = await User.countDocuments({type:"owner"});
-
-   const yesterdayownerUsers = await User.countDocuments({
-    createdAt: { $gte: yesterday, $lt: today },
-       type:"owner"
-   });
-   // Get the number of users until yesterday
-   const totalownerUsersYesterday = totalownerUsers - yesterdayownerUsers;
-   // Calculate growth percentage
-   let growthowner = 0;
-   if (totalownerUsersYesterday > 0) {
-      growthowner = ((totalownerUsers - totalownerUsersYesterday) / totalownerUsersYesterday) * 100;
-   }
-
-
-   const totalOrder = await Event.countDocuments({status:"active",});
-
-   const yesterdayOrder = await Event.countDocuments({
-    createdAt: { $gte: yesterday, $lt: today },
-    status:"active"
-   });
-   // Get the number of users until yesterday
-   const totalOrderYesterday = totalOrder - yesterdayOrder;
-   // Calculate growth percentage
-   let growthOrder = 0;
-   if (totalOrderYesterday > 0) {
-      growthOrder = ((totalOrder - totalOrderYesterday) / totalOrderYesterday) * 100;
-   }
-
-   const purchases = await Purchase.find({resel_by: { $exists: false },}).select("totalPrice createdAt").sort({ _id: -1 }).lean();
-   const totalPurchase = await Purchase.find({resel_by: { $exists: true },}).select("totalPrice createdAt").sort({ _id: -1 }).lean();
- 
- 
-   const totalPayments=purchases.reduce((a,b)=>a + Number(b.totalPrice),0)
-   const totalOtherPayments=totalPurchase.reduce((a,b)=>a + Number(b.totalPrice),0)
- 
-   const eightPerc=Number(totalPayments) * 0.08
-  //  const twoPerc=Number(totalPayments) * 0.02
-   const twentPerc=Number(totalOtherPayments) * 0.20
-   const eightResel=Number(totalOtherPayments) * 0.08
-
-  const graphStart = moment().subtract(11, "months").startOf("month");
-  const graphEnd = moment().endOf("day");
-
-  const orders = await Purchase.find({
-    createdAt: { $gte: graphStart.toDate(), $lte: graphEnd.toDate() },
-  })
-    .select("totalPrice createdAt resel_by")
-    .lean();
-
-  const graph = {
-    today: buildTodayGraph(orders),
-    last7Days: buildLast7DaysGraph(orders),
-    monthly: buildMonthlyGraph(orders),
-  };
-
- 
-  
-  res.send({ success: true, 
-    totalEarnings:eightPerc+twentPerc+eightResel,
-    totalPayments:totalPayments,
-    graph,
-    rentee:{
-=======
     type: "customer",
   });
-  // Get the number of users until yesterday
   const totalUsersYesterday = totalUsers - yesterdayUsers;
-  // Calculate growth percentage
   let growth = 0;
   if (totalUsersYesterday > 0) {
     growth = ((totalUsers - totalUsersYesterday) / totalUsersYesterday) * 100;
@@ -752,9 +665,7 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
     createdAt: { $gte: yesterday, $lt: today },
     type: "owner",
   });
-  // Get the number of users until yesterday
   const totalownerUsersYesterday = totalownerUsers - yesterdayownerUsers;
-  // Calculate growth percentage
   let growthowner = 0;
   if (totalownerUsersYesterday > 0) {
     growthowner =
@@ -769,9 +680,7 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
     createdAt: { $gte: yesterday, $lt: today },
     status: "active",
   });
-  // Get the number of users until yesterday
   const totalOrderYesterday = totalOrder - yesterdayOrder;
-  // Calculate growth percentage
   let growthOrder = 0;
   if (totalOrderYesterday > 0) {
     growthOrder =
@@ -794,64 +703,30 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
   );
 
   const eightPerc = Number(totalPayments) * 0.08;
-  //  const twoPerc=Number(totalPayments) * 0.02
   const twentPerc = Number(totalOtherPayments) * 0.2;
   const eightResel = Number(totalOtherPayments) * 0.08;
 
-  const queryStart = req.query.startDate
-    ? moment(req.query.startDate).startOf("day")
-    : moment().subtract(11, "months").startOf("month");
-  const queryEnd = req.query.endDate
-    ? moment(req.query.endDate).endOf("day")
-    : moment().endOf("day");
-
-  let dates = [];
-  const monthCursor = queryStart.clone().startOf("month");
-  const monthEnd = queryEnd.clone().endOf("month");
-  while (monthCursor.isSameOrBefore(monthEnd, "month")) {
-    dates.push(monthCursor.toISOString());
-    monthCursor.add(1, "month");
-  }
+  const graphStart = moment().subtract(11, "months").startOf("month");
+  const graphEnd = moment().endOf("day");
 
   const orders = await Purchase.find({
-    createdAt: { $gte: queryStart.toDate(), $lte: queryEnd.toDate() },
+    createdAt: { $gte: graphStart.toDate(), $lte: graphEnd.toDate() },
   })
     .select("totalPrice ownerPrice createdAt resel_by")
     .lean();
 
-  let graph = dates.map((date) => ({
-    x: date,
-    earnings: 0,
-    adminCommission: 0,
-  }));
-
-  orders.forEach((order) => {
-    const index = findDateIndex(order.createdAt, dates);
-    if (index !== -1 && index < graph.length) {
-      let adminCommission = 0;
-      if (order.resel_by == undefined) {
-        adminCommission = Number(order.totalPrice) * 0.08;
-      } else {
-        adminCommission = Number(order.totalPrice) * 0.28;
-      }
-      graph[index].earnings += Number(order.ownerPrice || 0);
-      graph[index].adminCommission += adminCommission;
-    }
-  });
-
-  let newGraph = graph.map((obj) => ({
-    x: moment(obj.x).format("MMM"),
-    earnings: Math.round(obj.earnings * 100) / 100,
-    adminCommission: Math.round(obj.adminCommission * 100) / 100,
-  }));
+  const graph = {
+    today: buildTodayGraph(orders),
+    last7Days: buildLast7DaysGraph(orders),
+    monthly: buildMonthlyGraph(orders),
+  };
 
   res.send({
     success: true,
     totalEarnings: eightPerc + twentPerc + eightResel,
     totalPayments: totalPayments,
-    graph: newGraph,
+    graph,
     rentee: {
->>>>>>> e736a652ef6d0fd73adecf1f10710e2a65eb28ef
       totalUsers,
       growth: growth.toFixed(2),
       status: growth >= 0 ? "positive" : "negative",
