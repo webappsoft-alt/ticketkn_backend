@@ -501,12 +501,12 @@ router.get("/search/:id/:search?", auth, async (req, res) => {
   }
 
   let query = {};
-  console.log(type);
+  // console.log(type);
 
   if (type && type !== "all") {
     query.type = type;
   }
-  console.log(query);
+  // console.log(query);
 
   query._id = { $ne: req.user._id };
 

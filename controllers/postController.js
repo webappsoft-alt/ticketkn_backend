@@ -243,7 +243,7 @@ exports.getMyPosts = async (req, res) => {
   let query = {};
   query.status = "active";
   query.user = userId;
-  console.log(type);
+  // console.log(type);
   if (type) {
     query.type = type;
   }
@@ -404,7 +404,7 @@ exports.latestEvent = async (req, res) => {
     .lean();
   for (let posts of users) {
     posts.TotalLikes = posts?.likes?.length || 0;
-    console.log(posts.likes);
+    // console.log(posts.likes);
     posts.likes =
       Array.isArray(posts.likes) &&
       posts.likes.some((like) => like.user?.toString() === userId?.toString());
@@ -1193,7 +1193,7 @@ exports.transferTickets = async (req, res) => {
   const userId = req.params.userId;
   const purchaseId = req.params.purchaseId;
   const code = req.params.code;
-  console.log("Hit transferTickets");
+  // console.log("Hit transferTickets");
   try {
     // 1. Validate that the ticket exists and is owned by the sender
     const purchase = await Purchase.findOne({
@@ -1259,7 +1259,7 @@ exports.transferTickets = async (req, res) => {
 exports.acceptTransfer = async (req, res) => {
   const transferId = req.params.transferId;
   const userId = req.user._id;
-  console.log("Hit acceptTransfer");
+  // console.log("Hit acceptTransfer");
   try {
     const transfer = await TicketTransfer.findOne({
       _id: transferId,
@@ -1453,7 +1453,7 @@ exports.paymentDone = async (req, res) => {
 exports.updatePurchaseScan = async (req, res) => {
   try {
     const ownerUser = req?.mainUser || req?.user?._id || "";
-    console.log("user", req.params.userId);
+    // console.log("user", req.params.userId);
     const userId = new mongoose.Types.ObjectId(req.params.userId);
     const eventId = new mongoose.Types.ObjectId(req.params.eventId);
     const purchaseId = new mongoose.Types.ObjectId(req.params.purchaseId);
@@ -2027,7 +2027,7 @@ exports.getMyPurchases = async (req, res) => {
 
 exports.createAdminTicket = async (req, res) => {
   try {
-    console.log("createAdminTicket", req.body);
+    // console.log("createAdminTicket", req.body);
     const { eventId, tickets, supplierId } = req.body;
 
     if (
@@ -2117,7 +2117,7 @@ exports.createAdminTicket = async (req, res) => {
 
 exports.updateAdminTicket = async (req, res) => {
   try {
-    console.log("updateAdminTicket", req.body);
+    // console.log("updateAdminTicket", req.body);
     const { tickets } = req.body;
 
     if (!Array.isArray(tickets) || tickets.length === 0) {
@@ -2595,6 +2595,13 @@ exports.payInstallment = async (req, res) => {
   try {
     const { purchaseId } = req.params;
     const { installmentPlans, isinstallment } = req.body;
+
+    if (!Array.isArray(installmentPlans) || installmentPlans.length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "installmentPlans is required" });
+    }
+
     const purchase = await Purchase.findById(purchaseId);
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
@@ -2603,10 +2610,41 @@ exports.payInstallment = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    const isInstallmentPaid = (plan) =>
+      plan?.payment === true ||
+      plan?.payment === "true" ||
+      plan?.paid === true ||
+      plan?.isPaid === true ||
+      plan?.paymentDone === true ||
+      plan?.status === "paid" ||
+      plan?.status === "completed";
+
+    const getInstallmentAmount = (plan) => {
+      const amount = Number(plan?.price ?? plan?.amount ?? plan?.total ?? 0);
+      return Number.isNaN(amount) ? 0 : amount;
+    };
+
+    const grossPaid = installmentPlans.reduce(
+      (sum, plan) =>
+        sum + (isInstallmentPaid(plan) ? getInstallmentAmount(plan) : 0),
+      0,
+    );
+    const netPaid = Number((grossPaid - grossPaid * 0.08).toFixed(4));
+    const allInstallmentsPaid = installmentPlans.every(isInstallmentPaid);
+
     purchase.installmentPlans = installmentPlans;
-    if (isinstallment === false) {
-      purchase.isinstallment = isinstallment;
+    purchase.ownerPrice = netPaid;
+    purchase.totalPrice = netPaid;
+    purchase.markModified("installmentPlans");
+
+    if (allInstallmentsPaid || isinstallment === false || isinstallment === "false") {
+      purchase.isinstallment = false;
+      purchase.paymentDone = true;
+    } else {
+      purchase.isinstallment = true;
     }
+
     await purchase.save();
     res
       .status(200)

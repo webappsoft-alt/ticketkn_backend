@@ -74,7 +74,7 @@ exports.createPost = async (req, res) => {
 
 exports.getMyResellTickets = async (req, res) => {
   const userId = req.user._id;
-  console.log(userId);
+  // console.log(userId);
   const lastId = parseInt(req.params.id) || 1;
 
   // Check if lastId is a valid number
@@ -329,7 +329,7 @@ exports.otherResellEvents = async (req, res) => {
   const skip = Math.max(0, lastId - 1) * pageSize;
   query.user = { $ne: userId };
   query.resellTickets = { $exists: false };
-  console.log("query", JSON.stringify(query, null, 2));
+  // console.log("query", JSON.stringify(query, null, 2));
   try {
     const likedJobs = await Resell.aggregate([
       // 1. Initial Query Filter
@@ -520,7 +520,7 @@ exports.otherResellEvents = async (req, res) => {
 
     const totalCount = await Resell.countDocuments(query);
     const totalPages = Math.ceil(totalCount / pageSize);
-    console.log("likedJobs", JSON.stringify(likedJobs, null, 2));
+    // console.log("likedJobs", JSON.stringify(likedJobs, null, 2));
 
     if (likedJobs.length > 0) {
       for (let purchase of likedJobs) {
@@ -593,7 +593,7 @@ exports.purchaseTicket = async (req, res) => {
       resel_by: findEvent.user._id,
       type,
     });
-    console.log(" findEvent.purchase_ticketId", findEvent.purchase_ticketId);
+    // console.log(" findEvent.purchase_ticketId", findEvent.purchase_ticketId);
     const purchase = await Purchase.findOneAndUpdate(
       { _id: findEvent.purchase_ticketId },
       { $push: { resellpurchases: post._id } },
