@@ -2,10 +2,25 @@ const express = require("express");
 const router = express.Router();
 const { subUser } = require("../models/subUser");
 const authMiddleware = require("../middleware/auth");
+const { subUserAuth } = require("../middleware/auth");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const Event = require("../models/Event");
+const Purchase = require("../models/Purchase");
+const { PrintTicket, AdminTicket } = require("../models/AdminTicket");
 const { sendSubUserEmail } = require("../controllers/emailservice");
 const config = require("config");
+
+const accessEventsPopulate = {
+  path: "accessEvents",
+  populate: [
+    { path: "user" },
+    {
+      path: "purchase_by",
+      populate: [{ path: "user", model: "user" }],
+    },
+  ],
+};
 function generateOTP(length = 6, options = { numeric: true, alphabet: false }) {
   let charset = "";
 
@@ -30,12 +45,21 @@ function generateOTP(length = 6, options = { numeric: true, alphabet: false }) {
 
 router.post("/add-user", authMiddleware, async (req, res) => {
   try {
-    const { fullName, email } = req.body;
+    const { fullName, email, accessEvents } = req.body;
     const isExistingUser = await subUser.findOne({ email });
     if (isExistingUser) {
       return res
         .status(400)
         .json({ success: false, message: "User already exists" });
+    }
+    if (accessEvents) {
+      const events = await Event.find({ _id: { $in: accessEvents } });
+      if (events.length !== accessEvents.length) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Some events are not found" });
+      }
+
     }
     const mainUser = req.user._id;
     const password = generateOTP(8, { numeric: true, alphabet: true });
@@ -45,6 +69,7 @@ router.post("/add-user", authMiddleware, async (req, res) => {
       fullName,
       email,
       password: hashedPassword,
+      accessEvents: accessEvents,
     });
     await user.save();
     sendSubUserEmail(email, password);
@@ -54,34 +79,153 @@ router.post("/add-user", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/my-details", subUserAuth, async (req, res) => {
   try {
-    const subUsers = await subUser.find({ mainUser: req.user._id });
-    res.status(200).json({ success: true, subUsers });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-router.get("/:id", authMiddleware, async (req, res) => {
-  try {
-    const user = await subUser.findById(req.params.id);
+    const user = await subUser
+      .findById(req.user._id)
+      .populate(accessEventsPopulate)
+      .lean();
     res.status(200).json({ success: true, subUser: user });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
+router.get("/my-scanned-tickets", subUserAuth, async (req, res) => {
+  try {
+    const subUserId = req.user._id;
+    const eventIds = req.user.accessEvents || [];
 
+    const purchases = await Purchase.find({
+      event: { $in: eventIds },
+      "tickets_type_sale.scannedAtLog.subUser": subUserId,
+    })
+      .populate("user")
+      .populate("event")
+      .lean();
+
+    const purchaseScans = purchases.map((purchase) => {
+      const scannedAtLog = (
+        purchase.tickets_type_sale?.scannedAtLog || []
+      ).filter((log) => log.subUser?.toString() === subUserId.toString());
+
+      return {
+        ...purchase,
+        tickets_type_sale: {
+          ...purchase.tickets_type_sale,
+          scannedAtLog,
+          scanned: scannedAtLog.map((log) => log.code),
+        },
+      };
+    });
+
+    const printTickets = await PrintTicket.find({ subUser: subUserId }).lean();
+    const printTicketIds = printTickets.map((ticket) => ticket._id);
+
+    const adminTickets = await AdminTicket.find({
+      tickets: { $in: printTicketIds },
+      event: { $in: eventIds },
+    })
+      .populate("event")
+      .lean();
+
+    const eventByTicketId = {};
+    for (const adminTicket of adminTickets) {
+      for (const ticketId of adminTicket.tickets || []) {
+        eventByTicketId[ticketId.toString()] = adminTicket.event;
+      }
+    }
+
+    const printTicketScans = printTickets
+      .filter((ticket) => eventByTicketId[ticket._id.toString()])
+      .map((ticket) => ({
+        ...ticket,
+        event: eventByTicketId[ticket._id.toString()],
+      }));
+
+    res.status(200).json({
+      success: true,
+      purchaseScans,
+      printTicketScans,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    const subUsers = await subUser.find({ mainUser: req.user._id }).populate(accessEventsPopulate).lean();
+    res.status(200).json({ success: true, subUsers });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+router.get("/:id", authMiddleware, async (req, res) => {
+  try {
+    const user = await subUser.findById(req.params.id).populate(accessEventsPopulate).lean();
+    res.status(200).json({ success: true, subUser: user });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const user = await subUser.findOneAndUpdate(
       { _id: req.params.id },
-      { status: "inactive" },
+      { $set: { status: "inactive" } },
       { new: true },
     );
+    res.status(200).json({ success: true, subUser: user });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+router.put("/active/:id", authMiddleware, async (req, res) => {
+  try {
+    const user = await subUser.findByIdAndUpdate(req.params.id, { $set: { status: "active" } }, { new: true }).populate("accessEvents").lean();
+    res.status(200).json({ success: true, subUser: user });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+router.put("/add-access-events/:id", authMiddleware, async (req, res) => {
+  try {
+    const { accessEvents } = req.body;
+    const events = await Event.find({ _id: { $in: accessEvents } }).lean();
+    if (events.length !== accessEvents.length) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Some events are not found" });
+    }
+    const user = await subUser.findByIdAndUpdate(req.params.id, { $push: { accessEvents: { $each: events.map((event) => event._id) } } }, { new: true }).populate("accessEvents").lean();
+    res.status(200).json({ success: true, subUser: user });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+router.put("/remove-access-events/:id", authMiddleware, async (req, res) => {
+  try {
+    const { accessEvents } = req.body;
+    if (!accessEvents?.length) {
+      return res
+        .status(400)
+        .json({ success: false, message: "accessEvents is required" });
+    }
+    const eventIds = accessEvents.map((event) => event?._id ?? event);
+    const user = await subUser
+      .findByIdAndUpdate(
+        req.params.id,
+        { $pull: { accessEvents: { $in: eventIds } } },
+        { new: true },
+      )
+      .populate(accessEventsPopulate)
+      .lean();
     res.status(200).json({ success: true, subUser: user });
   } catch (error) {
     console.log(error);
@@ -119,7 +263,10 @@ router.get("generate-sub-user-token/:id", authMiddleware, async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await subUser.findOne({ email });
+    const user = await subUser
+      .findOne({ email })
+      .populate(accessEventsPopulate)
+      .lean();
     if (!user) {
       return res
         .status(400)
@@ -137,7 +284,8 @@ router.post("/login", async (req, res) => {
         .json({ message: "User is inactive", success: false });
     }
     const subUserToken = generateToken(user);
-    res.status(200).json({ success: true, token: subUserToken });
+    // console.log(user);
+    res.status(200).json({ success: true, token: subUserToken, user: user });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal server error" });

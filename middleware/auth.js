@@ -37,6 +37,11 @@ const subUserAuth = async function (req, res, next) {
   try {
     const decoded = jwt.verify(token, config.get("jwtPrivateKey")); //JWT need to be defined somewherelese
     const user = await subUser.findById(decoded.subUser).lean();
+    if (user.accessEvents.includes(req.params.eventId)) {
+      return res.status(400).send({
+        message: "You are not authorized to Scan this event.",
+      });
+    }
     if (user.status == "active") {
       req.mainUser = user.mainUser;
       req.user = user;

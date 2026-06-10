@@ -22,6 +22,10 @@ const ticketObj = {
         type: String,
         default: "Owner",
       },
+      subUser: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "subUser",
+      },
       code: { type: mongoose.Schema.Types.Mixed },
       scannedAt: { type: Date },
     },

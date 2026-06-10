@@ -1465,8 +1465,10 @@ exports.updatePurchaseScan = async (req, res) => {
         ? new Date(scannedAtRaw)
         : new Date();
     let scannedby = "";
+    let subUser = null;
     if (req?.mainUser) {
       scannedby = req.user.fullName;
+      subUser = req.user._id;
     } else {
       scannedby = "Owner";
     }
@@ -1491,6 +1493,7 @@ exports.updatePurchaseScan = async (req, res) => {
           "tickets_type_sale.scannedAtLog": {
             scannedby: scannedby,
             code: logCode,
+            subUser: subUser,
             scannedAt,
           },
         },
@@ -2445,6 +2448,12 @@ exports.scanPrintTicket = async (req, res) => {
         success: false,
         message: "Print ticket already scanned",
       });
+    }
+    if (req?.mainUser) {
+      printTicket.scannedBy = req.user.fullName;
+      printTicket.subUser = req.user._id;
+    } else {
+      printTicket.scannedBy = "Owner";
     }
     printTicket.scanned = true;
     await printTicket.save();

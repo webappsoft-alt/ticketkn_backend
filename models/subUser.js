@@ -20,6 +20,11 @@ const subUserSchema = new mongoose.Schema(
       default: "active",
       enum: ["active", "inactive", "deleted"],
     },
+    accessEvents: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "Event",
+      default: [],
+    },
   },
   { timestamps: true },
 );

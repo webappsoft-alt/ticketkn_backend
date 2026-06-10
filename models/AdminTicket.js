@@ -15,6 +15,14 @@ const printTicketSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    scannedBy: {
+      type: String,
+      default: "Owner",
+    },
+    subUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "subUser",
+    },
     scannedAt: {
       type: Date,
       default: Date.now,
