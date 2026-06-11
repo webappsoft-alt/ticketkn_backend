@@ -149,19 +149,21 @@ router.post("/admin/transaction/deposit", async (req, res) => {
     await transaction.save();
 
     let paidDate = null;
+    let updatedResell = null;
     if (resellId) {
       paidDate = new Date();
-      await Resell.findByIdAndUpdate(
+      updatedResell = await Resell.findByIdAndUpdate(
         resellId,
         { $set: { isPaid: true, paidDate } },
         { new: true }
-      );
+      ).lean();
     }
 
     res.send({
       success: true,
       message: "Deposit successfully",
       ...(paidDate && { paidDate }),
+      ...(updatedResell && { resell: updatedResell }),
     });
   } catch (error) {
     console.error(error);

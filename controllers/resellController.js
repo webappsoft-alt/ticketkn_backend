@@ -710,14 +710,26 @@ exports.deleteResellTicket = async (req, res) => {
   }
 };
 
+function resolveResellPaidDate(resell) {
+  if (resell?.paidDate) {
+    return resell.paidDate;
+  }
+  if (resell?.isPaid && resell?.updatedAt) {
+    return resell.updatedAt;
+  }
+  return null;
+}
+
 exports.adminResellEvents = async (req, res) => {
   try {
     const { page = 1, limit = 10, unpaid = false, paid = false } = req.query;
     let query = {};
-    if (unpaid) {
+    const isUnpaidFilter = unpaid === true || unpaid === "true";
+    const isPaidFilter = paid === true || paid === "true";
+    if (isUnpaidFilter) {
       query.$or = [{ isPaid: false }, { isPaid: { $exists: false } }];
     }
-    if (paid) {
+    if (isPaidFilter) {
       query.isPaid = true;
     }
     // console.log(query);
@@ -743,6 +755,7 @@ exports.adminResellEvents = async (req, res) => {
     for (const item of findEvents) {
       const adminComission = Number(item.price) * 0.2;
       item.earnings = adminComission;
+      item.paidDate = resolveResellPaidDate(item);
     }
     res.status(200).json({
       success: true,
