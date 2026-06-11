@@ -147,10 +147,22 @@ router.post("/admin/transaction/deposit", async (req, res) => {
     transaction.type = "deposit";
     transaction.reason = reason;
     await transaction.save();
+
+    let paidDate = null;
     if (resellId) {
-      await Resell.findByIdAndUpdate(resellId, { $set: { isPaid: true }, }, { new: true });
+      paidDate = new Date();
+      await Resell.findByIdAndUpdate(
+        resellId,
+        { $set: { isPaid: true, paidDate } },
+        { new: true }
+      );
     }
-    res.send({ success: true, message: "Deposit successfully" });
+
+    res.send({
+      success: true,
+      message: "Deposit successfully",
+      ...(paidDate && { paidDate }),
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error" });
