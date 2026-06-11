@@ -41,6 +41,7 @@ router.post('/admin', async (req, res) => {
 router.post('/:type?', async (req, res) => {
   if (req.params.type == 'social-login') {
     const { email, fcmtoken, name, type } = req.body;
+    console.log(email, fcmtoken, name, type );
     const lowerCaseEmail = String(email).trim().toLocaleLowerCase()
 
     const user = await User.findOne({ email: lowerCaseEmail });
@@ -48,7 +49,6 @@ router.post('/:type?', async (req, res) => {
     if (!user) {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(uid(), salt);
-
       const newUser = new User({ email: lowerCaseEmail, name: name || "", password: hashedPassword, login_type: "social-login", fcmtoken, type: type || "customer" });
 
       await newUser.save();
@@ -59,6 +59,7 @@ router.post('/:type?', async (req, res) => {
     }
 
     if (user.status == 'deleted') return res.status(400).send({ success: false, message: 'User has been deleted. Contact admin for further support.' });
+    if (user.type !== type) return res.status(400).send({ success: false, message: `You are not authorized to login as ${type}` });
 
     await User.findByIdAndUpdate(user._id, { fcmtoken })
     const token = generateAuthToken(user._id, user.type);
@@ -73,7 +74,8 @@ router.post('/:type?', async (req, res) => {
   const { error } = validate(req.body);
   if (error) return res.status(400).send({ success: false, message: error.details[0].message });
 
-  const { email, password, fcmtoken } = req.body;
+  const { email, password, fcmtoken, type } = req.body;
+  // console.log(req.body);
   const lowerCaseEmail = String(email).trim().toLocaleLowerCase()
 
   const user = await User.findOne({ email: lowerCaseEmail });
@@ -85,6 +87,8 @@ router.post('/:type?', async (req, res) => {
 
   if (user.status == 'deleted') return res.status(400).send({ success: false, message: 'User has been deleted. Contact admin for further support.' });
   if (user.status == 'deactivated') return res.status(400).send({ success: false, message: 'User has been deactivated. Contact admin for further support.' });
+  if (user.type !== type) return res.status(400).send({ success: false, message: `You are not authorized to login as ${type}` });
+
 
   user.fcmtoken = fcmtoken || ""
   await user.save()
@@ -100,7 +104,8 @@ function validate(req) {
   const emailSchema = {
     email: Joi.string().min(5).max(255).email(),
     password: Joi.string().min(5).max(255).required(),
-    fcmtoken: Joi.string().min(0).max(1024).allow(null).optional()
+    fcmtoken: Joi.string().min(0).max(1024).allow(null).optional(),
+    type: Joi.string().valid('customer', 'owner').required(),
   };
 
   const schema = Joi.object(emailSchema)
