@@ -544,24 +544,108 @@ router.get("/search/:id/:search?", auth, async (req, res) => {
   });
 });
 
-function findDateIndex(createdAt, dates) {
-  for (let i = 0; i < dates.length - 1; i++) {
-    if (moment(createdAt).isBetween(dates[i], dates[i + 1], null, "[)")) {
-      return i + 1; // Increment y value of the next date
-    }
+function getPurchaseGraphSplit(order) {
+  const price = Number(order.totalPrice) || 0;
+  let adminCommission = 0;
+  if (order.resel_by == null) {
+    adminCommission = price * 0.08;
+  } else {
+    adminCommission = price * 0.28;
   }
-  // If the date is after the last date in the array
-  if (moment(createdAt).isSameOrAfter(dates[dates.length - 1])) {
-    return dates.length - 1;
-  }
-  return -1;
+  return {
+    adminCommission,
+    earnings: Number(order.ownerPrice || 0),
+  };
+}
+
+function roundMoney(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function addToGraphBucket(bucket, order) {
+  const split = getPurchaseGraphSplit(order);
+  bucket.adminCommission += split.adminCommission;
+  bucket.earnings += split.earnings;
+}
+
+function formatGraphPoint(bucket) {
+  return {
+    x: bucket.x,
+    adminCommission: roundMoney(bucket.adminCommission),
+    earnings: roundMoney(bucket.earnings),
+  };
+}
+
+function buildTodayGraph(orders) {
+  const dayStart = moment().startOf("day");
+  const dayEnd = moment().endOf("day");
+  const buckets = Array.from({ length: 24 }, (_, hour) => ({
+    x: moment().startOf("day").add(hour, "hours").format("h A"),
+    adminCommission: 0,
+    earnings: 0,
+  }));
+
+  orders.forEach((order) => {
+    const createdAt = moment(order.createdAt);
+    if (!createdAt.isBetween(dayStart, dayEnd, null, "[]")) return;
+    addToGraphBucket(buckets[createdAt.hour()], order);
+  });
+
+  return buckets.map(formatGraphPoint);
+}
+
+function buildLast7DaysGraph(orders) {
+  const rangeStart = moment().subtract(6, "days").startOf("day");
+  const rangeEnd = moment().endOf("day");
+  const buckets = Array.from({ length: 7 }, (_, index) => {
+    const day = moment().subtract(6 - index, "days").startOf("day");
+    return {
+      x: day.format("ddd M/D"),
+      adminCommission: 0,
+      earnings: 0,
+    };
+  });
+
+  orders.forEach((order) => {
+    const createdAt = moment(order.createdAt);
+    if (!createdAt.isBetween(rangeStart, rangeEnd, null, "[]")) return;
+    const dayIndex = createdAt.clone().startOf("day").diff(rangeStart, "days");
+    if (dayIndex < 0 || dayIndex >= buckets.length) return;
+    addToGraphBucket(buckets[dayIndex], order);
+  });
+
+  return buckets.map(formatGraphPoint);
+}
+
+function buildMonthlyGraph(orders) {
+  const buckets = Array.from({ length: 12 }, (_, index) => {
+    const month = moment()
+      .subtract(11 - index, "months")
+      .startOf("month");
+    return {
+      x: month.format("MMM"),
+      monthStart: month.clone(),
+      monthEnd: month.clone().endOf("month"),
+      adminCommission: 0,
+      earnings: 0,
+    };
+  });
+
+  orders.forEach((order) => {
+    const createdAt = moment(order.createdAt);
+    const bucket = buckets.find((item) =>
+      createdAt.isBetween(item.monthStart, item.monthEnd, null, "[]")
+    );
+    if (!bucket) return;
+    addToGraphBucket(bucket, order);
+  });
+
+  return buckets.map(formatGraphPoint);
 }
 
 router.get("/dashboard", [auth, admin], async (req, res) => {
-
   const totalUsers = await User.countDocuments({ type: "customer" });
 
-  // Get users registered yesterday
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
@@ -569,9 +653,7 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
     createdAt: { $gte: yesterday, $lt: today },
     type: "customer",
   });
-  // Get the number of users until yesterday
   const totalUsersYesterday = totalUsers - yesterdayUsers;
-  // Calculate growth percentage
   let growth = 0;
   if (totalUsersYesterday > 0) {
     growth = ((totalUsers - totalUsersYesterday) / totalUsersYesterday) * 100;
@@ -583,9 +665,7 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
     createdAt: { $gte: yesterday, $lt: today },
     type: "owner",
   });
-  // Get the number of users until yesterday
   const totalownerUsersYesterday = totalownerUsers - yesterdayownerUsers;
-  // Calculate growth percentage
   let growthowner = 0;
   if (totalownerUsersYesterday > 0) {
     growthowner =
@@ -600,9 +680,7 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
     createdAt: { $gte: yesterday, $lt: today },
     status: "active",
   });
-  // Get the number of users until yesterday
   const totalOrderYesterday = totalOrder - yesterdayOrder;
-  // Calculate growth percentage
   let growthOrder = 0;
   if (totalOrderYesterday > 0) {
     growthOrder =
@@ -625,62 +703,29 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
   );
 
   const eightPerc = Number(totalPayments) * 0.08;
-  //  const twoPerc=Number(totalPayments) * 0.02
   const twentPerc = Number(totalOtherPayments) * 0.2;
   const eightResel = Number(totalOtherPayments) * 0.08;
 
-  const queryStart = req.query.startDate
-    ? moment(req.query.startDate).startOf("day")
-    : moment().subtract(11, "months").startOf("month");
-  const queryEnd = req.query.endDate
-    ? moment(req.query.endDate).endOf("day")
-    : moment().endOf("day");
-
-  let dates = [];
-  const monthCursor = queryStart.clone().startOf("month");
-  const monthEnd = queryEnd.clone().endOf("month");
-  while (monthCursor.isSameOrBefore(monthEnd, "month")) {
-    dates.push(monthCursor.toISOString());
-    monthCursor.add(1, "month");
-  }
+  const graphStart = moment().subtract(11, "months").startOf("month");
+  const graphEnd = moment().endOf("day");
 
   const orders = await Purchase.find({
-    createdAt: { $gte: queryStart.toDate(), $lte: queryEnd.toDate() },
+    createdAt: { $gte: graphStart.toDate(), $lte: graphEnd.toDate() },
   })
     .select("totalPrice ownerPrice createdAt resel_by")
     .lean();
 
-  let graph = dates.map((date) => ({
-    x: date,
-    earnings: 0,
-    adminCommission: 0,
-  }));
-
-  orders.forEach((order) => {
-    const index = findDateIndex(order.createdAt, dates);
-    if (index !== -1 && index < graph.length) {
-      let adminCommission = 0;
-      if (order.resel_by == undefined) {
-        adminCommission = Number(order.totalPrice) * 0.08;
-      } else {
-        adminCommission = Number(order.totalPrice) * 0.28;
-      }
-      graph[index].earnings += Number(order.ownerPrice || 0);
-      graph[index].adminCommission += adminCommission;
-    }
-  });
-
-  let newGraph = graph.map((obj) => ({
-    x: moment(obj.x).format("MMM"),
-    earnings: Math.round(obj.earnings * 100) / 100,
-    adminCommission: Math.round(obj.adminCommission * 100) / 100,
-  }));
+  const graph = {
+    today: buildTodayGraph(orders),
+    last7Days: buildLast7DaysGraph(orders),
+    monthly: buildMonthlyGraph(orders),
+  };
 
   res.send({
     success: true,
     totalEarnings: eightPerc + twentPerc + eightResel,
     totalPayments: totalPayments,
-    graph: newGraph,
+    graph,
     rentee: {
       totalUsers,
       growth: growth.toFixed(2),
