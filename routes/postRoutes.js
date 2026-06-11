@@ -35,6 +35,11 @@ router.post(
   [authMiddleware, admin],
   postController.getAdminPost,
 );
+router.get(
+  "/admin/:type/:id",
+  [authMiddleware, admin],
+  postController.getAdminPost,
+);
 router.post("/filter", optionalAuth, postController.filterPosts);
 router.get("/detail/:id", optionalAuth, postController.getDetailsEvent);
 router.get("/no-coupon", optionalAuth, postController.noCouponEvent);
