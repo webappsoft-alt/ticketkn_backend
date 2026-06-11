@@ -310,10 +310,15 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
 
     const { paymentDone, payment } = req.body;
     const payemntObject = { amount: payment, date: Date.now() };
+    const paidDate = new Date();
 
     const post = await Post.findOneAndUpdate(
       { _id: postId },
-      { paymentDone: paymentDone, $push: { payment: payemntObject } },
+      {
+        paymentDone: paymentDone,
+        paidDate,
+        $push: { payment: payemntObject },
+      },
       { new: true },
     );
 
@@ -327,6 +332,7 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
       success: true,
       message: "Purchase payed successfully",
       purchase: post,
+      paidDate: post.paidDate,
     });
   } catch (error) {
     console.error(error);
