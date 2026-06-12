@@ -33,20 +33,28 @@ router.post('/upload', upload.single('image'), async(req, res) => {
   try {    
     // Read the uploaded Excel file
     const file = req.file;
-    const destination = `uploads/${file.filename}`;
-    
-    const compressedFilePath = path.join(__dirname, 'files', `compressed-${file.filename}.jpg`);
+    // ANDROID-PUSH-FIX: always store as .jpg since sharp converts to JPEG below.
+    // Revert to: const destination = `uploads/${file.filename}`;
+    const destination = `uploads/${path.parse(file.filename).name}.jpg`;
+
+    const compressedFilePath = path.join(
+      __dirname,
+      "files",
+      `compressed-${file.filename}.jpg`,
+    );
 
     await sharp(file.path)
-    .resize({ width: 800 }) 
-    .jpeg({ quality: 80 })  // Compress to JPEG with 80% quality
-    .toFile(compressedFilePath);
-    // Upload the file to Firebase Storage
+      .resize({ width: 800 })
+      .jpeg({ quality: 80 })
+      .toFile(compressedFilePath);
+
     await bucket.upload(compressedFilePath, {
       destination,
       metadata: {
-        contentType: 'image/jpg',
-      }
+        // ANDROID-PUSH-FIX: correct MIME type for FCM image download (was image/jpg).
+        // Revert to: contentType: 'image/jpg'
+        contentType: "image/jpeg",
+      },
     });
     
     // Make the file public

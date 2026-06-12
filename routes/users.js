@@ -992,19 +992,22 @@ router.post("/send-notifications/:type", [auth, admin], async (req, res) => {
     ...new Set(
       users
         .map((item) => item.fcmtoken)
-        .filter((item) => item !== undefined || item !== ""),
+        // ANDROID-PUSH-FIX: skip empty/invalid tokens.
+        // Revert to: .filter((item) => item !== undefined || item !== "")
+        .filter((item) => item && item !== ""),
     ),
   ];
   if (fcmTokens.length > 0) {
-    // Create an array of message objects for each token
     const messages = fcmTokens.map((token) => {
       const message = {
-        token: token,
+        token,
         notification: {
-          title: title,
+          title,
           body: description,
         },
         android: {
+          // ANDROID-PUSH-FIX: high priority helps Android deliver rich notifications reliably.
+          priority: "high",
           notification: {
             sound: "default",
           },
@@ -1020,20 +1023,29 @@ router.post("/send-notifications/:type", [auth, admin], async (req, res) => {
 
       if (image) {
         message.notification.image = image;
-        message.android.notification.image = image;
-
-        // Apple specific payload fix
+        // ANDROID-PUSH-FIX: FCM Android field is imageUrl (not image).
+        // Old code: message.android.notification.image = image;
+        message.android.notification.imageUrl = image;
+        // ANDROID-PUSH-FIX: data payload for apps that read image from data on Android.
+        // Revert: remove this entire message.data block.
+        message.data = {
+          image,
+          title: title || "",
+          body: description || "",
+        };
+        // IOS-PUSH-FIX: rich notification image (requires Notification Service Extension in app).
         message.apns = {
           payload: {
             aps: {
-              ...((message.apns && message.apns.payload && message.apns.payload.aps) || {}),
-              "mutable-content": true
+              ...((message.apns && message.apns.payload && message.apns.payload.aps) ||
+                {}),
+              "mutable-content": 1,
             },
             image: image,
           },
           fcmOptions: {
-            image: image // FCM v1 API standard for iOS image
-          }
+            image: image,
+          },
         };
       }
 
