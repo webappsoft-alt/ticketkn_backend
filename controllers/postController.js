@@ -310,10 +310,17 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
 
     const { paymentDone, payment } = req.body;
     const payemntObject = { amount: payment, date: Date.now() };
+    const paidDate = new Date();
 
     const post = await Post.findOneAndUpdate(
       { _id: postId },
-      { paymentDone: paymentDone, $push: { payment: payemntObject } },
+      {
+        $set: {
+          paymentDone,
+          paidDate,
+        },
+        $push: { payment: payemntObject },
+      },
       { new: true },
     );
 
@@ -327,6 +334,7 @@ exports.updatePurchasePaymentByAdmin = async (req, res) => {
       success: true,
       message: "Purchase payed successfully",
       purchase: post,
+      paidDate: post.paidDate,
     });
   } catch (error) {
     console.error(error);
@@ -413,6 +421,18 @@ exports.latestEvent = async (req, res) => {
   res.send({ success: true, posts: users });
 };
 
+function resolveEventPaidDate(post) {
+  if (post?.paidDate) {
+    return post.paidDate;
+  }
+  const payments = Array.isArray(post?.payment) ? post.payment : [];
+  if (payments.length === 0) {
+    return null;
+  }
+  const lastPayment = payments[payments.length - 1];
+  return lastPayment?.date ?? null;
+}
+
 exports.getAdminPost = async (req, res) => {
   const lastId = parseInt(req.params.id) || 1;
   const userId = req.query?.user_id;
@@ -495,7 +515,11 @@ exports.getAdminPost = async (req, res) => {
       0,
     );
     post.totalPayments = totalPayments;
-    post.paidAmount = post.payment.reduce((a, b) => a + Number(b.amount), 0);
+    post.paidAmount = (post.payment || []).reduce(
+      (a, b) => a + Number(b.amount),
+      0,
+    );
+    post.paidDate = resolveEventPaidDate(post);
 
     post.ResellTicketsCount = await Resell.countDocuments({
       event: post._id,

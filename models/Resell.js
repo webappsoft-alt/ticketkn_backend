@@ -31,6 +31,9 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  paidDate: {
+    type: Date,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Resell', productSchema);

@@ -15,7 +15,7 @@ function uid() {
 }
 
 router.post('/admin', async (req, res) => {
-  const { error } = validate(req.body);
+  const { error } = validateAdmin(req.body);
   if (error) return res.status(400).send({ success: false, message: error.details[0].message });
 
   const { email, password } = req.body;
@@ -99,6 +99,15 @@ router.post('/:type?', async (req, res) => {
     success: true
   });
 });
+
+function validateAdmin(req) {
+  const schema = Joi.object({
+    email: Joi.string().min(5).max(255).email().required(),
+    password: Joi.string().min(5).max(255).required(),
+  });
+
+  return schema.validate(req);
+}
 
 function validate(req) {
   const emailSchema = {

@@ -91,6 +91,9 @@ const postSchema = new mongoose.Schema(
         date: Date,
       },
     ],
+    paidDate: {
+      type: Date,
+    },
     popular: {
       type: Boolean,
       default: false,
