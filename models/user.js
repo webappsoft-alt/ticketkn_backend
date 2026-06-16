@@ -64,6 +64,11 @@ const userSchema = new mongoose.Schema({
     default: "email",
     enum: ["email", "social-login"],
   },
+  dateOfBirth: Date,
+  gender: {
+    type: String,
+    enum: ["male", "female", "other", "prefer_not_to_say"],
+  },
   createdAt: {
     type: Date,
     default: Date.now,

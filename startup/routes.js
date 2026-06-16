@@ -15,6 +15,7 @@ const authMiddleware = require("../middleware/auth");
 const BannerRoute = require("../routes/BannerRoute");
 const supportRoute = require("../routes/supportRoute");
 const subUserRoutes = require("../routes/subUserRoutes");
+const analyticsRoutes = require("../routes/analyticsRoutes");
 module.exports = function (app) {
   app.use(express.json());
   app.use("/api/auth", auth);
@@ -32,5 +33,6 @@ module.exports = function (app) {
   app.use("/api/wallet", authMiddleware, walletRoute);
   app.use("/api/support", supportRoute);
   app.use("/api/subuser", subUserRoutes);
+  app.use("/api/users/analytics", analyticsRoutes);
   app.use(error);
 };
