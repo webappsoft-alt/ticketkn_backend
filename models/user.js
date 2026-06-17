@@ -68,6 +68,7 @@ const userSchema = new mongoose.Schema({
   gender: {
     type: String,
     enum: ["male", "female", "other", "prefer_not_to_say"],
+    default: "prefer_not_to_say",
   },
   createdAt: {
     type: Date,
@@ -113,6 +114,8 @@ function validateUser(user) {
           "array.length": "Coordinates must be an array of exactly 2 numbers",
         }),
       address: Joi.string().optional().allow(""),
+      gender: Joi.string().optional().allow(""),
+      dateOfBirth: Joi.date().optional(),
     }).optional(),
   };
 

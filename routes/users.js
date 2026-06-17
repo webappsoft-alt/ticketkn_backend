@@ -197,11 +197,14 @@ router.post("/verify-otp/registration", async (req, res) => {
 
 router.post("/signup/:type", async (req, res) => {
   try {
-    const { error } = validate(req.body);
-    if (error)
-      return res
-        .status(400)
-        .send({ success: false, message: error.details[0].message });
+    // console.log(req.body);
+    // const { error } = validate(req.body);
+    // if (error) {
+    //   console.log(error.details[0].message);
+    //   return res
+    //     .status(400)
+    //     .send({ success: false, message: error.details[0].message });
+    // }
 
     const { type } = req.params;
 
@@ -210,7 +213,8 @@ router.post("/signup/:type", async (req, res) => {
     if (!validTypes.includes(type))
       return res.status(400).send({ success: false, message: "Invalid type" });
 
-    const { name, password, email, fcmtoken, code } = req.body;
+    const { name, password, email, fcmtoken, code, dateOfBirth, gender } =
+      req.body;
 
     const lowerCaseEmail = String(email).trim().toLocaleLowerCase();
 
@@ -243,6 +247,8 @@ router.post("/signup/:type", async (req, res) => {
       email: lowerCaseEmail,
       fcmtoken,
       type: type,
+      dateOfBirth,
+      gender,
     });
 
     await newUser.save();
@@ -315,8 +321,18 @@ router.post("/conversion", async (req, res) => {
 
 router.put("/admin/update-user", [auth, admin], async (req, res) => {
   try {
-    const { _id, name, image, interests, location, address, balance, status } =
-      req.body;
+    const {
+      _id,
+      name,
+      image,
+      interests,
+      location,
+      address,
+      balance,
+      status,
+      dateOfBirth,
+      gender,
+    } = req.body;
     // Create an object to store the fields to be updated
     const updateFields = Object.fromEntries(
       Object.entries({
@@ -327,7 +343,9 @@ router.put("/admin/update-user", [auth, admin], async (req, res) => {
         location,
         address,
         balance,
-        status
+        status,
+        dateOfBirth,
+        gender,
       }).filter(([key, value]) => value !== undefined),
     );
     // Check if there are any fields to update
@@ -353,7 +371,8 @@ router.put("/admin/update-user", [auth, admin], async (req, res) => {
   }
 });
 router.put("/update-user", auth, async (req, res) => {
-  const { name, image, interests, location, address } = req.body;
+  const { name, image, interests, location, address, dateOfBirth, gender } =
+    req.body;
 
   // Create an object to store the fields to be updated
   const updateFields = Object.fromEntries(
@@ -363,6 +382,8 @@ router.put("/update-user", auth, async (req, res) => {
       interests,
       location,
       address,
+      dateOfBirth,
+      gender,
     }).filter(([key, value]) => value !== undefined),
   );
 
@@ -598,7 +619,9 @@ function buildLast7DaysGraph(orders) {
   const rangeStart = moment().subtract(6, "days").startOf("day");
   const rangeEnd = moment().endOf("day");
   const buckets = Array.from({ length: 7 }, (_, index) => {
-    const day = moment().subtract(6 - index, "days").startOf("day");
+    const day = moment()
+      .subtract(6 - index, "days")
+      .startOf("day");
     return {
       x: day.format("ddd M/D"),
       adminCommission: 0,
@@ -634,7 +657,7 @@ function buildMonthlyGraph(orders) {
   orders.forEach((order) => {
     const createdAt = moment(order.createdAt);
     const bucket = buckets.find((item) =>
-      createdAt.isBetween(item.monthStart, item.monthEnd, null, "[]")
+      createdAt.isBetween(item.monthStart, item.monthEnd, null, "[]"),
     );
     if (!bucket) return;
     addToGraphBucket(bucket, order);
@@ -746,7 +769,9 @@ router.get("/dashboard", [auth, admin], async (req, res) => {
 
 const getDailyData = (purchases, daysCount) => {
   const data = [];
-  const start = moment().subtract(daysCount - 1, "days").startOf("day");
+  const start = moment()
+    .subtract(daysCount - 1, "days")
+    .startOf("day");
   const end = moment().endOf("day");
 
   const dailyMap = {};
@@ -960,10 +985,10 @@ router.get("/owner-dashboard", auth, async (req, res) => {
       status: growthUpcoming >= 0 ? "positive" : "negative",
     },
     graph: {
-      "7": graph7,
-      "30": graph30,
-      "90": graph90,
-      "365": graph365,
+      7: graph7,
+      30: graph30,
+      90: graph90,
+      365: graph365,
     },
   });
 });
@@ -1037,7 +1062,9 @@ router.post("/send-notifications/:type", [auth, admin], async (req, res) => {
         message.apns = {
           payload: {
             aps: {
-              ...((message.apns && message.apns.payload && message.apns.payload.aps) ||
+              ...((message.apns &&
+                message.apns.payload &&
+                message.apns.payload.aps) ||
                 {}),
               "mutable-content": 1,
             },
