@@ -13,6 +13,11 @@ router.get(
   authMiddleware,
   postController.eventsPurchases,
 );
+router.get(
+  "/supplier/scans/:eventId",
+  authMiddleware,
+  postController.getSupplierEventScans,
+);
 router.get("/purchase/all/:id", authMiddleware, postController.getPurchase);
 router.get(
   "/admin/purchase/:id",

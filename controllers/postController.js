@@ -14,6 +14,11 @@ const { AdminTicket, PrintTicket } = require("../models/AdminTicket");
 const mongoose = require("mongoose");
 const { TicketTransfer } = require("../models/TicketTransfer");
 const Notification = require("../models/Notification");
+const {
+  buildScanActorInfo,
+  enrichPurchaseScanInfo,
+  enrichPrintTicketScanInfo,
+} = require("../utils/scanHelpers");
 exports.createPost = async (req, res) => {
   try {
     const {
@@ -1548,6 +1553,10 @@ exports.updatePurchaseScan = async (req, res) => {
             ],
           },
         ],
+      })
+      .populate({
+        path: "tickets_type_sale.scannedAtLog.subUser",
+        select: "fullName email",
       });
 
     if (!purchase)
@@ -1555,7 +1564,14 @@ exports.updatePurchaseScan = async (req, res) => {
         .status(404)
         .json({ message: "Ticket did not found or has already been scanned." });
 
-    res.status(200).json({ success: true, post: purchase });
+    const enriched = enrichPurchaseScanInfo(purchase);
+    const scan = {
+      code: logCode,
+      scannedAt,
+      ...buildScanActorInfo({ scannedby, subUser }),
+    };
+
+    res.status(200).json({ success: true, post: enriched, scan });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal server error" });
@@ -1952,25 +1968,33 @@ exports.eventsPurchases = async (req, res) => {
       .populate("user")
       .populate("ResellTickets")
       .populate("resellpurchases")
+      .populate({
+        path: "tickets_type_sale.scannedAtLog.subUser",
+        select: "fullName email",
+      })
       .sort({ _id: -1 })
       .skip(skip)
       .limit(pageSize)
       .lean();
 
+    const purchases = likedJobs.map((purchase) =>
+      enrichPurchaseScanInfo(purchase),
+    );
+
     const totalCount = await Purchase.countDocuments(query);
     const totalPages = Math.ceil(totalCount / pageSize);
-    if (likedJobs.length > 0) {
+    if (purchases.length > 0) {
       res.status(200).json({
         success: true,
-        purchases: likedJobs,
-        count: { totalPage: totalPages, currentPageSize: likedJobs.length },
+        purchases,
+        count: { totalPage: totalPages, currentPageSize: purchases.length },
       });
     } else {
       res.status(200).json({
         success: false,
         message: "No more purchase purchases found",
         purchases: [],
-        count: { totalPage: totalPages, currentPageSize: likedJobs.length },
+        count: { totalPage: totalPages, currentPageSize: purchases.length },
       });
     }
   } catch (error) {
@@ -2214,34 +2238,7 @@ exports.updateAdminTicket = async (req, res) => {
 };
 
 function enrichPurchaseWithScannedAt(purchase) {
-  const p =
-    purchase && typeof purchase.toObject === "function"
-      ? purchase.toObject()
-      : { ...purchase };
-  const tts = p.tickets_type_sale;
-  if (!tts) return p;
-  const codes = Array.isArray(tts.code) ? tts.code : [];
-  const scannedArr = Array.isArray(tts.scanned)
-    ? tts.scanned.map((c) => String(c))
-    : [];
-  const log = Array.isArray(tts.scannedAtLog) ? tts.scannedAtLog : [];
-  const latestByCode = {};
-  for (const row of log) {
-    if (row == null || row.scannedAt == null) continue;
-    const key = String(row.code);
-    const t = new Date(row.scannedAt).getTime();
-    if (Number.isNaN(t)) continue;
-    const prev = latestByCode[key];
-    if (prev == null || t >= new Date(prev).getTime()) {
-      latestByCode[key] = row.scannedAt;
-    }
-  }
-  p.ticketCodes = codes.map((code) => ({
-    code,
-    scanned: scannedArr.includes(String(code)),
-    scannedAt: latestByCode[String(code)] ?? null,
-  }));
-  return p;
+  return enrichPurchaseScanInfo(purchase);
 }
 
 exports.getAdminTickets = async (req, res) => {
@@ -2350,15 +2347,29 @@ exports.getAdminTickets = async (req, res) => {
       ]);
     }
 
+    adminTickets = adminTickets.map((batch) => {
+      const b = batch?.toObject ? batch.toObject() : { ...batch };
+      return {
+        ...b,
+        tickets: (b.tickets || []).map((ticket) =>
+          enrichPrintTicketScanInfo(ticket),
+        ),
+      };
+    });
+
     let purchases = [];
     if (eventId && userId) {
       const eventDoc = await Post.findById(eventId).select("user").lean();
       if (eventDoc && String(eventDoc.user) === String(userId)) {
         const purchaseDocs = await Purchase.find({ event: eventId })
           .populate("user", "name email phone")
+          .populate({
+            path: "tickets_type_sale.scannedAtLog.subUser",
+            select: "fullName email",
+          })
           .sort({ createdAt: -1 })
           .lean();
-        purchases = purchaseDocs.map((doc) => enrichPurchaseWithScannedAt(doc));
+        purchases = purchaseDocs.map((doc) => enrichPurchaseScanInfo(doc));
       }
     }
 
@@ -2478,14 +2489,31 @@ exports.scanPrintTicket = async (req, res) => {
       printTicket.subUser = req.user._id;
     } else {
       printTicket.scannedBy = "Owner";
+      printTicket.subUser = undefined;
     }
     printTicket.scanned = true;
+    printTicket.scannedAt = new Date();
     await printTicket.save();
+
+    const populatedPrintTicket = await PrintTicket.findById(printTicket._id)
+      .populate("subUser", "fullName email")
+      .lean();
+    const enrichedPrintTicket = enrichPrintTicketScanInfo(populatedPrintTicket);
+    const scan = {
+      code: printTicket.code,
+      scannedAt: enrichedPrintTicket.scannedAt,
+      ...buildScanActorInfo({
+        scannedBy: enrichedPrintTicket.scannedBy,
+        subUser: enrichedPrintTicket.subUser?._id ?? enrichedPrintTicket.subUser,
+      }),
+    };
 
     res.status(200).json({
       success: true,
       message: "Print ticket scanned successfully",
       data: adminTicket,
+      printTicket: enrichedPrintTicket,
+      scan,
     });
   } catch (error) {
     console.log(error);
@@ -2494,6 +2522,99 @@ exports.scanPrintTicket = async (req, res) => {
       message: "Internal server error",
       error: error.message,
     });
+  }
+};
+
+exports.getSupplierEventScans = async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+    const event = await Post.findOne({ _id: eventId, user: req.user._id });
+    if (!event) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Event not found" });
+    }
+
+    const purchaseDocs = await Purchase.find({
+      event: eventId,
+      resel_by: { $exists: false },
+      "tickets_type_sale.scannedAtLog.0": { $exists: true },
+    })
+      .populate("user", "name email phone")
+      .populate({
+        path: "tickets_type_sale.scannedAtLog.subUser",
+        select: "fullName email",
+      })
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    const purchaseScans = [];
+    for (const doc of purchaseDocs) {
+      const enriched = enrichPurchaseScanInfo(doc);
+      const log = enriched.tickets_type_sale?.scannedAtLog || [];
+      for (const entry of log) {
+        purchaseScans.push({
+          ticketType: "purchase",
+          eventId,
+          purchaseId: doc._id,
+          attendee: doc.user,
+          code: entry.code,
+          scannedAt: entry.scannedAt,
+          scannedByType: entry.scannedByType,
+          scannedByName: entry.scannedByName,
+          subUserId: entry.subUserId,
+          subUser: entry.subUser ?? null,
+        });
+      }
+    }
+    purchaseScans.sort(
+      (a, b) =>
+        new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime(),
+    );
+
+    const adminBatches = await AdminTicket.find({
+      event: eventId,
+      supplier: req.user._id,
+    })
+      .populate({
+        path: "tickets",
+        match: { scanned: true },
+        populate: { path: "subUser", select: "fullName email" },
+      })
+      .lean();
+
+    const printTicketScans = [];
+    for (const batch of adminBatches) {
+      for (const ticket of batch.tickets || []) {
+        const enriched = enrichPrintTicketScanInfo(ticket);
+        printTicketScans.push({
+          ticketType: "print",
+          eventId,
+          printTicketId: enriched._id,
+          code: enriched.code,
+          ticketCategory: enriched.type,
+          scannedAt: enriched.scannedAt,
+          scannedByType: enriched.scannedByType,
+          scannedByName: enriched.scannedByName,
+          subUserId: enriched.subUserId,
+          subUser: enriched.subUser ?? null,
+        });
+      }
+    }
+    printTicketScans.sort(
+      (a, b) =>
+        new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime(),
+    );
+
+    res.status(200).json({
+      success: true,
+      purchaseScans,
+      printTicketScans,
+      total: purchaseScans.length + printTicketScans.length,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

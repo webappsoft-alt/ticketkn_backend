@@ -10,6 +10,10 @@ const Purchase = require("../models/Purchase");
 const { PrintTicket, AdminTicket } = require("../models/AdminTicket");
 const { sendSubUserEmail } = require("../controllers/emailservice");
 const config = require("config");
+const {
+  enrichPurchaseScanInfo,
+  enrichPrintTicketScanInfo,
+} = require("../utils/scanHelpers");
 
 const accessEventsPopulate = {
   path: "accessEvents",
@@ -109,7 +113,7 @@ router.get("/my-scanned-tickets", subUserAuth, async (req, res) => {
         purchase.tickets_type_sale?.scannedAtLog || []
       ).filter((log) => log.subUser?.toString() === subUserId.toString());
 
-      return {
+      const filtered = {
         ...purchase,
         tickets_type_sale: {
           ...purchase.tickets_type_sale,
@@ -117,6 +121,7 @@ router.get("/my-scanned-tickets", subUserAuth, async (req, res) => {
           scanned: scannedAtLog.map((log) => log.code),
         },
       };
+      return enrichPurchaseScanInfo(filtered);
     });
 
     const printTickets = await PrintTicket.find({ subUser: subUserId }).lean();
@@ -138,10 +143,12 @@ router.get("/my-scanned-tickets", subUserAuth, async (req, res) => {
 
     const printTicketScans = printTickets
       .filter((ticket) => eventByTicketId[ticket._id.toString()])
-      .map((ticket) => ({
-        ...ticket,
-        event: eventByTicketId[ticket._id.toString()],
-      }));
+      .map((ticket) =>
+        enrichPrintTicketScanInfo({
+          ...ticket,
+          event: eventByTicketId[ticket._id.toString()],
+        }),
+      );
 
     res.status(200).json({
       success: true,
