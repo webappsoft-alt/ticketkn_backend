@@ -2538,7 +2538,10 @@ exports.getSupplierEventScans = async (req, res) => {
     const purchaseDocs = await Purchase.find({
       event: eventId,
       resel_by: { $exists: false },
-      "tickets_type_sale.scannedAtLog.0": { $exists: true },
+      $or: [
+        { "tickets_type_sale.scannedAtLog.0": { $exists: true } },
+        { "tickets_type_sale.scanned.0": { $exists: true } },
+      ],
     })
       .populate("user", "name email phone")
       .populate({
@@ -2567,10 +2570,11 @@ exports.getSupplierEventScans = async (req, res) => {
         });
       }
     }
-    purchaseScans.sort(
-      (a, b) =>
-        new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime(),
-    );
+    purchaseScans.sort((a, b) => {
+      const ta = a.scannedAt ? new Date(a.scannedAt).getTime() : 0;
+      const tb = b.scannedAt ? new Date(b.scannedAt).getTime() : 0;
+      return tb - ta;
+    });
 
     const adminBatches = await AdminTicket.find({
       event: eventId,
@@ -2601,10 +2605,11 @@ exports.getSupplierEventScans = async (req, res) => {
         });
       }
     }
-    printTicketScans.sort(
-      (a, b) =>
-        new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime(),
-    );
+    printTicketScans.sort((a, b) => {
+      const ta = a.scannedAt ? new Date(a.scannedAt).getTime() : 0;
+      const tb = b.scannedAt ? new Date(b.scannedAt).getTime() : 0;
+      return tb - ta;
+    });
 
     res.status(200).json({
       success: true,

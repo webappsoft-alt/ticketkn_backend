@@ -29,6 +29,16 @@ function enrichScannedAtLogEntry(entry) {
   };
 }
 
+function buildLegacyScanEntry(code) {
+  const num = Number(code);
+  return {
+    code: Number.isNaN(num) ? code : num,
+    scannedAt: null,
+    scannedby: "Owner",
+    subUser: null,
+  };
+}
+
 function enrichPurchaseScanInfo(purchase) {
   const p =
     purchase && typeof purchase.toObject === "function"
@@ -41,7 +51,7 @@ function enrichPurchaseScanInfo(purchase) {
   const scannedArr = Array.isArray(tts.scanned)
     ? tts.scanned.map((c) => String(c))
     : [];
-  const log = Array.isArray(tts.scannedAtLog) ? tts.scannedAtLog : [];
+  const log = Array.isArray(tts.scannedAtLog) ? [...tts.scannedAtLog] : [];
   const latestLogByCode = {};
 
   for (const row of log) {
@@ -55,14 +65,30 @@ function enrichPurchaseScanInfo(purchase) {
     }
   }
 
-  p.ticketCodes = codes.map((code) => {
-    const latestLog = latestLogByCode[String(code)];
+  const logCodes = new Set(log.map((row) => String(row.code)));
+  for (const codeStr of scannedArr) {
+    if (logCodes.has(codeStr)) continue;
+    const legacyEntry = buildLegacyScanEntry(codeStr);
+    log.push(legacyEntry);
+    logCodes.add(codeStr);
+    latestLogByCode[codeStr] = legacyEntry;
+  }
+
+  const allCodeKeys = [...new Set([...codes.map(String), ...scannedArr])];
+
+  p.ticketCodes = allCodeKeys.map((codeStr) => {
+    const code =
+      codes.find((c) => String(c) === codeStr) ??
+      (Number.isNaN(Number(codeStr)) ? codeStr : Number(codeStr));
+    const latestLog = latestLogByCode[codeStr];
+    const isScanned = scannedArr.includes(codeStr);
+
     return {
       code,
-      scanned: scannedArr.includes(String(code)),
+      scanned: isScanned,
       scannedAt: latestLog?.scannedAt ?? null,
-      ...(latestLog
-        ? buildScanActorInfo(latestLog)
+      ...(isScanned
+        ? buildScanActorInfo(latestLog ?? { scannedby: "Owner", subUser: null })
         : {
             scannedByType: null,
             scannedByName: null,
@@ -73,7 +99,9 @@ function enrichPurchaseScanInfo(purchase) {
 
   p.tickets_type_sale = {
     ...tts,
-    scannedAtLog: log.map(enrichScannedAtLogEntry),
+    scannedAtLog: log
+      .filter((row) => scannedArr.includes(String(row.code)))
+      .map(enrichScannedAtLogEntry),
   };
 
   return p;
