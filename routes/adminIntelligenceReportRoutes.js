@@ -10,7 +10,7 @@ router.get(
   intelligenceReportController.adminListReports,
 );
 
-router.patch(
+router.put(
   "/:reportId",
   [authMiddleware, admin],
   intelligenceReportController.adminUpdateReport,
