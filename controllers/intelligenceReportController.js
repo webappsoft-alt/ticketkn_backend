@@ -5,6 +5,12 @@ const { User } = require("../models/user");
 
 const ACTIVE_STATUSES = ["pending", "delivered"];
 
+const UNSEEN_FILTER = {
+  $or: [{ adminSeen: false }, { adminSeen: { $exists: false } }],
+};
+
+const SEEN_FILTER = { adminSeen: true };
+
 function formatReport(report) {
   if (!report) return null;
   const doc = report.toObject ? report.toObject() : report;
@@ -137,6 +143,52 @@ exports.getReportByEvent = async (req, res) => {
   }
 };
 
+exports.adminReportCounts = async (req, res) => {
+  try {
+    const [unseenCount, seenCount, total] = await Promise.all([
+      IntelligenceReport.countDocuments(UNSEEN_FILTER),
+      IntelligenceReport.countDocuments(SEEN_FILTER),
+      IntelligenceReport.countDocuments({}),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      unseenCount,
+      seenCount,
+      total,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.adminMarkReportsSeen = async (req, res) => {
+  try {
+    const result = await IntelligenceReport.updateMany(UNSEEN_FILTER, {
+      $set: { adminSeen: true },
+    });
+
+    const [unseenCount, seenCount, total] = await Promise.all([
+      IntelligenceReport.countDocuments(UNSEEN_FILTER),
+      IntelligenceReport.countDocuments(SEEN_FILTER),
+      IntelligenceReport.countDocuments({}),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Intelligence report requests marked as seen.",
+      markedCount: result.modifiedCount,
+      unseenCount,
+      seenCount,
+      total,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 exports.adminListReports = async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) > 0 ? parseInt(req.query.page, 10) : 1;
@@ -161,24 +213,35 @@ exports.adminListReports = async (req, res) => {
     ) {
       filter.supplierId = req.query.supplierId;
     }
+    if (req.query.adminSeen !== undefined) {
+      filter.adminSeen = req.query.adminSeen === "true";
+    }
 
-    const [reports, total] = await Promise.all([
+    const [reports, total, unseenCount, seenCount] = await Promise.all([
       IntelligenceReport.find(filter)
         .sort({ requestedAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
       IntelligenceReport.countDocuments(filter),
+      IntelligenceReport.countDocuments(UNSEEN_FILTER),
+      IntelligenceReport.countDocuments(SEEN_FILTER),
     ]);
 
     res.status(200).json({
       reports: reports.map((report) => ({
         ...formatReport(report),
+        adminSeen: report.adminSeen ?? false,
         eventSnapshot: report.eventSnapshot ?? null,
         supplierSnapshot: report.supplierSnapshot ?? null,
         createdAt: report.createdAt,
         updatedAt: report.updatedAt,
       })),
+      counts: {
+        unseenCount,
+        seenCount,
+        total: unseenCount + seenCount,
+      },
       pagination: {
         total,
         page,

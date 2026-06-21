@@ -5,6 +5,18 @@ const admin = require("../middleware/admin");
 const intelligenceReportController = require("../controllers/intelligenceReportController");
 
 router.get(
+  "/count",
+  [authMiddleware, admin],
+  intelligenceReportController.adminReportCounts,
+);
+
+router.put(
+  "/seen",
+  [authMiddleware, admin],
+  intelligenceReportController.adminMarkReportsSeen,
+);
+
+router.get(
   "/",
   [authMiddleware, admin],
   intelligenceReportController.adminListReports,

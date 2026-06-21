@@ -44,11 +44,17 @@ const intelligenceReportSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: null,
     },
+    adminSeen: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   { timestamps: true },
 );
 
 intelligenceReportSchema.index({ supplierId: 1, eventId: 1, status: 1 });
+intelligenceReportSchema.index({ adminSeen: 1, requestedAt: -1 });
 
 module.exports = mongoose.model(
   "IntelligenceReport",
