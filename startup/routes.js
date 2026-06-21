@@ -16,6 +16,8 @@ const BannerRoute = require("../routes/BannerRoute");
 const supportRoute = require("../routes/supportRoute");
 const subUserRoutes = require("../routes/subUserRoutes");
 const analyticsRoutes = require("../routes/analyticsRoutes");
+const intelligenceReportRoutes = require("../routes/intelligenceReportRoutes");
+const adminIntelligenceReportRoutes = require("../routes/adminIntelligenceReportRoutes");
 module.exports = function (app) {
   app.use(express.json());
   app.use("/api/auth", auth);
@@ -25,6 +27,8 @@ module.exports = function (app) {
   app.use("/api/banner", BannerRoute);
   app.use("/api/coupon", couponRoute);
   app.use("/api/event", postRoutes);
+  app.use("/api/event/intelligence-report", intelligenceReportRoutes);
+  app.use("/api/admin/intelligence-reports", adminIntelligenceReportRoutes);
   app.use("/api/jade", jadeRoutes);
   app.use("/api/resell", resellRoutes);
   // app.use('/api/food', authMiddleware,foodRoutes);
