@@ -28,4 +28,9 @@ router.put(
   intelligenceReportController.adminUpdateReport,
 );
 
+router.delete(
+  "/:reportId",
+  [authMiddleware, admin],
+  intelligenceReportController.adminDeleteReport,
+);
 module.exports = router;

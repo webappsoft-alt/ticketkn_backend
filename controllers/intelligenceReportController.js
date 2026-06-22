@@ -196,13 +196,24 @@ exports.adminListReports = async (req, res) => {
       parseInt(req.query.limit, 10) > 0 ? parseInt(req.query.limit, 10) : 20;
     const skip = (page - 1) * limit;
 
-    const filter = {};
+    const filter = {
+      isDeleted: true,
+    };
     if (req.query.status) {
       const status = String(req.query.status).toLowerCase();
       if (!["pending", "delivered", "cancelled"].includes(status)) {
         return res.status(400).json({ message: "Invalid status filter." });
       }
       filter.status = status;
+    }
+    if (req.query.search) {
+      filter.$or = [
+        { "eventSnapshot.name": { $regex: req.query.search, $options: "i" } },
+        { "supplierSnapshot.name": { $regex: req.query.search, $options: "i" } },
+      ];
+    }
+    if (req.query.isDeleted) {
+      filter.isDeleted = req.query.isDeleted === "true" ? true : false;
     }
     if (req.query.eventId && mongoose.Types.ObjectId.isValid(req.query.eventId)) {
       filter.eventId = req.query.eventId;
@@ -312,6 +323,17 @@ exports.adminUpdateReport = async (req, res) => {
         supplierSnapshot: updated.supplierSnapshot ?? null,
       },
     });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.adminDeleteReport = async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const report = await IntelligenceReport.findByIdAndUpdate(reportId, { isDeleted: true }, { new: true });
+    res.status(200).json({ message: "Intelligence report deleted successfully.", report: formatReport(report) });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal server error" });
