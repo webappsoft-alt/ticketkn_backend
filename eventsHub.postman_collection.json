@@ -1,0 +1,1463 @@
+{
+  "info": {
+    "_postman_id": "f4b1a2c0-8e2d-4c3a-9f1b-0e7a6d5c4b30",
+    "name": "EventsHub API",
+    "description": "Auto-generated collection for the eventsHub Express API.\n\nConventions:\n- Auth uses the `x-auth-token` header (NOT `Authorization: Bearer`), matching middleware/auth.js. Set the `token` variable after logging in.\n- Sub-user routes use `x-auth-token: {{subUserToken}}`.\n- Password-reset routes (update-password, verify-otp/forget-password) use the id token returned by forget-password -> `{{idToken}}`.\n- All routes are mounted under `/api/...` (not `/api/v1`).\n- `{{baseUrl}}` is the host only (e.g. http://localhost:8080).\n\nThe 'Unmounted / Not Registered' folder contains route files that exist in the repo but are NOT registered in startup/routes.js, so they are not reachable on the running server. Their path prefixes are best-guess placeholders.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "subUserToken", "value": "", "type": "string" },
+    { "key": "idToken", "value": "", "type": "string" },
+    { "key": "eventId", "value": "6650000000000000000000a1", "type": "string" },
+    { "key": "userId", "value": "6650000000000000000000b2", "type": "string" },
+    { "key": "purchaseId", "value": "6650000000000000000000c3", "type": "string" },
+    { "key": "transferId", "value": "6650000000000000000000d4", "type": "string" },
+    { "key": "categoryId", "value": "6650000000000000000000e5", "type": "string" },
+    { "key": "couponId", "value": "6650000000000000000000f6", "type": "string" },
+    { "key": "bannerId", "value": "66500000000000000000a107", "type": "string" },
+    { "key": "resellId", "value": "66500000000000000000b208", "type": "string" },
+    { "key": "subUserId", "value": "66500000000000000000c309", "type": "string" },
+    { "key": "conversationId", "value": "66500000000000000000d40a", "type": "string" },
+    { "key": "reportId", "value": "66500000000000000000e50b", "type": "string" },
+    { "key": "ticketId", "value": "66500000000000000000f60c", "type": "string" },
+    { "key": "printTicketId", "value": "6650000000000000000a070d", "type": "string" },
+    { "key": "supplierId", "value": "6650000000000000000b080e", "type": "string" },
+    { "key": "code", "value": "12345678", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@ticketkn.com\",\n  \"password\": \"Admin@123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/admin", "host": ["{{baseUrl}}"], "path": ["api", "auth", "admin"] },
+            "description": "Login as an admin user. Returns a JWT token."
+          }
+        },
+        {
+          "name": "Social Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"name\": \"Jane Doe\",\n  \"fcmtoken\": \"sample-fcm-token\",\n  \"type\": \"customer\",\n  \"dateOfBirth\": \"1995-06-15\",\n  \"gender\": \"female\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/social-login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "social-login"] },
+            "description": "Social login/registration. Handled by POST /:type? when type === 'social-login'."
+          }
+        },
+        {
+          "name": "Login (Customer / Owner)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"Secret@123\",\n  \"fcmtoken\": \"sample-fcm-token\",\n  \"type\": \"customer\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth", "host": ["{{baseUrl}}"], "path": ["api", "auth"] },
+            "description": "Email/password login. `type` must be 'customer' or 'owner'."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api", "users", "me"] }
+          }
+        },
+        {
+          "name": "Forget Password",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"jane.doe@example.com\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/forget-password", "host": ["{{baseUrl}}"], "path": ["api", "users", "forget-password"] },
+            "description": "Sends a verification code and returns an id token (use as {{idToken}})."
+          }
+        },
+        {
+          "name": "Update Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{idToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"password\": \"NewSecret@123\",\n  \"token\": \"{{idToken}}\",\n  \"code\": \"1234\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/update-password", "host": ["{{baseUrl}}"], "path": ["api", "users", "update-password"] },
+            "description": "Uses the password-reset id token (passwordauth middleware)."
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"oldPassword\": \"Secret@123\",\n  \"newPassword\": \"NewSecret@123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/change-password", "host": ["{{baseUrl}}"], "path": ["api", "users", "change-password"] }
+          }
+        },
+        {
+          "name": "Send Code",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"new.user@example.com\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/send-code", "host": ["{{baseUrl}}"], "path": ["api", "users", "send-code"] }
+          }
+        },
+        {
+          "name": "Verify OTP (Registration)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"new.user@example.com\",\n  \"code\": \"1234\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/verify-otp/registration", "host": ["{{baseUrl}}"], "path": ["api", "users", "verify-otp", "registration"] }
+          }
+        },
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"New User\",\n  \"password\": \"Secret@123\",\n  \"email\": \"new.user@example.com\",\n  \"fcmtoken\": \"sample-fcm-token\",\n  \"code\": \"1234\",\n  \"dateOfBirth\": \"1996-01-20\",\n  \"gender\": \"male\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/signup/customer", "host": ["{{baseUrl}}"], "path": ["api", "users", "signup", ":type"], "variable": [ { "key": "type", "value": "customer", "description": "customer | owner" } ] }
+          }
+        },
+        {
+          "name": "Verify OTP (Forget Password)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{idToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"1234\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/verify-otp/forget-password", "host": ["{{baseUrl}}"], "path": ["api", "users", "verify-otp", "forget-password"] }
+          }
+        },
+        {
+          "name": "Check Email",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"check.me@example.com\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/check-email", "host": ["{{baseUrl}}"], "path": ["api", "users", "check-email"] }
+          }
+        },
+        {
+          "name": "Currency Conversion",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 100\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/conversion", "host": ["{{baseUrl}}"], "path": ["api", "users", "conversion"] }
+          }
+        },
+        {
+          "name": "Admin Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"_id\": \"{{userId}}\",\n  \"name\": \"Updated Name\",\n  \"image\": \"https://example.com/avatar.jpg\",\n  \"interests\": [\"{{categoryId}}\"],\n  \"location\": { \"type\": \"Point\", \"coordinates\": [-76.5320, 18.0179], \"address\": \"Kingston, Jamaica\" },\n  \"address\": \"Kingston, Jamaica\",\n  \"balance\": 0,\n  \"status\": \"online\",\n  \"dateOfBirth\": \"1990-05-10\",\n  \"gender\": \"male\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/admin/update-user", "host": ["{{baseUrl}}"], "path": ["api", "users", "admin", "update-user"] },
+            "description": "Admin only. status enum: online | deleted | deactivated."
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane Doe\",\n  \"image\": \"https://example.com/avatar.jpg\",\n  \"interests\": [\"{{categoryId}}\"],\n  \"location\": { \"type\": \"Point\", \"coordinates\": [-76.5320, 18.0179], \"address\": \"Kingston, Jamaica\" },\n  \"address\": \"Kingston, Jamaica\",\n  \"dateOfBirth\": \"1995-06-15\",\n  \"gender\": \"female\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/update-user", "host": ["{{baseUrl}}"], "path": ["api", "users", "update-user"] }
+          }
+        },
+        {
+          "name": "Delete My Account",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] },
+            "description": "Soft-deletes the logged-in user (status = deleted)."
+          }
+        },
+        {
+          "name": "Delete User By Id (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "users", ":id"], "variable": [ { "key": "id", "value": "{{userId}}" } ] }
+          }
+        },
+        {
+          "name": "Admin List Users",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/admin/all/1?status=online&unpaid=false&paid=false", "host": ["{{baseUrl}}"], "path": ["api", "users", "admin", ":type", ":id"], "query": [ { "key": "status", "value": "online" }, { "key": "unpaid", "value": "false" }, { "key": "paid", "value": "false" } ], "variable": [ { "key": "type", "value": "all", "description": "all | customer | owner" }, { "key": "id", "value": "1", "description": "page number" } ] }
+          }
+        },
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/search/1/jane?type=all", "host": ["{{baseUrl}}"], "path": ["api", "users", "search", ":id", ":search"], "query": [ { "key": "type", "value": "all", "description": "all | customer | owner" } ], "variable": [ { "key": "id", "value": "1", "description": "page number" }, { "key": "search", "value": "jane" } ] }
+          }
+        },
+        {
+          "name": "Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/dashboard", "host": ["{{baseUrl}}"], "path": ["api", "users", "dashboard"] }
+          }
+        },
+        {
+          "name": "Owner Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/owner-dashboard", "host": ["{{baseUrl}}"], "path": ["api", "users", "owner-dashboard"] }
+          }
+        },
+        {
+          "name": "Send Notifications (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Big Announcement\",\n  \"description\": \"Check out our new events this weekend!\",\n  \"image\": \"https://example.com/banner.jpg\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/send-notifications/all", "host": ["{{baseUrl}}"], "path": ["api", "users", "send-notifications", ":type"], "variable": [ { "key": "type", "value": "all", "description": "all | customer | owner" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"images\": [\"https://example.com/event1.jpg\"],\n  \"name\": \"Summer Music Festival\",\n  \"event_type\": \"concert\",\n  \"start_Date\": \"2026-08-15T18:00:00.000Z\",\n  \"start_Time\": \"2026-08-15T18:00:00.000Z\",\n  \"address\": \"National Stadium, Kingston\",\n  \"country\": \"Jamaica\",\n  \"city\": \"Kingston\",\n  \"state\": \"Kingston\",\n  \"description\": \"An unforgettable night of live music.\",\n  \"join_people\": 500,\n  \"ticket_plans\": [\n    { \"type\": \"general\", \"price\": 50, \"totalTicket\": 300, \"offers\": [], \"isinstallment\": false, \"installmentPlans\": [], \"addOns\": [] },\n    { \"type\": \"vip\", \"price\": 120, \"totalTicket\": 200, \"offers\": [], \"isinstallment\": false, \"installmentPlans\": [], \"addOns\": [] }\n  ],\n  \"refund_policy\": \"Full refund up to 7 days before the event.\",\n  \"category\": \"{{categoryId}}\",\n  \"type\": \"paid\",\n  \"location\": { \"type\": \"Point\", \"coordinates\": [-76.5320, 18.0179] },\n  \"supplierid\": \"{{supplierId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/create", "host": ["{{baseUrl}}"], "path": ["api", "event", "create"] },
+            "description": "type enum: free | paid. ticket_plans[].type: general | vip | vvip | earlybird. supplierid is optional (admin-on-behalf)."
+          }
+        },
+        {
+          "name": "Filter / List Events",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}", "description": "Optional (optionalAuth)" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"last_id\": 1,\n  \"search\": \"festival\",\n  \"today\": false,\n  \"category\": \"{{categoryId}}\",\n  \"offer\": false,\n  \"popular\": false,\n  \"address\": \"Kingston\",\n  \"lat\": 18.0179,\n  \"lng\": -76.5320\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/filter", "host": ["{{baseUrl}}"], "path": ["api", "event", "filter"] },
+            "description": "optionalAuth. Many optional filters; address requires lat & lng."
+          }
+        },
+        {
+          "name": "Event Detail",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}", "description": "Optional (optionalAuth)" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/detail/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "detail", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "No-Coupon Events",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}", "description": "Optional (optionalAuth)" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/no-coupon", "host": ["{{baseUrl}}"], "path": ["api", "event", "no-coupon"] }
+          }
+        },
+        {
+          "name": "My Favourite Events",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/fav/me/1", "host": ["{{baseUrl}}"], "path": ["api", "event", "fav", "me", ":id"], "variable": [ { "key": "id", "value": "1", "description": "page number (optional)" } ] }
+          }
+        },
+        {
+          "name": "My Latest Events",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/me/latest", "host": ["{{baseUrl}}"], "path": ["api", "event", "me", "latest"] }
+          }
+        },
+        {
+          "name": "My Events",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/me/1/festival?type=paid&plan_type=vip&ticket_type=general", "host": ["{{baseUrl}}"], "path": ["api", "event", "me", ":id", ":search"], "query": [ { "key": "type", "value": "paid" }, { "key": "plan_type", "value": "vip" }, { "key": "ticket_type", "value": "general" } ], "variable": [ { "key": "id", "value": "1", "description": "page number" }, { "key": "search", "value": "festival" } ] }
+          }
+        },
+        {
+          "name": "Event Purchases (Supplier)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/purchases/{{eventId}}/all/1", "host": ["{{baseUrl}}"], "path": ["api", "event", "purchases", ":eventId", ":status", ":id"], "variable": [ { "key": "eventId", "value": "{{eventId}}" }, { "key": "status", "value": "all", "description": "all | true | false (scanned)" }, { "key": "id", "value": "1", "description": "page number" } ] }
+          }
+        },
+        {
+          "name": "Supplier Event Scans",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/supplier/scans/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "supplier", "scans", ":eventId"], "variable": [ { "key": "eventId", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "My Purchases (as buyer)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/purchase/all/1", "host": ["{{baseUrl}}"], "path": ["api", "event", "purchase", "all", ":id"], "variable": [ { "key": "id", "value": "1", "description": "page number" } ] }
+          }
+        },
+        {
+          "name": "Admin Purchase Summary",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/purchase/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "purchase", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "My Purchases (as owner)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/me/purchase/1", "host": ["{{baseUrl}}"], "path": ["api", "event", "me", "purchase", ":id"], "variable": [ { "key": "id", "value": "1", "description": "page number (optional)" } ] }
+          }
+        },
+        {
+          "name": "Admin Event Payment Totals",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/event/payment/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "event", "payment", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Admin Update Purchase Payment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"paymentDone\": true,\n  \"payment\": 250.5\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/admin/update-purchases/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "update-purchases", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Get Admin Posts (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"search\": \"festival\",\n  \"today\": true,\n  \"paymentDone\": false,\n  \"user_id\": \"{{userId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/admin/all/1?user_id={{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", ":type", ":id"], "query": [ { "key": "user_id", "value": "{{userId}}" } ], "variable": [ { "key": "type", "value": "all", "description": "all | categoryId" }, { "key": "id", "value": "1", "description": "page number" } ] }
+          }
+        },
+        {
+          "name": "Get Admin Posts (GET)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/all/1?user_id={{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", ":type", ":id"], "query": [ { "key": "user_id", "value": "{{userId}}" } ], "variable": [ { "key": "type", "value": "all", "description": "all | categoryId" }, { "key": "id", "value": "1", "description": "page number" } ] }
+          }
+        },
+        {
+          "name": "Purchase Ticket",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"totalPrice\": 100,\n  \"tickets\": 2,\n  \"tickets_type_sale\": [\n    { \"type\": \"general\", \"totalTicket\": 2, \"price\": 50 }\n  ],\n  \"couponId\": \"{{couponId}}\",\n  \"type\": \"paid\",\n  \"isinstallment\": false,\n  \"installmentPlans\": [],\n  \"addOns\": []\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/purchase/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "purchase", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Purchase Installment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"totalPrice\": 120,\n  \"tickets\": 1,\n  \"tickets_type_sale\": [\n    { \"type\": \"vip\", \"totalTicket\": 1, \"price\": 120 }\n  ],\n  \"couponId\": \"{{couponId}}\",\n  \"type\": \"paid\",\n  \"installmentPlans\": [\n    { \"price\": 60, \"dueDate\": \"2026-07-15\", \"payment\": true },\n    { \"price\": 60, \"dueDate\": \"2026-08-01\", \"payment\": false }\n  ],\n  \"addOns\": []\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/purchase/installment/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "purchase", "installment", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Pay Installment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"isinstallment\": true,\n  \"installmentPlans\": [\n    { \"price\": 60, \"dueDate\": \"2026-07-15\", \"payment\": true },\n    { \"price\": 60, \"dueDate\": \"2026-08-01\", \"payment\": true }\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/purchase/installment/{{purchaseId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "purchase", "installment", ":purchaseId"], "variable": [ { "key": "purchaseId", "value": "{{purchaseId}}" } ] }
+          }
+        },
+        {
+          "name": "Transfer Tickets",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/transfer/{{userId}}/{{purchaseId}}/{{code}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "transfer", ":userId", ":purchaseId", ":code"], "variable": [ { "key": "userId", "value": "{{userId}}", "description": "recipient user id" }, { "key": "purchaseId", "value": "{{purchaseId}}" }, { "key": "code", "value": "{{code}}", "description": "ticket code" } ] }
+          }
+        },
+        {
+          "name": "Accept Transfer",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/accept-transfer/{{transferId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "accept-transfer", ":transferId"], "variable": [ { "key": "transferId", "value": "{{transferId}}" } ] }
+          }
+        },
+        {
+          "name": "Reject Transfer",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/reject-transfer/{{transferId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "reject-transfer", ":transferId"], "variable": [ { "key": "transferId", "value": "{{transferId}}" } ] }
+          }
+        },
+        {
+          "name": "Payment (Jad Card - test)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{baseUrl}}/api/event/payment", "host": ["{{baseUrl}}"], "path": ["api", "event", "payment"] },
+            "description": "No auth. Uses a hard-coded test card payload internally; body is ignored."
+          }
+        },
+        {
+          "name": "Scan Ticket (Owner)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"scannedAt\": \"2026-08-15T19:30:00.000Z\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/ticket/scan/{{userId}}/{{eventId}}/{{purchaseId}}/{{code}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "ticket", "scan", ":userId", ":eventId", ":purchaseId", ":code"], "variable": [ { "key": "userId", "value": "{{userId}}" }, { "key": "eventId", "value": "{{eventId}}" }, { "key": "purchaseId", "value": "{{purchaseId}}" }, { "key": "code", "value": "{{code}}" } ] }
+          }
+        },
+        {
+          "name": "Scan Ticket (Sub-User)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{subUserToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"scannedAt\": \"2026-08-15T19:30:00.000Z\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/ticket/scan-by-subUser/{{userId}}/{{eventId}}/{{purchaseId}}/{{code}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "ticket", "scan-by-subUser", ":userId", ":eventId", ":purchaseId", ":code"], "variable": [ { "key": "userId", "value": "{{userId}}" }, { "key": "eventId", "value": "{{eventId}}" }, { "key": "purchaseId", "value": "{{purchaseId}}" }, { "key": "code", "value": "{{code}}" } ] }
+          }
+        },
+        {
+          "name": "Edit Event",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Summer Music Festival (Updated)\",\n  \"description\": \"Updated description with new lineup.\",\n  \"images\": [\"https://example.com/event1.jpg\"],\n  \"event_type\": \"concert\",\n  \"start_Date\": \"2026-08-16T18:00:00.000Z\",\n  \"start_Time\": \"2026-08-16T18:00:00.000Z\",\n  \"address\": \"National Stadium, Kingston\",\n  \"country\": \"Jamaica\",\n  \"city\": \"Kingston\",\n  \"state\": \"Kingston\",\n  \"join_people\": 600,\n  \"ticket_plans\": [ { \"type\": \"general\", \"price\": 55, \"totalTicket\": 350 } ],\n  \"refund_policy\": \"Full refund up to 5 days before the event.\",\n  \"location\": { \"type\": \"Point\", \"coordinates\": [-76.5320, 18.0179] },\n  \"type\": \"paid\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/edit/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "edit", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Make Event Popular (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"popular\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/editpopular/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "editpopular", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Like / Unlike Event",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/like/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "like", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ], "description": "Toggles like/dislike." }
+          }
+        },
+        {
+          "name": "Create Admin Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"supplierId\": \"{{supplierId}}\",\n  \"tickets\": [\n    { \"type\": \"general\", \"totalTicket\": 50 },\n    { \"type\": \"vip\", \"totalTicket\": 20 }\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/admin/create-ticket", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "create-ticket"] }
+          }
+        },
+        {
+          "name": "Admin Delete Event",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/delete/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "delete", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Update Admin Ticket",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"tickets\": [\n    { \"type\": \"general\", \"totalTicket\": 60 },\n    { \"type\": \"vip\", \"totalTicket\": 25 }\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/admin/update-ticket/{{ticketId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "update-ticket", ":id"], "variable": [ { "key": "id", "value": "{{ticketId}}", "description": "AdminTicket id" } ] }
+          }
+        },
+        {
+          "name": "Get Admin Tickets",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}", "description": "Optional (optionalAuth)" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/tickets?userId={{supplierId}}&eventId={{eventId}}&page=1&limit=10&category=general&search=festival", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "tickets"], "query": [ { "key": "userId", "value": "{{supplierId}}" }, { "key": "eventId", "value": "{{eventId}}" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "10" }, { "key": "category", "value": "general" }, { "key": "search", "value": "festival" } ] }
+          }
+        },
+        {
+          "name": "Get Admin Ticket By Id",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/ticket/{{ticketId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "ticket", ":id"], "variable": [ { "key": "id", "value": "{{ticketId}}", "description": "AdminTicket id" } ] }
+          }
+        },
+        {
+          "name": "Delete Admin Ticket",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/ticket/{{ticketId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "ticket", ":id"], "variable": [ { "key": "id", "value": "{{ticketId}}", "description": "AdminTicket id" } ] }
+          }
+        },
+        {
+          "name": "Delete Print Ticket",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/print-ticket/{{printTicketId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "print-ticket", ":id"], "variable": [ { "key": "id", "value": "{{printTicketId}}" } ] }
+          }
+        },
+        {
+          "name": "Scan Print Ticket (Owner)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/scan-ticket/{{printTicketId}}/{{code}}/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "scan-ticket", ":id", ":code", ":eventId"], "variable": [ { "key": "id", "value": "{{printTicketId}}", "description": "PrintTicket id" }, { "key": "code", "value": "{{code}}" }, { "key": "eventId", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Scan Print Ticket (Sub-User)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{subUserToken}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/admin/scan-ticket-by-subUser/{{printTicketId}}/{{code}}/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "admin", "scan-ticket-by-subUser", ":id", ":code", ":eventId"], "variable": [ { "key": "id", "value": "{{printTicketId}}", "description": "PrintTicket id" }, { "key": "code", "value": "{{code}}" }, { "key": "eventId", "value": "{{eventId}}" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Intelligence Reports",
+      "item": [
+        {
+          "name": "Create Report Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"requestedAt\": \"2026-06-30T12:00:00.000Z\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/event/intelligence-report/request", "host": ["{{baseUrl}}"], "path": ["api", "event", "intelligence-report", "request"] }
+          }
+        },
+        {
+          "name": "Get Report By Event",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/event/intelligence-report/event/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "event", "intelligence-report", "event", ":eventId"], "variable": [ { "key": "eventId", "value": "{{eventId}}" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Intelligence Reports",
+      "item": [
+        {
+          "name": "Report Counts",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/admin/intelligence-reports/count", "host": ["{{baseUrl}}"], "path": ["api", "admin", "intelligence-reports", "count"] }
+          }
+        },
+        {
+          "name": "Mark Reports Seen",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/admin/intelligence-reports/seen", "host": ["{{baseUrl}}"], "path": ["api", "admin", "intelligence-reports", "seen"] }
+          }
+        },
+        {
+          "name": "List Reports",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/admin/intelligence-reports?page=1&limit=20&status=pending&search=festival&isDeleted=false&eventId={{eventId}}&supplierId={{supplierId}}&adminSeen=false", "host": ["{{baseUrl}}"], "path": ["api", "admin", "intelligence-reports"], "query": [ { "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "status", "value": "pending", "description": "pending | delivered | cancelled" }, { "key": "search", "value": "festival" }, { "key": "isDeleted", "value": "false" }, { "key": "eventId", "value": "{{eventId}}" }, { "key": "supplierId", "value": "{{supplierId}}" }, { "key": "adminSeen", "value": "false" } ] }
+          }
+        },
+        {
+          "name": "Update Report",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"delivered\",\n  \"adminNote\": \"Report delivered with full attendee breakdown.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/intelligence-reports/{{reportId}}", "host": ["{{baseUrl}}"], "path": ["api", "admin", "intelligence-reports", ":reportId"], "variable": [ { "key": "reportId", "value": "{{reportId}}" } ], "description": "status: pending | delivered | cancelled" }
+          }
+        },
+        {
+          "name": "Delete Report",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/admin/intelligence-reports/{{reportId}}", "host": ["{{baseUrl}}"], "path": ["api", "admin", "intelligence-reports", ":reportId"], "variable": [ { "key": "reportId", "value": "{{reportId}}" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Concerts\",\n  \"image\": \"https://example.com/concerts.jpg\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/category/create", "host": ["{{baseUrl}}"], "path": ["api", "category", "create"] }
+          }
+        },
+        {
+          "name": "Admin All Categories",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/category/admin-all", "host": ["{{baseUrl}}"], "path": ["api", "category", "admin-all"] }
+          }
+        },
+        {
+          "name": "Admin Categories (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/category/admin/1", "host": ["{{baseUrl}}"], "path": ["api", "category", "admin", ":id"], "variable": [ { "key": "id", "value": "1", "description": "page number" } ] }
+          }
+        },
+        {
+          "name": "Edit Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Live Concerts\",\n  \"image\": \"https://example.com/concerts2.jpg\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/category/edit/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["api", "category", "edit", ":id"], "variable": [ { "key": "id", "value": "{{categoryId}}" } ] }
+          }
+        },
+        {
+          "name": "All Customer Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/category/all", "host": ["{{baseUrl}}"], "path": ["api", "category", "all"], "variable": [ { "key": "id", "value": "", "description": "optional cursor id" } ] }
+          }
+        },
+        {
+          "name": "Activate / Deactivate Category",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/category/active/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["api", "category", ":status", ":id"], "variable": [ { "key": "status", "value": "active", "description": "active | inactive" }, { "key": "id", "value": "{{categoryId}}" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Banners",
+      "item": [
+        {
+          "name": "Create Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Summer Sale Banner\",\n  \"image\": \"https://example.com/banner.jpg\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/banner/create", "host": ["{{baseUrl}}"], "path": ["api", "banner", "create"] }
+          }
+        },
+        {
+          "name": "All Banners",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/banner/all", "host": ["{{baseUrl}}"], "path": ["api", "banner", "all"] }
+          }
+        },
+        {
+          "name": "Edit Banner",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Autumn Sale Banner\",\n  \"image\": \"https://example.com/banner2.jpg\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/banner/edit/{{bannerId}}", "host": ["{{baseUrl}}"], "path": ["api", "banner", "edit", ":id"], "variable": [ { "key": "id", "value": "{{bannerId}}" } ] }
+          }
+        },
+        {
+          "name": "Delete Banner",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/banner/{{bannerId}}", "host": ["{{baseUrl}}"], "path": ["api", "banner", ":id"], "variable": [ { "key": "id", "value": "{{bannerId}}" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Coupons",
+      "item": [
+        {
+          "name": "Create Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"events\": [\"{{eventId}}\"],\n  \"title\": \"Early Bird 20%\",\n  \"code\": \"EARLY20\",\n  \"expirey_date\": \"2026-08-01T00:00:00.000Z\",\n  \"discount\": 20\n}" },
+            "url": { "raw": "{{baseUrl}}/api/coupon/create", "host": ["{{baseUrl}}"], "path": ["api", "coupon", "create"] }
+          }
+        },
+        {
+          "name": "Edit Coupon",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Early Bird 25%\",\n  \"code\": \"EARLY25\",\n  \"expirey_date\": \"2026-08-05T00:00:00.000Z\",\n  \"discount\": 25\n}" },
+            "url": { "raw": "{{baseUrl}}/api/coupon/edit/{{couponId}}", "host": ["{{baseUrl}}"], "path": ["api", "coupon", "edit", ":id"], "variable": [ { "key": "id", "value": "{{couponId}}" } ] }
+          }
+        },
+        {
+          "name": "My Coupons",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/coupon/me", "host": ["{{baseUrl}}"], "path": ["api", "coupon", "me"], "variable": [ { "key": "id", "value": "", "description": "optional cursor id" } ] }
+          }
+        },
+        {
+          "name": "Check Coupon Validity",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"EARLY20\",\n  \"event\": \"{{eventId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/coupon/check-validity", "host": ["{{baseUrl}}"], "path": ["api", "coupon", "check-validity"] }
+          }
+        },
+        {
+          "name": "Delete Coupon",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/coupon/{{couponId}}", "host": ["{{baseUrl}}"], "path": ["api", "coupon", ":id"], "variable": [ { "key": "id", "value": "{{couponId}}" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Resell",
+      "item": [
+        {
+          "name": "Create Resell Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"purchase_ticketId\": \"{{purchaseId}}\",\n  \"code\": \"{{code}}\",\n  \"price\": 75,\n  \"type\": \"vip\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/resell/create", "host": ["{{baseUrl}}"], "path": ["api", "resell", "create"] }
+          }
+        },
+        {
+          "name": "My Resell Tickets",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/resell/me/all/1", "host": ["{{baseUrl}}"], "path": ["api", "resell", "me", "all", ":id"], "variable": [ { "key": "id", "value": "1", "description": "page number" } ] }
+          }
+        },
+        {
+          "name": "Other Resell Events",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}", "description": "Optional (optionalAuth)" } ],
+            "url": { "raw": "{{baseUrl}}/api/resell/all/1", "host": ["{{baseUrl}}"], "path": ["api", "resell", "all", ":id"], "variable": [ { "key": "id", "value": "1", "description": "page number" } ] }
+          }
+        },
+        {
+          "name": "Admin Resell Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/resell/admin?page=1&limit=10&unpaid=false&paid=false", "host": ["{{baseUrl}}"], "path": ["api", "resell", "admin"], "query": [ { "key": "page", "value": "1" }, { "key": "limit", "value": "10" }, { "key": "unpaid", "value": "false" }, { "key": "paid", "value": "false" } ] }
+          }
+        },
+        {
+          "name": "Purchase Resell Ticket",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"paid\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/resell/purchase/{{resellId}}", "host": ["{{baseUrl}}"], "path": ["api", "resell", "purchase", ":id"], "variable": [ { "key": "id", "value": "{{resellId}}", "description": "Resell id" } ] }
+          }
+        },
+        {
+          "name": "Delete Resell Ticket",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/resell/{{resellId}}", "host": ["{{baseUrl}}"], "path": ["api", "resell", ":id"], "variable": [ { "key": "id", "value": "{{resellId}}" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jade Payment",
+      "item": [
+        {
+          "name": "Create Card Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"payment\": {\n    \"amount\": \"100.00\",\n    \"cardnumber\": \"4444111122223333\",\n    \"cardexpmonth\": \"09\",\n    \"cardexpyear\": \"2030\",\n    \"cardcvv\": \"123\",\n    \"cardfirstname\": \"Jane\",\n    \"cardlastname\": \"Doe\",\n    \"address\": \"1 Main St\",\n    \"city\": \"Kingston\",\n    \"state\": \"KN\",\n    \"postalcode\": \"00000\",\n    \"country\": \"JM\",\n    \"email\": \"jane.doe@example.com\",\n    \"phone\": \"8761234567\"\n  }\n}" },
+            "url": { "raw": "{{baseUrl}}/api/jade/create", "host": ["{{baseUrl}}"], "path": ["api", "jade", "create"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"to_id\": \"{{userId}}\",\n  \"message\": \"Hi, is this ticket still available?\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/msg/send", "host": ["{{baseUrl}}"], "path": ["api", "msg", "send"] }
+          }
+        },
+        {
+          "name": "Get Conversations",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/msg/conversations", "host": ["{{baseUrl}}"], "path": ["api", "msg", "conversations"], "variable": [ { "key": "id", "value": "", "description": "optional cursor id" } ] }
+          }
+        },
+        {
+          "name": "Get Messages With User",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/msg/messages/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "msg", "messages", ":userId"], "variable": [ { "key": "userId", "value": "{{userId}}" }, { "key": "id", "value": "", "description": "optional cursor id" } ] }
+          }
+        },
+        {
+          "name": "Get Group Messages",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/msg/groupMessages/{{conversationId}}", "host": ["{{baseUrl}}"], "path": ["api", "msg", "groupMessages", ":conversation"], "variable": [ { "key": "conversation", "value": "{{conversationId}}" }, { "key": "id", "value": "", "description": "optional cursor id" } ] }
+          }
+        },
+        {
+          "name": "Mark All Seen",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/msg/seen/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "msg", "seen", ":userId"], "variable": [ { "key": "userId", "value": "{{userId}}" } ] }
+          }
+        },
+        {
+          "name": "Poll New Messages",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/msg/new-msg/{{userId}}/{{conversationId}}", "host": ["{{baseUrl}}"], "path": ["api", "msg", "new-msg", ":userId", ":id"], "variable": [ { "key": "userId", "value": "{{userId}}" }, { "key": "id", "value": "{{conversationId}}", "description": "last message id" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/notification/all", "host": ["{{baseUrl}}"], "path": ["api", "notification", "all"], "variable": [ { "key": "id", "value": "", "description": "optional cursor id" } ] }
+          }
+        },
+        {
+          "name": "Check Unseen Count",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/notification/check-seen", "host": ["{{baseUrl}}"], "path": ["api", "notification", "check-seen"] }
+          }
+        },
+        {
+          "name": "Delete All Notifications",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/notification/delete-all", "host": ["{{baseUrl}}"], "path": ["api", "notification", "delete-all"] }
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/notification/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "notification", ":id"], "variable": [ { "key": "id", "value": "66500000000000000000ff0e", "description": "notification id" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Wallet Purchase",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"balance\": 50,\n  \"ticketId\": \"{{ticketId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/wallet/purchase", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "purchase"] }
+          }
+        },
+        {
+          "name": "Admin Transactions",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/wallet/admin/transactions?userId={{userId}}&type=all&page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "admin", "transactions"], "query": [ { "key": "userId", "value": "{{userId}}" }, { "key": "type", "value": "all", "description": "all | purchase | deposit" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "10" }, { "key": "id", "value": "", "description": "optional cursor id", "disabled": true } ] }
+          }
+        },
+        {
+          "name": "My Transactions",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/wallet/transactions/all", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "transactions", ":type"], "variable": [ { "key": "type", "value": "all", "description": "all | purchase | deposit" }, { "key": "id", "value": "", "description": "optional cursor id" } ] }
+          }
+        },
+        {
+          "name": "Admin Deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"amount\": 100,\n  \"reason\": \"Resell payout\",\n  \"resellId\": \"{{resellId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/wallet/admin/transaction/deposit", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "admin", "transaction", "deposit"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Support",
+      "item": [
+        {
+          "name": "Create Support Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"title\": \"Refund request\",\n  \"msg\": \"I would like a refund for my cancelled event.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/support/create", "host": ["{{baseUrl}}"], "path": ["api", "support", "create"] }
+          }
+        },
+        {
+          "name": "Admin Support List",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/support/admin/1/jane", "host": ["{{baseUrl}}"], "path": ["api", "support", "admin", ":id", ":search"], "variable": [ { "key": "id", "value": "1", "description": "page number" }, { "key": "search", "value": "jane" } ] }
+          }
+        },
+        {
+          "name": "Admin Support Count",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/support/admin-count", "host": ["{{baseUrl}}"], "path": ["api", "support", "admin-count"] }
+          }
+        },
+        {
+          "name": "My Support Messages",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/support/specific/1/refund", "host": ["{{baseUrl}}"], "path": ["api", "support", "specific", ":id", ":search"], "variable": [ { "key": "id", "value": "1", "description": "page number" }, { "key": "search", "value": "refund" } ] }
+          }
+        },
+        {
+          "name": "Attend Support Ticket (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"msg\": \"Your refund has been processed.\",\n  \"isResolved\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/api/support/attended/66500000000000000000aa0f", "host": ["{{baseUrl}}"], "path": ["api", "support", "attended", ":id"], "variable": [ { "key": "id", "value": "66500000000000000000aa0f", "description": "Support ticket id" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sub Users",
+      "item": [
+        {
+          "name": "Add Sub-User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Scanner One\",\n  \"email\": \"scanner.one@example.com\",\n  \"accessEvents\": [\"{{eventId}}\"]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/subuser/add-user", "host": ["{{baseUrl}}"], "path": ["api", "subuser", "add-user"] }
+          }
+        },
+        {
+          "name": "Sub-User Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"scanner.one@example.com\",\n  \"password\": \"GeneratedPass1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/subuser/login", "host": ["{{baseUrl}}"], "path": ["api", "subuser", "login"] },
+            "description": "Returns a sub-user token; set it as {{subUserToken}}."
+          }
+        },
+        {
+          "name": "Sub-User My Details",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{subUserToken}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/subuser/my-details", "host": ["{{baseUrl}}"], "path": ["api", "subuser", "my-details"] }
+          }
+        },
+        {
+          "name": "Sub-User My Scanned Tickets",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{subUserToken}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/subuser/my-scanned-tickets", "host": ["{{baseUrl}}"], "path": ["api", "subuser", "my-scanned-tickets"] }
+          }
+        },
+        {
+          "name": "List My Sub-Users",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/subuser", "host": ["{{baseUrl}}"], "path": ["api", "subuser"] }
+          }
+        },
+        {
+          "name": "Generate Sub-User Token",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/subuser/generate-sub-user-token/{{subUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "subuser", "generate-sub-user-token", ":id"], "variable": [ { "key": "id", "value": "{{subUserId}}" } ] },
+            "description": "NOTE: in subUserRoutes.js this route is declared as 'generate-sub-user-token/:id' WITHOUT a leading slash, so it may not resolve as expected on the server. Included here with the intended path."
+          }
+        },
+        {
+          "name": "Get Sub-User By Id",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/subuser/{{subUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "subuser", ":id"], "variable": [ { "key": "id", "value": "{{subUserId}}" } ] }
+          }
+        },
+        {
+          "name": "Deactivate Sub-User",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/subuser/{{subUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "subuser", ":id"], "variable": [ { "key": "id", "value": "{{subUserId}}" } ] }
+          }
+        },
+        {
+          "name": "Activate Sub-User",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/subuser/active/{{subUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "subuser", "active", ":id"], "variable": [ { "key": "id", "value": "{{subUserId}}" } ] }
+          }
+        },
+        {
+          "name": "Add Access Events",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"accessEvents\": [\"{{eventId}}\"]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/subuser/add-access-events/{{subUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "subuser", "add-access-events", ":id"], "variable": [ { "key": "id", "value": "{{subUserId}}" } ] }
+          }
+        },
+        {
+          "name": "Remove Access Events",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-auth-token", "value": "{{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"accessEvents\": [\"{{eventId}}\"]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/subuser/remove-access-events/{{subUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "subuser", "remove-access-events", ":id"], "variable": [ { "key": "id", "value": "{{subUserId}}" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Break-Even Analysis",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/analytics/break-even?eventId={{eventId}}&venueCost=2000&marketingCost=500&staffCost=800&equipmentCost=300&variableCostPerUnit=5", "host": ["{{baseUrl}}"], "path": ["api", "users", "analytics", "break-even"], "query": [ { "key": "eventId", "value": "{{eventId}}" }, { "key": "venueCost", "value": "2000" }, { "key": "marketingCost", "value": "500" }, { "key": "staffCost", "value": "800" }, { "key": "equipmentCost", "value": "300" }, { "key": "variableCostPerUnit", "value": "5" }, { "key": "totalCosts", "value": "", "description": "optional override of fixed costs", "disabled": true } ] }
+          }
+        },
+        {
+          "name": "Attendee Demographics",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/analytics/attendee-demographics?eventId={{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "users", "analytics", "attendee-demographics"], "query": [ { "key": "eventId", "value": "{{eventId}}" } ] }
+          }
+        },
+        {
+          "name": "Event Comparison",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/analytics/event-comparison?eventIds={{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "users", "analytics", "event-comparison"], "query": [ { "key": "eventIds", "value": "{{eventId}}", "description": "comma-separated, max 10" } ] }
+          }
+        },
+        {
+          "name": "Revenue Forecast",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/users/analytics/revenue-forecast?eventId={{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "users", "analytics", "revenue-forecast"], "query": [ { "key": "eventId", "value": "{{eventId}}" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Image Upload",
+      "item": [
+        {
+          "name": "Upload Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "formdata", "formdata": [ { "key": "image", "type": "file", "src": [] } ] },
+            "url": { "raw": "{{baseUrl}}/api/image/upload", "host": ["{{baseUrl}}"], "path": ["api", "image", "upload"] },
+            "description": "multipart/form-data with field name 'image'. Returns a public URL."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public / Web Pages",
+      "item": [
+        {
+          "name": "Event Share Page (HTML)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/event?id={{eventId}}", "host": ["{{baseUrl}}"], "path": ["event"], "query": [ { "key": "id", "value": "{{eventId}}" } ] },
+            "description": "Server-rendered HTML page for an event."
+          }
+        },
+        {
+          "name": "Privacy Policy (HTML)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/privacy", "host": ["{{baseUrl}}"], "path": ["privacy"] }
+          }
+        },
+        {
+          "name": "Android Asset Links",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/.well-known/assetlinks.json", "host": ["{{baseUrl}}"], "path": [".well-known", "assetlinks.json"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unmounted / Not Registered",
+      "description": "These route files exist in the repo but are NOT registered in startup/routes.js, so they are not reachable on the running server. Path prefixes below are best-guess placeholders based on each file's likely mount point.",
+      "item": [
+        {
+          "name": "Ratings (not mounted)",
+          "item": [
+            {
+              "name": "Create Rating",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-auth-token", "value": "{{token}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"to_id\": \"{{userId}}\",\n  \"event\": \"{{eventId}}\",\n  \"speed\": 80,\n  \"passing\": 75,\n  \"shooting\": 90,\n  \"dribling\": 85,\n  \"review\": \"Great organizer, smooth event.\"\n}" },
+                "url": { "raw": "{{baseUrl}}/api/rating/create", "host": ["{{baseUrl}}"], "path": ["api", "rating", "create"] }
+              }
+            },
+            {
+              "name": "Get User Ratings",
+              "request": {
+                "method": "GET",
+                "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+                "url": { "raw": "{{baseUrl}}/api/rating/all/{{userId}}/1", "host": ["{{baseUrl}}"], "path": ["api", "rating", "all", ":userId", ":id"], "variable": [ { "key": "userId", "value": "{{userId}}" }, { "key": "id", "value": "1", "description": "cursor id (optional)" } ] }
+              }
+            },
+            {
+              "name": "Get Service Ratings",
+              "request": {
+                "method": "GET",
+                "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+                "url": { "raw": "{{baseUrl}}/api/rating/event/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "rating", "event", ":eventId"], "variable": [ { "key": "eventId", "value": "{{eventId}}" } ] }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payments (not mounted)",
+          "item": [
+            {
+              "name": "Create Payment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-auth-token", "value": "{{token}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"amount\": 100,\n  \"currency\": \"USD\"\n}" },
+                "url": { "raw": "{{baseUrl}}/api/payment/create", "host": ["{{baseUrl}}"], "path": ["api", "payment", "create"] }
+              }
+            },
+            {
+              "name": "Create Account",
+              "request": {
+                "method": "GET",
+                "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+                "url": { "raw": "{{baseUrl}}/api/payment/createAccount", "host": ["{{baseUrl}}"], "path": ["api", "payment", "createAccount"] }
+              }
+            },
+            {
+              "name": "Redirect Callback",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{baseUrl}}/api/payment/redirect/callback", "host": ["{{baseUrl}}"], "path": ["api", "payment", "redirect", "callback"] }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Food (commented out)",
+          "item": [
+            {
+              "name": "Create Food Program",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-auth-token", "value": "{{token}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Sample Program\",\n  \"description\": \"Placeholder body - route is commented out.\"\n}" },
+                "url": { "raw": "{{baseUrl}}/api/food/create", "host": ["{{baseUrl}}"], "path": ["api", "food", "create"] }
+              }
+            },
+            {
+              "name": "Edit Food Program",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-auth-token", "value": "{{token}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Program\"\n}" },
+                "url": { "raw": "{{baseUrl}}/api/food/edit/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "food", "edit", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+              }
+            },
+            {
+              "name": "Get Food Programs",
+              "request": {
+                "method": "GET",
+                "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+                "url": { "raw": "{{baseUrl}}/api/food/me/1", "host": ["{{baseUrl}}"], "path": ["api", "food", "me", ":id"], "variable": [ { "key": "id", "value": "1", "description": "page number" } ] }
+              }
+            },
+            {
+              "name": "Filter Food Programs",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-auth-token", "value": "{{token}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"search\": \"\"\n}" },
+                "url": { "raw": "{{baseUrl}}/api/food/all/1", "host": ["{{baseUrl}}"], "path": ["api", "food", "all", ":id"], "variable": [ { "key": "id", "value": "1", "description": "page number (optional)" } ] }
+              }
+            },
+            {
+              "name": "Delete Food Program",
+              "request": {
+                "method": "DELETE",
+                "header": [ { "key": "x-auth-token", "value": "{{token}}" } ],
+                "url": { "raw": "{{baseUrl}}/api/food/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "food", ":id"], "variable": [ { "key": "id", "value": "{{eventId}}" } ] }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Video Upload (not mounted)",
+          "item": [
+            {
+              "name": "Upload Video",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": { "mode": "formdata", "formdata": [ { "key": "video", "type": "file", "src": [] } ] },
+                "url": { "raw": "{{baseUrl}}/api/video/upload", "host": ["{{baseUrl}}"], "path": ["api", "video", "upload"] },
+                "description": "multipart/form-data with field name 'video'."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
