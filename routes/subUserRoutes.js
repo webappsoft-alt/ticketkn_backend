@@ -23,6 +23,7 @@ const accessEventsPopulate = {
       path: "purchase_by",
       populate: [{ path: "user", model: "user" }],
     },
+    { path: "coupon", model: "Coupon" },
   ],
 };
 function generateOTP(length = 6, options = { numeric: true, alphabet: false }) {
@@ -63,7 +64,6 @@ router.post("/add-user", authMiddleware, async (req, res) => {
           .status(400)
           .json({ success: false, message: "Some events are not found" });
       }
-
     }
     const mainUser = req.user._id;
     const password = generateOTP(8, { numeric: true, alphabet: true });
@@ -87,7 +87,8 @@ router.get("/my-details", subUserAuth, async (req, res) => {
   try {
     const user = await subUser
       .findById(req.user._id)
-      .populate(accessEventsPopulate).populate({ path: "mainUser", model: "user" })
+      .populate(accessEventsPopulate)
+      .populate({ path: "mainUser", model: "user" })
       .lean();
     res.status(200).json({ success: true, subUser: user });
   } catch (error) {
@@ -162,7 +163,11 @@ router.get("/my-scanned-tickets", subUserAuth, async (req, res) => {
 });
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const subUsers = await subUser.find({ mainUser: req.user._id }).populate(accessEventsPopulate).lean();
+    const subUsers = await subUser
+      .find({ mainUser: req.user._id })
+      .populate(accessEventsPopulate)
+      .sort({ createdAt: -1 })
+      .lean();
     res.status(200).json({ success: true, subUsers });
   } catch (error) {
     console.log(error);
@@ -171,7 +176,10 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
-    const user = await subUser.findById(req.params.id).populate(accessEventsPopulate).lean();
+    const user = await subUser
+      .findById(req.params.id)
+      .populate(accessEventsPopulate)
+      .lean();
     res.status(200).json({ success: true, subUser: user });
   } catch (error) {
     console.log(error);
@@ -193,7 +201,14 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 });
 router.put("/active/:id", authMiddleware, async (req, res) => {
   try {
-    const user = await subUser.findByIdAndUpdate(req.params.id, { $set: { status: "active" } }, { new: true }).populate("accessEvents").lean();
+    const user = await subUser
+      .findByIdAndUpdate(
+        req.params.id,
+        { $set: { status: "active" } },
+        { new: true },
+      )
+      .populate("accessEvents")
+      .lean();
     res.status(200).json({ success: true, subUser: user });
   } catch (error) {
     console.log(error);
@@ -209,7 +224,16 @@ router.put("/add-access-events/:id", authMiddleware, async (req, res) => {
         .status(400)
         .json({ success: false, message: "Some events are not found" });
     }
-    const user = await subUser.findByIdAndUpdate(req.params.id, { $push: { accessEvents: { $each: events.map((event) => event._id) } } }, { new: true }).populate("accessEvents").lean();
+    const user = await subUser
+      .findByIdAndUpdate(
+        req.params.id,
+        {
+          $push: { accessEvents: { $each: events.map((event) => event._id) } },
+        },
+        { new: true },
+      )
+      .populate("accessEvents")
+      .lean();
     res.status(200).json({ success: true, subUser: user });
   } catch (error) {
     console.log(error);
@@ -272,7 +296,8 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
     const user = await subUser
       .findOne({ email })
-      .populate(accessEventsPopulate).populate({ path: "mainUser", model: "user" })
+      .populate(accessEventsPopulate)
+      .populate({ path: "mainUser", model: "user" })
       .lean();
     if (!user) {
       return res

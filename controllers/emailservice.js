@@ -314,7 +314,7 @@ exports.sendSubUserEmail = async (email, password) => {
   const mailOptions = {
     from: "Support@ticketkn.com",
     to: email, // Replace with the recipient's email address
-    subject: "Tickitts ticekt purchase",
+    subject: "Congratulations! Now you are a sub user of Tickitts",
     html: html,
   };
 
